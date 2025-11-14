@@ -14,7 +14,7 @@ Sistema ERP completo para la gestión integral de inventario, compras, solicitud
 
 ## 🛠️ Tecnologías
 
-- **Backend**: Django 4.2
+- **Backend**: Django 5.2.7
 - **Base de Datos**: PostgreSQL
 - **Frontend**: Bootstrap 5, JavaScript (Vanilla)
 - **Arquitectura**: Clean Architecture, Repository Pattern, Service Layer
