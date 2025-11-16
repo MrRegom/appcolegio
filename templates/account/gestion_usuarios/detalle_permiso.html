@@ -1,0 +1,263 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">{{ titulo }}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'accounts:menu_usuarios' %}">Gestión de Usuarios</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'accounts:lista_permisos' %}">Permisos</a></li>
+                            <li class="breadcrumb-item active">{{ permiso.codename }}</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center">
+                        <h5 class="card-title mb-0 flex-grow-1">
+                            <i class="ri-shield-keyhole-line me-2"></i>Información del Permiso
+                        </h5>
+                        <div class="d-flex gap-2">
+                            {% if permisos.puede_editar %}
+                                {% if not permiso.codename|slice:":4" == "add_" and not permiso.codename|slice:":7" == "change_" and not permiso.codename|slice:":7" == "delete_" and not permiso.codename|slice:":5" == "view_" %}
+                                    <a href="{% url 'accounts:editar_permiso' permiso.pk %}" class="btn btn-sm btn-primary">
+                                        <i class="ri-edit-line"></i> Editar
+                                    </a>
+                                {% endif %}
+                            {% endif %}
+                            <a href="{% url 'accounts:lista_permisos' %}" class="btn btn-sm btn-secondary">
+                                <i class="ri-arrow-left-line"></i> Volver
+                            </a>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <table class="table table-borderless mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th class="ps-0" scope="row" width="40%">Nombre del Permiso:</th>
+                                            <td class="text-muted">
+                                                <strong>{{ permiso.name }}</strong>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th class="ps-0" scope="row">Código (Codename):</th>
+                                            <td>
+                                                <code class="text-primary">{{ permiso.codename }}</code>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th class="ps-0" scope="row">ID:</th>
+                                            <td class="text-muted">{{ permiso.pk }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <table class="table table-borderless mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th class="ps-0" scope="row" width="40%">Aplicación:</th>
+                                            <td>
+                                                <span class="badge bg-primary-subtle text-primary">
+                                                    {{ permiso.content_type.app_label }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th class="ps-0" scope="row">Modelo:</th>
+                                            <td>
+                                                <span class="badge bg-info-subtle text-info">
+                                                    {{ permiso.content_type.model|title }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th class="ps-0" scope="row">Tipo de Permiso:</th>
+                                            <td>
+                                                {% if permiso.codename|slice:":4" == "add_" %}
+                                                    <span class="badge bg-success">Crear</span>
+                                                {% elif permiso.codename|slice:":7" == "change_" %}
+                                                    <span class="badge bg-info">Editar</span>
+                                                {% elif permiso.codename|slice:":7" == "delete_" %}
+                                                    <span class="badge bg-danger">Eliminar</span>
+                                                {% elif permiso.codename|slice:":5" == "view_" %}
+                                                    <span class="badge bg-primary">Ver</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">Personalizado</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Grupos con este permiso -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="ri-group-line me-2"></i>Roles/Grupos con este Permiso
+                            <span class="badge bg-secondary ms-2">{{ grupos_con_permiso|length }}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if grupos_con_permiso %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Nombre del Rol</th>
+                                            <th>Usuarios en el Rol</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for grupo in grupos_con_permiso %}
+                                        <tr>
+                                            <td>
+                                                <i class="ri-shield-user-line text-primary me-1"></i>
+                                                <strong>{{ grupo.name }}</strong>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">{{ grupo.num_usuarios }} usuarios</span>
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'accounts:detalle_grupo' grupo.pk %}" class="btn btn-sm btn-soft-primary">
+                                                    <i class="ri-eye-line"></i> Ver Rol
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <div class="avatar-md mx-auto mb-3">
+                                    <div class="avatar-title bg-soft-secondary text-secondary fs-24 rounded-circle">
+                                        <i class="ri-group-line"></i>
+                                    </div>
+                                </div>
+                                <p class="text-muted mb-0">Ningún rol tiene este permiso asignado.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Usuarios con este permiso directo -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="ri-user-line me-2"></i>Usuarios con Permiso Directo
+                            <span class="badge bg-secondary ms-2">{{ usuarios_con_permiso|length }}</span>
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if usuarios_con_permiso %}
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Usuario</th>
+                                            <th>Nombre Completo</th>
+                                            <th>Email</th>
+                                            <th>Estado</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for usuario in usuarios_con_permiso %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ usuario.username }}</strong>
+                                                {% if usuario.is_superuser %}
+                                                    <span class="badge bg-danger ms-1">Super</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ usuario.get_full_name|default:"-" }}</td>
+                                            <td>{{ usuario.email|default:"-" }}</td>
+                                            <td>
+                                                {% if usuario.is_active %}
+                                                    <span class="badge bg-success">Activo</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactivo</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <a href="{% url 'accounts:detalle_usuario' usuario.pk %}" class="btn btn-sm btn-soft-primary">
+                                                    <i class="ri-eye-line"></i> Ver Usuario
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <div class="avatar-md mx-auto mb-3">
+                                    <div class="avatar-title bg-soft-secondary text-secondary fs-24 rounded-circle">
+                                        <i class="ri-user-line"></i>
+                                    </div>
+                                </div>
+                                <p class="text-muted mb-0">Ningún usuario tiene este permiso asignado directamente.</p>
+                                <small class="text-muted">Los usuarios pueden tener este permiso a través de roles/grupos.</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Información adicional -->
+                <div class="card bg-light border-0">
+                    <div class="card-body">
+                        <div class="d-flex align-items-start">
+                            <div class="flex-shrink-0">
+                                <i class="ri-information-line text-info fs-24"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-2">Información sobre Permisos</h6>
+                                <p class="text-muted mb-1">
+                                    <strong>Permisos del Sistema:</strong> Los permisos que comienzan con <code>add_</code>,
+                                    <code>change_</code>, <code>delete_</code>, o <code>view_</code> son generados
+                                    automáticamente por Django y no se pueden editar ni eliminar.
+                                </p>
+                                <p class="text-muted mb-0">
+                                    <strong>Permisos Personalizados:</strong> Son permisos creados manualmente para
+                                    funcionalidades específicas de la aplicación y pueden ser editados o eliminados.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

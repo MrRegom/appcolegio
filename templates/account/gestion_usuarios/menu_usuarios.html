@@ -88,6 +88,52 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Card 3: Gestión de Permisos -->
+            {% if permisos.puede_gestionar_permisos %}
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">PERMISOS</h5>
+                            <a href="{% url 'accounts:lista_permisos' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'accounts:crear_permiso' %}" class="btn btn-sm btn-success">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Permiso
+                            </a>
+                            <a href="{% url 'accounts:lista_permisos' %}" class="btn btn-sm btn-outline-success">
+                                <i class="ri-shield-keyhole-line align-bottom me-1"></i> Ver Permisos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Card 4: Auditoría y Logs -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">AUDITORÍA</h5>
+                            <a href="#" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="#" class="btn btn-sm btn-info">
+                                <i class="ri-file-list-3-line align-bottom me-1"></i> Logs de Sistema
+                            </a>
+                            <a href="#" class="btn btn-sm btn-outline-info">
+                                <i class="ri-history-line align-bottom me-1"></i> Historial Login
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Información adicional -->
@@ -106,7 +152,8 @@
                                         Gestione usuarios, roles y permisos del sistema desde esta interfaz.
                                         Actualmente hay <strong>{{ stats.total_usuarios }} usuarios registrados</strong>,
                                         de los cuales <strong>{{ stats.usuarios_activos }} están activos</strong>.
-                                        El sistema cuenta con <strong>{{ stats.total_grupos }} roles configurados</strong>.
+                                        El sistema cuenta con <strong>{{ stats.total_grupos }} roles</strong> y
+                                        <strong>{{ stats.total_permisos }} permisos</strong> configurados.
                                     </p>
                                 </div>
                             </div>

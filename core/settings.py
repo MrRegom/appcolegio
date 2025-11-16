@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.sites',
-    
+
     # Apps del proyecto
     'apps.accounts',  # Gestión de usuarios y permisos
     'apps.pages',    # Páginas del sistema

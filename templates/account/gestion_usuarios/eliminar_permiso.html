@@ -1,0 +1,76 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center">
+                            <div class="text-danger mb-4">
+                                <i class="ri-delete-bin-line" style="font-size: 72px;"></i>
+                            </div>
+                            <h4 class="mb-3">¿Eliminar este permiso personalizado?</h4>
+
+                            <div class="alert alert-warning text-start mb-3" role="alert">
+                                <div class="d-flex">
+                                    <div class="flex-shrink-0">
+                                        <i class="ri-alert-line fs-16"></i>
+                                    </div>
+                                    <div class="flex-grow-1 ms-2">
+                                        <p class="mb-2"><strong>Esta acción no se puede deshacer.</strong></p>
+                                        <p class="mb-0 small">
+                                            El permiso será eliminado permanentemente y todos los usuarios y grupos
+                                            que lo tengan asignado lo perderán.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card bg-light border-0 text-start mb-4">
+                                <div class="card-body">
+                                    <h6 class="mb-3">Información del Permiso:</h6>
+                                    <table class="table table-sm table-borderless mb-0">
+                                        <tr>
+                                            <th width="40%">Nombre:</th>
+                                            <td><strong>{{ permiso.name }}</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Código:</th>
+                                            <td><code class="text-primary">{{ permiso.codename }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Aplicación:</th>
+                                            <td>{{ permiso.content_type.app_label }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Modelo:</th>
+                                            <td>{{ permiso.content_type.model|title }}</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            <form method="post" class="mt-4">
+                                {% csrf_token %}
+                                <div class="d-flex gap-2 justify-content-center">
+                                    <a href="{% url 'accounts:detalle_permiso' permiso.pk %}" class="btn btn-light">
+                                        <i class="ri-close-line align-bottom me-1"></i> Cancelar
+                                    </a>
+                                    <button type="submit" class="btn btn-danger">
+                                        <i class="ri-delete-bin-line align-bottom me-1"></i> Sí, Eliminar Permiso
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

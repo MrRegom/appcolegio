@@ -20,6 +20,9 @@ from django.contrib.auth.models import User
 
 from core.models import BaseModel
 
+# Constante del RBD del establecimiento
+RBD_ESTABLECIMIENTO = '1437'
+
 
 class CategoriaActivo(BaseModel):
     """
@@ -30,6 +33,12 @@ class CategoriaActivo(BaseModel):
     """
     codigo = models.CharField(max_length=20, unique=True, verbose_name='Código')
     nombre = models.CharField(max_length=100, verbose_name='Nombre')
+    sigla = models.CharField(
+        max_length=3,
+        unique=True,
+        verbose_name='Sigla',
+        help_text='Sigla de 3 caracteres para generación automática de códigos de activos (ej: NTB, LCD, ESC)'
+    )
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
 
     class Meta:
@@ -252,21 +261,74 @@ class Activo(BaseModel):
         verbose_name='Precio Unitario'
     )
 
+    def _generar_codigo(self) -> str:
+        """
+        Genera automáticamente el código del activo según formato CCCNNNNN-NNN.
+
+        Formato:
+        - CCC: Sigla de la categoría (3 caracteres)
+        - NNNNN: RBD del establecimiento en 5 dígitos (con ceros a la izquierda)
+        - NNN: Correlativo de 3 dígitos para esa categoría (empezando en 001)
+
+        Ejemplos:
+        - NTB01437-001: Primer portátil
+        - LCD01437-023: Monitor LCD número 23
+
+        Returns:
+            str: Código generado en formato CCCNNNNN-NNN
+        """
+        # Obtener la sigla de la categoría
+        sigla: str = self.categoria.sigla.upper()
+
+        # Formatear RBD a 5 dígitos con ceros a la izquierda
+        rbd_formateado: str = RBD_ESTABLECIMIENTO.zfill(5)
+
+        # Obtener el último correlativo de esta categoría
+        ultimo_activo = Activo.objects.filter(
+            categoria=self.categoria,
+            eliminado=False
+        ).exclude(pk=self.pk).order_by('-codigo').first()
+
+        if ultimo_activo and ultimo_activo.codigo:
+            # Extraer el correlativo del último código (últimos 3 dígitos después del guión)
+            try:
+                ultimo_correlativo: int = int(ultimo_activo.codigo.split('-')[-1])
+                nuevo_correlativo: int = ultimo_correlativo + 1
+            except (ValueError, IndexError):
+                # Si hay error al parsear, empezar desde 1
+                nuevo_correlativo: int = 1
+        else:
+            # Primer activo de esta categoría
+            nuevo_correlativo: int = 1
+
+        # Formatear correlativo a 3 dígitos
+        correlativo_formateado: str = str(nuevo_correlativo).zfill(3)
+
+        # Generar código final
+        codigo_generado: str = f"{sigla}{rbd_formateado}-{correlativo_formateado}"
+
+        return codigo_generado
+
     def save(self, *args: Any, **kwargs: Any) -> None:
         """
         Guarda el activo en la base de datos.
 
-        Auto-genera el código de barras si no se proporciona,
-        usando el código/SKU del activo.
+        Auto-genera el código si no se proporciona, usando el formato CCCNNNNN-NNN.
+        Auto-genera el código de barras si no se proporciona.
 
         Args:
             *args: Argumentos posicionales para save()
             **kwargs: Argumentos nombrados para save()
         """
+        # Generar código automáticamente si no existe
+        if not self.codigo:
+            self.codigo = self._generar_codigo()
+
+        # Generar código de barras desde el código/SKU si no existe
         if not self.codigo_barras and self.codigo:
-            # Generar código de barras desde el código/SKU
             codigo_limpio: str = self.codigo.replace('-', '').replace('_', '').upper()[:12]
             self.codigo_barras = f"COD{codigo_limpio}"
+
         super().save(*args, **kwargs)
 
     class Meta:
@@ -298,11 +360,22 @@ class MovimientoActivo(BaseModel):
         related_name='movimientos_activo',
         verbose_name='Activo'
     )
+    estado_nuevo = models.ForeignKey(
+        EstadoActivo,
+        on_delete=models.PROTECT,
+        related_name='movimientos_estado',
+        verbose_name='Nuevo Estado',
+        help_text='Estado al que se cambiará el activo',
+        null=True,
+        blank=True
+    )
     tipo_movimiento = models.ForeignKey(
         TipoMovimientoActivo,
         on_delete=models.PROTECT,
         related_name='movimientos',
-        verbose_name='Tipo de Movimiento'
+        verbose_name='Tipo de Movimiento',
+        blank=True,
+        null=True
     )
     ubicacion_destino = models.ForeignKey(
         Ubicacion,

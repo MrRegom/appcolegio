@@ -10,7 +10,7 @@ from django.db import transaction
 from .forms import (
     UserCreateForm, UserUpdateForm, UserPasswordChangeForm,
     GroupForm, GroupPermissionsForm, UserGroupsForm, UserPermissionsForm,
-    UserFilterForm
+    UserFilterForm, PermissionForm
 )
 from .models import AuthLogs, AuthLogAccion
 
@@ -34,6 +34,7 @@ class MenuUsuariosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView
             'usuarios_activos': User.objects.filter(is_active=True).count(),
             'usuarios_staff': User.objects.filter(is_staff=True).count(),
             'total_grupos': Group.objects.count(),
+            'total_permisos': Permission.objects.count(),
         }
 
         # Permisos del usuario actual
@@ -42,7 +43,7 @@ class MenuUsuariosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView
             'puede_editar_usuarios': self.request.user.has_perm('auth.change_user'),
             'puede_eliminar_usuarios': self.request.user.has_perm('auth.delete_user'),
             'puede_gestionar_grupos': self.request.user.has_perm('auth.change_group'),
-            'puede_gestionar_permisos': self.request.user.has_perm('auth.change_permission'),
+            'puede_gestionar_permisos': self.request.user.has_perm('auth.view_permission'),
         }
 
         context['titulo'] = 'Gestión de Usuarios y Permisos'
@@ -530,3 +531,214 @@ def asignar_permisos_usuario(request, pk):
     }
 
     return render(request, 'account/gestion_usuarios/asignar_permisos_usuario.html', context)
+
+
+# ========== GESTIÓN DE PERMISOS ==========
+
+@login_required
+@permission_required('auth.view_permission', raise_exception=True)
+def lista_permisos(request):
+    """Listar todos los permisos del sistema organizados por app y modelo"""
+    # Obtener búsqueda y filtros
+    buscar = request.GET.get('buscar', '')
+    app_filter = request.GET.get('app', '')
+
+    # Obtener todos los permisos
+    permisos = Permission.objects.select_related('content_type').all()
+
+    # Aplicar filtro de búsqueda
+    if buscar:
+        permisos = permisos.filter(
+            Q(name__icontains=buscar) |
+            Q(codename__icontains=buscar) |
+            Q(content_type__model__icontains=buscar) |
+            Q(content_type__app_label__icontains=buscar)
+        )
+
+    # Aplicar filtro por app
+    if app_filter:
+        permisos = permisos.filter(content_type__app_label=app_filter)
+
+    # Organizar permisos por app y modelo
+    permisos_organizados = {}
+    for permiso in permisos:
+        app_label = permiso.content_type.app_label
+        modelo = permiso.content_type.model
+
+        if app_label not in permisos_organizados:
+            permisos_organizados[app_label] = {}
+
+        if modelo not in permisos_organizados[app_label]:
+            permisos_organizados[app_label][modelo] = []
+
+        permisos_organizados[app_label][modelo].append(permiso)
+
+    # Obtener lista de apps para el filtro
+    apps = Permission.objects.select_related('content_type').values_list(
+        'content_type__app_label', flat=True
+    ).distinct().order_by('content_type__app_label')
+
+    # Permisos del usuario
+    permisos_usuario = {
+        'puede_crear': request.user.has_perm('auth.add_permission'),
+        'puede_editar': request.user.has_perm('auth.change_permission'),
+        'puede_eliminar': request.user.has_perm('auth.delete_permission'),
+    }
+
+    context = {
+        'titulo': 'Listado de Permisos',
+        'permisos_organizados': permisos_organizados,
+        'apps': apps,
+        'buscar': buscar,
+        'app_filter': app_filter,
+        'permisos': permisos_usuario,
+    }
+
+    return render(request, 'account/gestion_usuarios/lista_permisos.html', context)
+
+
+@login_required
+@permission_required('auth.view_permission', raise_exception=True)
+def detalle_permiso(request, pk):
+    """Ver detalle de un permiso específico"""
+    permiso = get_object_or_404(
+        Permission.objects.select_related('content_type'),
+        pk=pk
+    )
+
+    # Obtener grupos que tienen este permiso
+    grupos_con_permiso = Group.objects.filter(permissions=permiso).annotate(
+        num_usuarios=Count('user')
+    )
+
+    # Obtener usuarios que tienen este permiso directamente
+    usuarios_con_permiso = User.objects.filter(user_permissions=permiso).select_related()
+
+    # Permisos del usuario
+    permisos_usuario = {
+        'puede_editar': request.user.has_perm('auth.change_permission'),
+        'puede_eliminar': request.user.has_perm('auth.delete_permission'),
+    }
+
+    context = {
+        'titulo': f'Permiso: {permiso.name}',
+        'permiso': permiso,
+        'grupos_con_permiso': grupos_con_permiso,
+        'usuarios_con_permiso': usuarios_con_permiso,
+        'permisos': permisos_usuario,
+    }
+
+    return render(request, 'account/gestion_usuarios/detalle_permiso.html', context)
+
+
+@login_required
+@permission_required('auth.add_permission', raise_exception=True)
+@transaction.atomic
+def crear_permiso(request):
+    """Crear un nuevo permiso personalizado"""
+    if request.method == 'POST':
+        form = PermissionForm(request.POST)
+        if form.is_valid():
+            permiso = form.save()
+
+            # Registrar log
+            registrar_log_auditoria(
+                request.user,
+                'CREAR',
+                f'Permiso personalizado creado: {permiso.codename}',
+                request
+            )
+
+            messages.success(request, f'Permiso "{permiso.name}" creado exitosamente.')
+            return redirect('accounts:detalle_permiso', pk=permiso.pk)
+    else:
+        form = PermissionForm()
+
+    context = {
+        'titulo': 'Crear Permiso Personalizado',
+        'form': form,
+        'action': 'Crear',
+    }
+
+    return render(request, 'account/gestion_usuarios/form_permiso.html', context)
+
+
+@login_required
+@permission_required('auth.change_permission', raise_exception=True)
+@transaction.atomic
+def editar_permiso(request, pk):
+    """Editar un permiso personalizado"""
+    permiso = get_object_or_404(Permission, pk=pk)
+
+    # Verificar si es un permiso del sistema (auto-generado)
+    # Los permisos del sistema tienen codenames que empiezan con add_, change_, delete_, view_
+    es_permiso_sistema = permiso.codename.startswith(('add_', 'change_', 'delete_', 'view_'))
+
+    if es_permiso_sistema:
+        messages.warning(request, 'No se pueden editar los permisos del sistema.')
+        return redirect('accounts:detalle_permiso', pk=permiso.pk)
+
+    if request.method == 'POST':
+        form = PermissionForm(request.POST, instance=permiso)
+        if form.is_valid():
+            permiso = form.save()
+
+            # Registrar log
+            registrar_log_auditoria(
+                request.user,
+                'ACTUALIZAR',
+                f'Permiso personalizado actualizado: {permiso.codename}',
+                request
+            )
+
+            messages.success(request, f'Permiso "{permiso.name}" actualizado exitosamente.')
+            return redirect('accounts:detalle_permiso', pk=permiso.pk)
+    else:
+        form = PermissionForm(instance=permiso)
+
+    context = {
+        'titulo': f'Editar Permiso: {permiso.name}',
+        'form': form,
+        'action': 'Actualizar',
+        'permiso': permiso,
+    }
+
+    return render(request, 'account/gestion_usuarios/form_permiso.html', context)
+
+
+@login_required
+@permission_required('auth.delete_permission', raise_exception=True)
+@transaction.atomic
+def eliminar_permiso(request, pk):
+    """Eliminar un permiso personalizado"""
+    permiso = get_object_or_404(Permission, pk=pk)
+
+    # Verificar si es un permiso del sistema
+    es_permiso_sistema = permiso.codename.startswith(('add_', 'change_', 'delete_', 'view_'))
+
+    if es_permiso_sistema:
+        messages.error(request, 'No se pueden eliminar los permisos del sistema.')
+        return redirect('accounts:lista_permisos')
+
+    if request.method == 'POST':
+        nombre = permiso.name
+        codename = permiso.codename
+        permiso.delete()
+
+        # Registrar log
+        registrar_log_auditoria(
+            request.user,
+            'ELIMINAR',
+            f'Permiso personalizado eliminado: {codename}',
+            request
+        )
+
+        messages.success(request, f'Permiso "{nombre}" eliminado exitosamente.')
+        return redirect('accounts:lista_permisos')
+
+    context = {
+        'titulo': 'Eliminar Permiso',
+        'permiso': permiso,
+    }
+
+    return render(request, 'account/gestion_usuarios/eliminar_permiso.html', context)

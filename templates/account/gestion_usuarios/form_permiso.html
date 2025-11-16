@@ -1,0 +1,165 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <!-- start page title -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">{{ titulo }}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'accounts:menu_usuarios' %}">Gestión de Usuarios</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'accounts:lista_permisos' %}">Permisos</a></li>
+                            <li class="breadcrumb-item active">{{ action }}</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end page title -->
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <div class="row">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="ri-shield-keyhole-line me-2"></i>Información del Permiso Personalizado
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                                        {{ form.name.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.name }}
+                                    {% if form.name.help_text %}
+                                        <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.name.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-md-12">
+                                    <label for="{{ form.content_type.id_for_label }}" class="form-label">
+                                        {{ form.content_type.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.content_type }}
+                                    {% if form.content_type.help_text %}
+                                        <small class="form-text text-muted">{{ form.content_type.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.content_type.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.content_type.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+
+                                <div class="col-md-12">
+                                    <label for="{{ form.codename.id_for_label }}" class="form-label">
+                                        {{ form.codename.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.codename }}
+                                    {% if form.codename.help_text %}
+                                        <small class="form-text text-muted">{{ form.codename.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.codename.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.codename.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <a href="{% url 'accounts:lista_permisos' %}" class="btn btn-secondary">
+                            <i class="ri-close-line align-bottom me-1"></i> Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="ri-save-line align-bottom me-1"></i> {{ action }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <!-- Ayuda sobre permisos personalizados -->
+                    <div class="card bg-light border-0">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="ri-information-line text-info me-1"></i> Ayuda
+                            </h6>
+                            <p class="card-text small text-muted">
+                                Los permisos personalizados te permiten crear controles de acceso específicos para tu aplicación.
+                            </p>
+                            <hr>
+                            <h6 class="small mb-2">Ejemplos de permisos:</h6>
+                            <ul class="small text-muted mb-3">
+                                <li class="mb-2">
+                                    <strong>Nombre:</strong> "Puede aprobar solicitudes"<br>
+                                    <strong>Código:</strong> aprobar_solicitud
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Nombre:</strong> "Puede despachar órdenes"<br>
+                                    <strong>Código:</strong> despachar_orden
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Nombre:</strong> "Puede ver reportes financieros"<br>
+                                    <strong>Código:</strong> ver_reportes_financieros
+                                </li>
+                            </ul>
+                            <hr>
+                            <h6 class="small mb-2">Recomendaciones:</h6>
+                            <ul class="small text-muted mb-0">
+                                <li>Usa nombres descriptivos y claros</li>
+                                <li>El código debe ser único y en minúsculas</li>
+                                <li>Usa guiones bajos (_) en lugar de espacios</li>
+                                <li>Asocia el permiso al modelo correcto</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Advertencia sobre permisos del sistema -->
+                    <div class="alert alert-warning" role="alert">
+                        <div class="d-flex">
+                            <div class="flex-shrink-0">
+                                <i class="ri-alert-line fs-16"></i>
+                            </div>
+                            <div class="flex-grow-1 ms-2">
+                                <h6 class="alert-heading mb-1">Nota Importante</h6>
+                                <p class="mb-0 small">
+                                    Los permisos del sistema (add, change, delete, view) se crean automáticamente
+                                    y no deben ser creados manualmente.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+    </div>
+</div>
+{% endblock %}

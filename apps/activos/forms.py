@@ -23,7 +23,7 @@ class CategoriaActivoForm(forms.ModelForm):
 
     class Meta:
         model = CategoriaActivo
-        fields = ['codigo', 'nombre', 'descripcion', 'activo']
+        fields = ['codigo', 'nombre', 'sigla', 'descripcion', 'activo']
         widgets = {
             'codigo': forms.TextInput(
                 attrs={'class': 'form-control', 'placeholder': 'Ej: COMP'}
@@ -31,12 +31,26 @@ class CategoriaActivoForm(forms.ModelForm):
             'nombre': forms.TextInput(
                 attrs={'class': 'form-control', 'placeholder': 'Ej: Computadoras'}
             ),
+            'sigla': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Ej: NTB, LCD, ESC',
+                    'maxlength': '3',
+                    'style': 'text-transform: uppercase;'
+                }
+            ),
             'descripcion': forms.Textarea(
                 attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción de la categoría...'}
             ),
             'activo': forms.CheckboxInput(
                 attrs={'class': 'form-check-input'}
             ),
+        }
+        labels = {
+            'sigla': 'Sigla (3 caracteres)',
+        }
+        help_texts = {
+            'sigla': 'Sigla de 3 caracteres para generación automática de códigos (ej: NTB para Notebook, LCD para Monitor)',
         }
 
 
@@ -77,7 +91,20 @@ class ActivoForm(forms.ModelForm):
 
     Los activos son bienes individuales que NO manejan stock.
     Cada activo es único y se rastrea individualmente.
+    El código se genera automáticamente en formato CCCNNNNN-NNN.
     """
+
+    codigo = forms.CharField(
+        required=False,
+        widget=forms.TextInput(
+            attrs={
+                'class': 'form-control',
+                'placeholder': 'Se generará automáticamente (ej: NTB01437-001)',
+                'readonly': 'readonly'
+            }
+        ),
+        help_text='Se genera automáticamente según categoría y RBD del establecimiento'
+    )
 
     class Meta:
         model = Activo
@@ -88,9 +115,6 @@ class ActivoForm(forms.ModelForm):
             'precio_unitario', 'activo'
         ]
         widgets = {
-            'codigo': forms.TextInput(
-                attrs={'class': 'form-control', 'placeholder': 'Código único del activo'}
-            ),
             'nombre': forms.TextInput(
                 attrs={'class': 'form-control', 'placeholder': 'Nombre del activo'}
             ),
@@ -192,14 +216,14 @@ class MovimientoActivoForm(forms.ModelForm):
     class Meta:
         model = MovimientoActivo
         fields = [
-            'activo', 'tipo_movimiento', 'ubicacion_destino', 'taller',
+            'activo', 'estado_nuevo', 'ubicacion_destino', 'taller',
             'responsable', 'proveniencia', 'observaciones'
         ]
         widgets = {
             'activo': forms.Select(
                 attrs={'class': 'form-select', 'id': 'id_activo'}
             ),
-            'tipo_movimiento': forms.Select(
+            'estado_nuevo': forms.Select(
                 attrs={'class': 'form-select'}
             ),
             'ubicacion_destino': forms.Select(
@@ -226,8 +250,8 @@ class MovimientoActivoForm(forms.ModelForm):
         # Filtrar solo registros activos
         self.fields['activo'].queryset = Activo.objects.filter(
             activo=True, eliminado=False
-        ).select_related('categoria', 'estado')
-        self.fields['tipo_movimiento'].queryset = TipoMovimientoActivo.objects.filter(
+        ).select_related('categoria', 'estado', 'marca')
+        self.fields['estado_nuevo'].queryset = EstadoActivo.objects.filter(
             activo=True, eliminado=False
         )
         self.fields['ubicacion_destino'].queryset = Ubicacion.objects.filter(

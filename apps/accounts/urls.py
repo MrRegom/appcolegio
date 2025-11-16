@@ -28,4 +28,11 @@ urlpatterns = [
 
     # Asignación de permisos a grupos
     path('grupos/<int:pk>/asignar-permisos/', views.asignar_permisos_grupo, name='asignar_permisos_grupo'),
+
+    # Gestión de Permisos
+    path('permisos/', views.lista_permisos, name='lista_permisos'),
+    path('permisos/<int:pk>/', views.detalle_permiso, name='detalle_permiso'),
+    path('permisos/crear/', views.crear_permiso, name='crear_permiso'),
+    path('permisos/<int:pk>/editar/', views.editar_permiso, name='editar_permiso'),
+    path('permisos/<int:pk>/eliminar/', views.eliminar_permiso, name='eliminar_permiso'),
 ]

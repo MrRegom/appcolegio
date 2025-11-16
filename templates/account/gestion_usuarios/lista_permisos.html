@@ -1,0 +1,253 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <!-- start page title -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">{{ titulo }}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'accounts:menu_usuarios' %}">Gestión de Usuarios</a></li>
+                            <li class="breadcrumb-item active">{{ titulo }}</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end page title -->
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center">
+                        <h5 class="card-title mb-0 flex-grow-1">
+                            <i class="ri-shield-keyhole-line align-middle me-1"></i> Permisos del Sistema
+                        </h5>
+                        {% if permisos.puede_crear %}
+                        <div>
+                            <a href="{% url 'accounts:crear_permiso' %}" class="btn btn-primary">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Permiso Personalizado
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <!-- Filtros -->
+                        <form method="get" class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label for="buscar" class="form-label">Buscar</label>
+                                <input type="text" name="buscar" id="buscar" class="form-control"
+                                       placeholder="Buscar por nombre, código, app o modelo..."
+                                       value="{{ buscar }}">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="app" class="form-label">Filtrar por App</label>
+                                <select name="app" id="app" class="form-select">
+                                    <option value="">Todas las aplicaciones</option>
+                                    {% for app in apps %}
+                                        <option value="{{ app }}" {% if app == app_filter %}selected{% endif %}>
+                                            {{ app }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-secondary w-100">
+                                    <i class="ri-filter-3-line"></i> Filtrar
+                                </button>
+                            </div>
+                        </form>
+
+                        <!-- Permisos organizados por App y Modelo -->
+                        {% if permisos_organizados %}
+                            {% for app_label, modelos in permisos_organizados.items %}
+                                <div class="mb-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <h5 class="text-primary mb-0">
+                                            <i class="ri-folder-2-line me-2"></i>{{ app_label|upper }}
+                                        </h5>
+                                        <hr class="flex-grow-1 ms-3">
+                                    </div>
+
+                                    <div class="accordion" id="accordion{{ app_label }}">
+                                        {% for modelo, permisos_lista in modelos.items %}
+                                        <div class="accordion-item border mb-2 rounded">
+                                            <h2 class="accordion-header" id="heading{{ app_label }}{{ modelo }}">
+                                                <button class="accordion-button collapsed" type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#collapse{{ app_label }}{{ modelo }}"
+                                                        aria-expanded="false"
+                                                        aria-controls="collapse{{ app_label }}{{ modelo }}">
+                                                    <i class="ri-shield-line me-2"></i>
+                                                    <strong>{{ modelo|title }}</strong>
+                                                    <span class="badge bg-secondary ms-2">{{ permisos_lista|length }} permisos</span>
+                                                </button>
+                                            </h2>
+                                            <div id="collapse{{ app_label }}{{ modelo }}"
+                                                 class="accordion-collapse collapse"
+                                                 aria-labelledby="heading{{ app_label }}{{ modelo }}"
+                                                 data-bs-parent="#accordion{{ app_label }}">
+                                                <div class="accordion-body">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm table-hover mb-0">
+                                                            <thead class="table-light">
+                                                                <tr>
+                                                                    <th width="35%">Nombre del Permiso</th>
+                                                                    <th width="25%">Código</th>
+                                                                    <th width="15%" class="text-center">Tipo</th>
+                                                                    <th width="25%">Acciones</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {% for permiso in permisos_lista %}
+                                                                <tr>
+                                                                    <td>
+                                                                        <i class="ri-key-2-line text-muted me-1"></i>
+                                                                        {{ permiso.name }}
+                                                                    </td>
+                                                                    <td>
+                                                                        <code class="text-primary">{{ permiso.codename }}</code>
+                                                                    </td>
+                                                                    <td class="text-center">
+                                                                        {% if permiso.codename|slice:":4" == "add_" %}
+                                                                            <span class="badge bg-success-subtle text-success">Crear</span>
+                                                                        {% elif permiso.codename|slice:":7" == "change_" %}
+                                                                            <span class="badge bg-info-subtle text-info">Editar</span>
+                                                                        {% elif permiso.codename|slice:":7" == "delete_" %}
+                                                                            <span class="badge bg-danger-subtle text-danger">Eliminar</span>
+                                                                        {% elif permiso.codename|slice:":5" == "view_" %}
+                                                                            <span class="badge bg-primary-subtle text-primary">Ver</span>
+                                                                        {% else %}
+                                                                            <span class="badge bg-warning-subtle text-warning">Custom</span>
+                                                                        {% endif %}
+                                                                    </td>
+                                                                    <td>
+                                                                        <div class="btn-group btn-group-sm" role="group">
+                                                                            <a href="{% url 'accounts:detalle_permiso' permiso.pk %}"
+                                                                               class="btn btn-soft-secondary"
+                                                                               title="Ver detalle">
+                                                                                <i class="ri-eye-line"></i>
+                                                                            </a>
+                                                                            {% if permisos.puede_editar %}
+                                                                                {% if not permiso.codename|slice:":4" == "add_" and not permiso.codename|slice:":7" == "change_" and not permiso.codename|slice:":7" == "delete_" and not permiso.codename|slice:":5" == "view_" %}
+                                                                                <a href="{% url 'accounts:editar_permiso' permiso.pk %}"
+                                                                                   class="btn btn-soft-primary"
+                                                                                   title="Editar">
+                                                                                    <i class="ri-edit-line"></i>
+                                                                                </a>
+                                                                                {% endif %}
+                                                                            {% endif %}
+                                                                            {% if permisos.puede_eliminar %}
+                                                                                {% if not permiso.codename|slice:":4" == "add_" and not permiso.codename|slice:":7" == "change_" and not permiso.codename|slice:":7" == "delete_" and not permiso.codename|slice:":5" == "view_" %}
+                                                                                <a href="{% url 'accounts:eliminar_permiso' permiso.pk %}"
+                                                                                   class="btn btn-soft-danger"
+                                                                                   title="Eliminar">
+                                                                                    <i class="ri-delete-bin-line"></i>
+                                                                                </a>
+                                                                                {% endif %}
+                                                                            {% endif %}
+                                                                        </div>
+                                                                    </td>
+                                                                </tr>
+                                                                {% endfor %}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-5">
+                                <div class="avatar-md mx-auto mb-3">
+                                    <div class="avatar-title bg-soft-secondary text-secondary fs-24 rounded-circle">
+                                        <i class="ri-shield-keyhole-line"></i>
+                                    </div>
+                                </div>
+                                <h5 class="text-muted">No se encontraron permisos</h5>
+                                <p class="text-muted">Intenta con otros filtros de búsqueda.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Información adicional -->
+                <div class="card mt-3">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-xs flex-shrink-0 me-3">
+                                        <div class="avatar-title bg-success-subtle text-success rounded-circle">
+                                            <i class="ri-add-line"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="text-muted mb-0">Permisos de Creación</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-xs flex-shrink-0 me-3">
+                                        <div class="avatar-title bg-info-subtle text-info rounded-circle">
+                                            <i class="ri-edit-line"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="text-muted mb-0">Permisos de Edición</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-xs flex-shrink-0 me-3">
+                                        <div class="avatar-title bg-danger-subtle text-danger rounded-circle">
+                                            <i class="ri-delete-bin-line"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="text-muted mb-0">Permisos de Eliminación</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-xs flex-shrink-0 me-3">
+                                        <div class="avatar-title bg-warning-subtle text-warning rounded-circle">
+                                            <i class="ri-key-2-line"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <p class="text-muted mb-0">Permisos Personalizados</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

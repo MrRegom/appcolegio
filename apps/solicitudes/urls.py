@@ -24,11 +24,13 @@ urlpatterns = [
     path('<int:pk>/despachar/', views.SolicitudDespacharView.as_view(), name='despachar_solicitud'),
 
     # ==================== CREACIÓN DE SOLICITUDES ====================
-    # Crear Solicitud de Bienes (tipo=ACTIVO)
+    # Solicitudes de Bienes (tipo=ACTIVO)
+    path('bienes/', views.SolicitudActivoListView.as_view(), name='lista_solicitudes_bienes'),
     path('bienes/crear/', views.SolicitudActivoCreateView.as_view(), name='crear_solicitud_bienes'),
     path('bienes/<int:pk>/editar/', views.SolicitudActivoUpdateView.as_view(), name='editar_solicitud_bienes'),
 
-    # Crear Solicitud de Artículos (tipo=ARTICULO)
+    # Solicitudes de Artículos (tipo=ARTICULO)
+    path('articulos/', views.SolicitudArticuloListView.as_view(), name='lista_solicitudes_articulos'),
     path('articulos/crear/', views.SolicitudArticuloCreateView.as_view(), name='crear_solicitud_articulos'),
     path('articulos/<int:pk>/editar/', views.SolicitudArticuloUpdateView.as_view(), name='editar_solicitud_articulos'),
 ]

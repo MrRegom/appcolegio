@@ -261,6 +261,13 @@ class Movimiento(BaseModel):
         verbose_name = 'Movimiento'
         verbose_name_plural = 'Movimientos'
         ordering = ['-fecha_creacion']
+        permissions = [
+            ('registrar_entrada', 'Puede registrar entradas de inventario'),
+            ('registrar_salida', 'Puede registrar salidas de inventario'),
+            ('ajustar_stock', 'Puede realizar ajustes de stock'),
+            ('ver_historial_movimientos', 'Puede ver historial de movimientos'),
+            ('ver_reportes_inventario', 'Puede ver reportes de inventario'),
+        ]
 
     def __str__(self) -> str:
         """Representación en cadena del movimiento."""
@@ -412,6 +419,12 @@ class EntregaArticulo(EntregaBase):
         verbose_name = 'Entrega de Artículo'
         verbose_name_plural = 'Entregas de Artículos'
         ordering = ['-fecha_entrega']
+        permissions = [
+            ('registrar_entrega_articulo', 'Puede registrar entrega de artículos'),
+            ('aprobar_entrega_articulo', 'Puede aprobar entrega de artículos'),
+            ('cancelar_entrega_articulo', 'Puede cancelar entrega de artículos'),
+            ('ver_todas_entregas_articulos', 'Puede ver todas las entregas de artículos'),
+        ]
 
     def __str__(self) -> str:
         """Representación en cadena de la entrega de artículo."""
@@ -475,6 +488,12 @@ class EntregaBien(EntregaBase):
         verbose_name = 'Entrega de Bien/Activo'
         verbose_name_plural = 'Entregas de Bienes/Activos'
         ordering = ['-fecha_entrega']
+        permissions = [
+            ('registrar_entrega_bien', 'Puede registrar entrega de bienes'),
+            ('aprobar_entrega_bien', 'Puede aprobar entrega de bienes'),
+            ('cancelar_entrega_bien', 'Puede cancelar entrega de bienes'),
+            ('ver_todas_entregas_bienes', 'Puede ver todas las entregas de bienes'),
+        ]
 
     def __str__(self) -> str:
         """Representación en cadena de la entrega de bien."""

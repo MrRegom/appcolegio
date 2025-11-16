@@ -722,33 +722,32 @@ class SolicitudActivoListView(SolicitudListView):
 
 class SolicitudActivoCreateView(SolicitudCreateView):
     """Vista para crear una nueva solicitud de bienes."""
-    template_name = 'solicitudes/form_solicitud.html'
+    template_name = 'solicitudes/form_solicitud_bienes.html'
 
     def get_context_data(self, **kwargs) -> dict:
-        """Agrega datos adicionales al contexto y formset de BIENES."""
+        """Agrega datos adicionales al contexto y lista de activos disponibles."""
+        from apps.inventario.models import Activo
+
         context = super(SolicitudCreateView, self).get_context_data(**kwargs)
         context['titulo'] = 'Crear Solicitud de Bienes'
         context['action'] = 'Crear'
         context['tipo'] = 'ACTIVO'
 
-        # Usar formset de BIENES/ACTIVOS
-        if self.request.POST:
-            context['formset'] = DetalleSolicitudActivoFormSet(self.request.POST)
-        else:
-            context['formset'] = DetalleSolicitudActivoFormSet()
+        # Agregar lista de activos disponibles para el modal
+        context['activos'] = Activo.objects.filter(
+            activo=True, eliminado=False
+        ).select_related('categoria').order_by('codigo')
 
         return context
 
     def form_valid(self, form):
         """Procesa el formulario válido usando SolicitudService con tipo ACTIVO."""
-        context = self.get_context_data()
-        formset = context['formset']
+        from django.db import transaction
 
-        if formset.is_valid():
-            solicitud_service = SolicitudService()
-
-            try:
+        try:
+            with transaction.atomic():
                 # Crear solicitud usando service con tipo ACTIVO
+                solicitud_service = SolicitudService()
                 self.object = solicitud_service.crear_solicitud(
                     tipo_solicitud=form.cleaned_data['tipo_solicitud'],
                     solicitante=self.request.user,
@@ -765,9 +764,21 @@ class SolicitudActivoCreateView(SolicitudCreateView):
                     observaciones=form.cleaned_data.get('observaciones', '')
                 )
 
-                # Guardar los detalles
-                formset.instance = self.object
-                formset.save()
+                # Procesar detalles de bienes desde el POST
+                detalles = self._extraer_detalles_post(self.request.POST)
+
+                if not detalles:
+                    form.add_error(None, 'Debe agregar al menos un bien/activo a la solicitud')
+                    return self.form_invalid(form)
+
+                # Crear detalles de bienes
+                for detalle_data in detalles:
+                    DetalleSolicitud.objects.create(
+                        solicitud=self.object,
+                        activo_id=detalle_data['activo_id'],
+                        cantidad_solicitada=Decimal(str(detalle_data['cantidad_solicitada'])),
+                        observaciones=detalle_data.get('observaciones', '')
+                    )
 
                 # Mensaje de éxito y log de auditoría
                 messages.success(self.request, self.get_success_message(self.object))
@@ -775,13 +786,45 @@ class SolicitudActivoCreateView(SolicitudCreateView):
 
                 return redirect(self.get_success_url())
 
-            except ValidationError as e:
-                for field, errors in e.message_dict.items():
-                    for error in errors:
-                        form.add_error(field if field != '__all__' else None, error)
-                return self.form_invalid(form)
-        else:
+        except ValidationError as e:
+            for field, errors in e.message_dict.items():
+                for error in errors:
+                    form.add_error(field if field != '__all__' else None, error)
             return self.form_invalid(form)
+        except Exception as e:
+            form.add_error(None, f'Error al crear la solicitud: {str(e)}')
+            return self.form_invalid(form)
+
+    def _extraer_detalles_post(self, post_data):
+        """
+        Extrae los detalles de bienes del POST.
+        Formato esperado: detalles[0][activo_id], detalles[0][cantidad_solicitada], etc.
+        """
+        detalles = []
+        indices = set()
+
+        # Identificar todos los índices presentes
+        for key in post_data.keys():
+            if key.startswith('detalles['):
+                # Extraer índice: detalles[0][campo] -> 0
+                indice = key.split('[')[1].split(']')[0]
+                indices.add(indice)
+
+        # Extraer datos para cada índice
+        for indice in indices:
+            activo_id = post_data.get(f'detalles[{indice}][activo_id]')
+            cantidad_solicitada = post_data.get(f'detalles[{indice}][cantidad_solicitada]')
+
+            if activo_id and cantidad_solicitada:
+                detalle = {
+                    'activo_id': int(activo_id),
+                    'cantidad_solicitada': float(cantidad_solicitada),
+                    'observaciones': post_data.get(f'detalles[{indice}][observaciones]', '')
+                }
+
+                detalles.append(detalle)
+
+        return detalles
 
 
 class SolicitudActivoUpdateView(SolicitudUpdateView):
@@ -845,33 +888,32 @@ class SolicitudArticuloListView(SolicitudListView):
 
 class SolicitudArticuloCreateView(SolicitudCreateView):
     """Vista para crear una nueva solicitud de artículos."""
-    template_name = 'solicitudes/form_solicitud.html'
+    template_name = 'solicitudes/form_solicitud_articulos.html'
 
     def get_context_data(self, **kwargs) -> dict:
-        """Agrega datos adicionales al contexto y formset de ARTÍCULOS."""
+        """Agrega datos adicionales al contexto y lista de artículos disponibles."""
+        from apps.bodega.models import Articulo
+
         context = super(SolicitudCreateView, self).get_context_data(**kwargs)
         context['titulo'] = 'Crear Solicitud de Artículos'
         context['action'] = 'Crear'
         context['tipo'] = 'ARTICULO'
 
-        # Usar formset de ARTÍCULOS
-        if self.request.POST:
-            context['formset'] = DetalleSolicitudArticuloFormSet(self.request.POST)
-        else:
-            context['formset'] = DetalleSolicitudArticuloFormSet()
+        # Agregar lista de artículos disponibles para el modal
+        context['articulos'] = Articulo.objects.filter(
+            activo=True, eliminado=False
+        ).select_related('categoria').prefetch_related('unidades_medida').order_by('codigo')
 
         return context
 
     def form_valid(self, form):
         """Procesa el formulario válido usando SolicitudService con tipo ARTICULO."""
-        context = self.get_context_data()
-        formset = context['formset']
+        from django.db import transaction
 
-        if formset.is_valid():
-            solicitud_service = SolicitudService()
-
-            try:
+        try:
+            with transaction.atomic():
                 # Crear solicitud usando service con tipo ARTICULO
+                solicitud_service = SolicitudService()
                 self.object = solicitud_service.crear_solicitud(
                     tipo_solicitud=form.cleaned_data['tipo_solicitud'],
                     solicitante=self.request.user,
@@ -888,9 +930,21 @@ class SolicitudArticuloCreateView(SolicitudCreateView):
                     observaciones=form.cleaned_data.get('observaciones', '')
                 )
 
-                # Guardar los detalles
-                formset.instance = self.object
-                formset.save()
+                # Procesar detalles de artículos desde el POST
+                detalles = self._extraer_detalles_post(self.request.POST)
+
+                if not detalles:
+                    form.add_error(None, 'Debe agregar al menos un artículo a la solicitud')
+                    return self.form_invalid(form)
+
+                # Crear detalles de artículos
+                for detalle_data in detalles:
+                    DetalleSolicitud.objects.create(
+                        solicitud=self.object,
+                        articulo_id=detalle_data['articulo_id'],
+                        cantidad_solicitada=Decimal(str(detalle_data['cantidad_solicitada'])),
+                        observaciones=detalle_data.get('observaciones', '')
+                    )
 
                 # Mensaje de éxito y log de auditoría
                 messages.success(self.request, self.get_success_message(self.object))
@@ -898,13 +952,45 @@ class SolicitudArticuloCreateView(SolicitudCreateView):
 
                 return redirect(self.get_success_url())
 
-            except ValidationError as e:
-                for field, errors in e.message_dict.items():
-                    for error in errors:
-                        form.add_error(field if field != '__all__' else None, error)
-                return self.form_invalid(form)
-        else:
+        except ValidationError as e:
+            for field, errors in e.message_dict.items():
+                for error in errors:
+                    form.add_error(field if field != '__all__' else None, error)
             return self.form_invalid(form)
+        except Exception as e:
+            form.add_error(None, f'Error al crear la solicitud: {str(e)}')
+            return self.form_invalid(form)
+
+    def _extraer_detalles_post(self, post_data):
+        """
+        Extrae los detalles de artículos del POST.
+        Formato esperado: detalles[0][articulo_id], detalles[0][cantidad_solicitada], etc.
+        """
+        detalles = []
+        indices = set()
+
+        # Identificar todos los índices presentes
+        for key in post_data.keys():
+            if key.startswith('detalles['):
+                # Extraer índice: detalles[0][campo] -> 0
+                indice = key.split('[')[1].split(']')[0]
+                indices.add(indice)
+
+        # Extraer datos para cada índice
+        for indice in indices:
+            articulo_id = post_data.get(f'detalles[{indice}][articulo_id]')
+            cantidad_solicitada = post_data.get(f'detalles[{indice}][cantidad_solicitada]')
+
+            if articulo_id and cantidad_solicitada:
+                detalle = {
+                    'articulo_id': int(articulo_id),
+                    'cantidad_solicitada': float(cantidad_solicitada),
+                    'observaciones': post_data.get(f'detalles[{indice}][observaciones]', '')
+                }
+
+                detalles.append(detalle)
+
+        return detalles
 
 
 class SolicitudArticuloUpdateView(SolicitudUpdateView):

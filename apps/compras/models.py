@@ -172,6 +172,14 @@ class OrdenCompra(BaseModel):
         verbose_name = 'Orden de Compra'
         verbose_name_plural = 'Órdenes de Compra'
         ordering = ['-fecha_orden', '-numero']
+        permissions = [
+            ('aprobar_ordencompra', 'Puede aprobar órdenes de compra'),
+            ('rechazar_ordencompra', 'Puede rechazar órdenes de compra'),
+            ('cerrar_ordencompra', 'Puede cerrar órdenes de compra'),
+            ('anular_ordencompra', 'Puede anular órdenes de compra'),
+            ('ver_todas_ordenescompra', 'Puede ver todas las órdenes de compra'),
+            ('ver_reportes_compras', 'Puede ver reportes de compras'),
+        ]
 
     def __str__(self) -> str:
         return f"OC-{self.numero} - {self.proveedor.razon_social}"
@@ -469,6 +477,12 @@ class RecepcionArticulo(RecepcionBase):
         verbose_name = 'Recepción de Artículo'
         verbose_name_plural = 'Recepciones de Artículos'
         ordering = ['-fecha_recepcion']
+        permissions = [
+            ('registrar_recepcion_articulo', 'Puede registrar recepción de artículos'),
+            ('aprobar_recepcion_articulo', 'Puede aprobar recepción de artículos'),
+            ('rechazar_recepcion_articulo', 'Puede rechazar recepción de artículos'),
+            ('ver_todas_recepciones_articulos', 'Puede ver todas las recepciones de artículos'),
+        ]
 
     def __str__(self) -> str:
         return f"REC-ART-{self.numero} - {self.fecha_recepcion.strftime('%d/%m/%Y')}"
@@ -524,6 +538,12 @@ class RecepcionActivo(RecepcionBase):
         verbose_name = 'Recepción de Bien/Activo'
         verbose_name_plural = 'Recepciones de Bienes/Activos'
         ordering = ['-fecha_recepcion']
+        permissions = [
+            ('registrar_recepcion_activo', 'Puede registrar recepción de activos'),
+            ('aprobar_recepcion_activo', 'Puede aprobar recepción de activos'),
+            ('rechazar_recepcion_activo', 'Puede rechazar recepción de activos'),
+            ('ver_todas_recepciones_activos', 'Puede ver todas las recepciones de activos'),
+        ]
 
     def __str__(self) -> str:
         return f"REC-ACT-{self.numero} - {self.fecha_recepcion.strftime('%d/%m/%Y')}"

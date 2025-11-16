@@ -2,7 +2,8 @@ from crispy_forms.helper import FormHelper
 from allauth.account.forms import LoginForm, SignupForm, ChangePasswordForm, ResetPasswordForm, ResetPasswordKeyForm, SetPasswordForm
 from django.contrib.auth.forms import AuthenticationForm
 from django import forms
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, Group, Permission
+from django.contrib.contenttypes.models import ContentType
 from .models import AuthEstado
 
 
@@ -370,5 +371,50 @@ class UserFilterForm(forms.Form):
         label='Rol/Grupo'
     )
 
+
+# ========== FORMULARIOS DE PERMISOS ==========
+
+class PermissionForm(forms.ModelForm):
+    """Formulario para crear/editar permisos personalizados."""
+
+    class Meta:
+        model = Permission
+        fields = ['name', 'content_type', 'codename']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Puede aprobar solicitudes'
+            }),
+            'content_type': forms.Select(attrs={'class': 'form-select'}),
+            'codename': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: aprobar_solicitud'
+            }),
+        }
+        labels = {
+            'name': 'Nombre del Permiso',
+            'content_type': 'Modelo (Content Type)',
+            'codename': 'Código del Permiso',
+        }
+        help_texts = {
+            'name': 'Nombre descriptivo del permiso (ej: "Puede aprobar solicitudes")',
+            'content_type': 'Seleccione el modelo al que aplica este permiso',
+            'codename': 'Código único del permiso (sin espacios, usar guiones bajos)',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Ordenar content types por app y modelo
+        self.fields['content_type'].queryset = ContentType.objects.all().order_by('app_label', 'model')
+
+    def clean_codename(self):
+        """Validar que el codename no tenga espacios y sea lowercase."""
+        codename = self.cleaned_data.get('codename', '')
+        # Convertir a lowercase y reemplazar espacios por guiones bajos
+        codename = codename.lower().replace(' ', '_')
+        # Validar que solo contenga letras, números y guiones bajos
+        if not codename.replace('_', '').isalnum():
+            raise forms.ValidationError('El código del permiso solo puede contener letras, números y guiones bajos.')
+        return codename
 
 

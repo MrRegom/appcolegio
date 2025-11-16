@@ -38,9 +38,47 @@
                                     {% if form.activo.errors %}<div class="invalid-feedback d-block">{{ form.activo.errors }}</div>{% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label">{{ form.tipo_movimiento.label }} <span class="text-danger">*</span></label>
-                                    {{ form.tipo_movimiento }}
-                                    {% if form.tipo_movimiento.errors %}<div class="invalid-feedback d-block">{{ form.tipo_movimiento.errors }}</div>{% endif %}
+                                    <label class="form-label">{{ form.estado_nuevo.label }} <span class="text-danger">*</span></label>
+                                    {{ form.estado_nuevo }}
+                                    {% if form.estado_nuevo.errors %}<div class="invalid-feedback d-block">{{ form.estado_nuevo.errors }}</div>{% endif %}
+                                    <small class="text-muted">Estado al que se cambiará el activo</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card de información del activo seleccionado -->
+                    <div class="card" id="card-info-activo" style="display: none;">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">
+                                <i class="ri-information-line me-2"></i>Información del Activo Seleccionado
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <strong>Código:</strong>
+                                    <p class="mb-0" id="info-codigo">-</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Nombre:</strong>
+                                    <p class="mb-0" id="info-nombre">-</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Categoría:</strong>
+                                    <p class="mb-0" id="info-categoria">-</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Estado Actual:</strong>
+                                    <p class="mb-0" id="info-estado">-</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Marca:</strong>
+                                    <p class="mb-0" id="info-marca">-</p>
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Número de Serie:</strong>
+                                    <p class="mb-0" id="info-serie">-</p>
                                 </div>
                             </div>
                         </div>
@@ -76,33 +114,21 @@
                 <div class="col-lg-6">
                     <div class="card">
                         <div class="card-header">
-                            <h5 class="card-title mb-0">Detalles del Activo</h5>
+                            <h5 class="card-title mb-0">Otros Detalles</h5>
                         </div>
                         <div class="card-body">
                             <div class="row g-3">
-                                <div class="col-md-12" id="field-numero-serie" style="display: none;">
-                                    <label class="form-label">{{ form.numero_serie.label }}</label>
-                                    {{ form.numero_serie }}
-                                    {% if form.numero_serie.errors %}<div class="invalid-feedback d-block">{{ form.numero_serie.errors }}</div>{% endif %}
-                                    <small class="text-muted">Este campo aparece si el activo requiere número de serie</small>
+                                <div class="col-md-12">
+                                    <label class="form-label">{{ form.taller.label }}</label>
+                                    {{ form.taller }}
+                                    {% if form.taller.errors %}<div class="invalid-feedback d-block">{{ form.taller.errors }}</div>{% endif %}
+                                    <small class="text-muted">Taller asociado al movimiento (opcional)</small>
                                 </div>
-                                <div class="col-md-12" id="field-lote" style="display: none;">
-                                    <label class="form-label">{{ form.lote.label }}</label>
-                                    {{ form.lote }}
-                                    {% if form.lote.errors %}<div class="invalid-feedback d-block">{{ form.lote.errors }}</div>{% endif %}
-                                    <small class="text-muted">Este campo aparece si el activo requiere lote</small>
-                                </div>
-                                <div class="col-md-12" id="field-fecha-vencimiento" style="display: none;">
-                                    <label class="form-label">{{ form.fecha_vencimiento.label }}</label>
-                                    {{ form.fecha_vencimiento }}
-                                    {% if form.fecha_vencimiento.errors %}<div class="invalid-feedback d-block">{{ form.fecha_vencimiento.errors }}</div>{% endif %}
-                                    <small class="text-muted">Este campo aparece si el activo requiere fecha de vencimiento</small>
-                                </div>
-                                <div class="col-md-12" id="no-fields-message">
-                                    <div class="alert alert-info mb-0">
-                                        <i class="ri-information-line me-2"></i>
-                                        Seleccione un activo para ver los campos adicionales requeridos
-                                    </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">{{ form.proveniencia.label }}</label>
+                                    {{ form.proveniencia }}
+                                    {% if form.proveniencia.errors %}<div class="invalid-feedback d-block">{{ form.proveniencia.errors }}</div>{% endif %}
+                                    <small class="text-muted">Origen o procedencia del activo (opcional)</small>
                                 </div>
                             </div>
                         </div>
@@ -144,90 +170,53 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const activoSelect = document.getElementById('id_activo');
-    const fieldNumeroSerie = document.getElementById('field-numero-serie');
-    const fieldLote = document.getElementById('field-lote');
-    const fieldFechaVencimiento = document.getElementById('field-fecha-vencimiento');
-    const noFieldsMessage = document.getElementById('no-fields-message');
-    const inputNumeroSerie = document.getElementById('id_numero_serie');
-    const inputLote = document.getElementById('id_lote');
-    const inputFechaVencimiento = document.getElementById('id_fecha_vencimiento');
+    const cardInfoActivo = document.getElementById('card-info-activo');
 
     // Objeto para almacenar información de activos
-    let activosInfo = {};
+    const activosInfo = {};
 
     // Cargar información de activos al cargar la página
-    function loadActivosInfo() {
-        {% for activo in form.fields.activo.queryset %}
-        activosInfo[{{ activo.pk }}] = {
-            requiere_serie: {{ activo.requiere_serie|yesno:"true,false" }},
-            requiere_lote: {{ activo.requiere_lote|yesno:"true,false" }},
-            requiere_vencimiento: {{ activo.requiere_vencimiento|yesno:"true,false" }}
-        };
-        {% endfor %}
-    }
+    {% for activo in form.fields.activo.queryset %}
+    activosInfo[{{ activo.pk }}] = {
+        codigo: '{{ activo.codigo }}',
+        nombre: '{{ activo.nombre }}',
+        categoria: '{{ activo.categoria.nombre }}',
+        estado: '{{ activo.estado.nombre }}',
+        marca: '{{ activo.marca.nombre|default:"-" }}',
+        numero_serie: '{{ activo.numero_serie|default:"-" }}'
+    };
+    {% endfor %}
 
-    // Actualizar campos según activo seleccionado
-    function updateFields() {
+    // Actualizar información del activo según el seleccionado
+    function updateActivoInfo() {
         const activoId = activoSelect.value;
 
         if (!activoId || !activosInfo[activoId]) {
-            // Ocultar todos los campos
-            fieldNumeroSerie.style.display = 'none';
-            fieldLote.style.display = 'none';
-            fieldFechaVencimiento.style.display = 'none';
-            noFieldsMessage.style.display = 'block';
-
-            // Remover required
-            inputNumeroSerie.removeAttribute('required');
-            inputLote.removeAttribute('required');
-            inputFechaVencimiento.removeAttribute('required');
+            // Ocultar card de información
+            cardInfoActivo.style.display = 'none';
             return;
         }
 
         const activo = activosInfo[activoId];
-        let hasAnyField = false;
 
-        // Número de serie
-        if (activo.requiere_serie) {
-            fieldNumeroSerie.style.display = 'block';
-            inputNumeroSerie.setAttribute('required', 'required');
-            hasAnyField = true;
-        } else {
-            fieldNumeroSerie.style.display = 'none';
-            inputNumeroSerie.removeAttribute('required');
-        }
+        // Actualizar la información en el card
+        document.getElementById('info-codigo').textContent = activo.codigo;
+        document.getElementById('info-nombre').textContent = activo.nombre;
+        document.getElementById('info-categoria').textContent = activo.categoria;
+        document.getElementById('info-estado').textContent = activo.estado;
+        document.getElementById('info-marca').textContent = activo.marca;
+        document.getElementById('info-serie').textContent = activo.numero_serie;
 
-        // Lote
-        if (activo.requiere_lote) {
-            fieldLote.style.display = 'block';
-            inputLote.setAttribute('required', 'required');
-            hasAnyField = true;
-        } else {
-            fieldLote.style.display = 'none';
-            inputLote.removeAttribute('required');
-        }
-
-        // Fecha de vencimiento
-        if (activo.requiere_vencimiento) {
-            fieldFechaVencimiento.style.display = 'block';
-            inputFechaVencimiento.setAttribute('required', 'required');
-            hasAnyField = true;
-        } else {
-            fieldFechaVencimiento.style.display = 'none';
-            inputFechaVencimiento.removeAttribute('required');
-        }
-
-        // Mensaje
-        noFieldsMessage.style.display = hasAnyField ? 'none' : 'block';
+        // Mostrar card de información
+        cardInfoActivo.style.display = 'block';
     }
 
-    // Cargar información y configurar evento
-    loadActivosInfo();
-    activoSelect.addEventListener('change', updateFields);
+    // Configurar evento
+    activoSelect.addEventListener('change', updateActivoInfo);
 
     // Ejecutar al cargar si ya hay un activo seleccionado
     if (activoSelect.value) {
-        updateFields();
+        updateActivoInfo();
     }
 });
 </script>
