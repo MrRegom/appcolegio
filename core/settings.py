@@ -30,25 +30,40 @@ env = environ.Env()
 # Leer .env solo si existe (en PythonAnywhere las vars están en WSGI)
 if Path(BASE_DIR / ".env").exists():
     # Solución para problemas de codificación UTF-8 en Windows
-    # Si tu sistema no tiene problemas de codificación, puedes usar la línea comentada:
-    # environ.Env.read_env(BASE_DIR / ".env")
-    environ.Env.read_env(BASE_DIR / ".env", encoding='utf-8')
+    # Leer el archivo sin BOM (Byte Order Mark) que causa problemas
+    env_file = BASE_DIR / ".env"
+    # Leer el archivo y eliminar el BOM si existe
+    with open(env_file, 'r', encoding='utf-8-sig') as f:
+        content = f.read()
+    # Escribir temporalmente sin BOM para que django-environ lo lea correctamente
+    temp_env = BASE_DIR / ".env.temp"
+    with open(temp_env, 'w', encoding='utf-8') as f:
+        f.write(content)
+    environ.Env.read_env(temp_env, encoding='utf-8')
+    # Eliminar el archivo temporal
+    if temp_env.exists():
+        temp_env.unlink()
+
+# Función helper para obtener valores de BD desde variables de entorno
+def get_db_value(key: str) -> str:
+    """Obtiene un valor de variable de entorno para configuración de BD."""
+    return env(key)
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env('DJANGO_SECRET_KEY', default='django-insecure-change-me-in-production-12345')
+SECRET_KEY = env('DJANGO_SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DJANGO_DEBUG', default=not is_pythonanywhere())
+DEBUG = env.bool('DJANGO_DEBUG')
 
 # En producción, cambia DEBUG a False y asegúrate de tener configurados tus ALLOWED_HOSTS
 # DEBUG = False
 
 # Permitir todos los hosts (útil para desarrollo, pero especificar hosts específicos en producción)
-ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS', default=['localhost', '127.0.0.1'])
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS')
 
 
 # Application definition
@@ -122,34 +137,6 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 
 WSGI_APPLICATION = 'core.wsgi.application'
-
-
-# Database
-# https://docs.djangoproject.com/en/4.2/ref/settings/#databases
-
-# Configuración multi-base de datos
-# Solución para problemas de codificación: asegurar que todos los valores sean strings Unicode
-def get_db_value(key, default=None):
-    """Obtiene un valor del entorno y lo asegura como string Unicode"""
-    value = env(key, default=default)
-    if value is None:
-        return None
-    # Asegurar que sea string Unicode
-    if isinstance(value, bytes):
-        return value.decode('utf-8', errors='replace')
-    return str(value)
-
-# Construir cadena de conexión explícita para evitar problemas de codificación
-def build_postgres_dsn():
-    """Construye una cadena DSN explícita para PostgreSQL"""
-    name = get_db_value('POSTGRES_NAME') or 'colegio'
-    user = get_db_value('POSTGRES_USER') or 'postgres'
-    password = get_db_value('POSTGRES_PASSWORD') or 'postgres'
-    host = get_db_value('POSTGRES_HOST') or 'localhost'
-    port = get_db_value('POSTGRES_PORT') or '5432'
-    # Usar urllib.parse para construir la cadena de conexión de forma segura
-    from urllib.parse import quote_plus
-    return f"postgresql://{quote_plus(user)}:{quote_plus(password)}@{host}:{port}/{quote_plus(name)}"
 
 DATABASES = {
     # Base de datos principal del sistema (SQLite temporal)
