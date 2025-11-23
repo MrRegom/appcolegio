@@ -45,14 +45,14 @@ class ArticuloAdmin(admin.ModelAdmin):
     list_filter = ['categoria', 'ubicacion_fisica', 'activo', 'fecha_creacion']
     search_fields = ['codigo', 'nombre', 'descripcion', 'codigo_barras']
     readonly_fields = ['stock_actual', 'codigo_barras', 'fecha_creacion', 'fecha_actualizacion']
-    filter_horizontal = ['marcas', 'unidades_medida']
+    filter_horizontal = ['marcas']
 
     fieldsets = (
         ('Información General', {
-            'fields': ('codigo', 'nombre', 'descripcion', 'codigo_barras', 'categoria')
+            'fields': ('codigo', 'nombre', 'descripcion', 'codigo_barras', 'categoria', 'unidad_medida')
         }),
-        ('Marcas y Unidades', {
-            'fields': ('marcas', 'unidades_medida')
+        ('Marcas', {
+            'fields': ('marcas',)
         }),
         ('Stock', {
             'fields': ('stock_actual', 'stock_minimo', 'stock_maximo', 'punto_reorden')
