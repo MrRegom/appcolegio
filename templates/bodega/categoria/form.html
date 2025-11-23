@@ -35,8 +35,14 @@
                                 <textarea class="form-control" id="descripcion" name="descripcion" rows="3">{{ categoria.descripcion }}</textarea>
                             </div>
                             <div class="mb-3">
-                                <label for="observaciones" class="form-label">Observaciones</label>
-                                <textarea class="form-control" id="observaciones" name="observaciones" rows="3">{{ categoria.observaciones }}</textarea>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="activo" name="activo"
+                                           {% if not categoria or categoria.activo %}checked{% endif %}>
+                                    <label class="form-check-label" for="activo">
+                                        Estado Activo
+                                    </label>
+                                    <div class="form-text">Marque esta casilla para que la categoría esté activa y disponible</div>
+                                </div>
                             </div>
                             <div class="mt-4">
                                 <button type="submit" class="btn btn-primary">

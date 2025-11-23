@@ -66,7 +66,6 @@ class Categoria(BaseModel):
     codigo = models.CharField(max_length=20, unique=True, verbose_name='Código')
     nombre = models.CharField(max_length=100, verbose_name='Nombre')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
-    observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
 
     class Meta:
         db_table = 'tba_bodega_conf_categoria'
