@@ -1066,13 +1066,8 @@ def obtener_articulos_solicitud(request, solicitud_id):
                 cantidad_pendiente = float(detalle.cantidad_aprobada - detalle.cantidad_despachada)
 
                 # Mostrar TODOS los artículos, no solo los pendientes
-                # Obtener unidades de medida (ManyToMany)
-                unidades = detalle.articulo.unidades_medida.all()
-                # Para retrocompatibilidad, usar símbolo simple o concatenado
-                if unidades.exists():
-                    unidad_medida = ', '.join([um.simbolo for um in unidades])
-                else:
-                    unidad_medida = 'unidad'
+                # Obtener unidad de medida (ForeignKey)
+                unidad_medida = detalle.articulo.unidad_medida.simbolo if detalle.articulo.unidad_medida else 'unidad'
 
                 articulos_data.append({
                     'detalle_solicitud_id': detalle.id,
@@ -1081,10 +1076,10 @@ def obtener_articulos_solicitud(request, solicitud_id):
                     'articulo_nombre': detalle.articulo.nombre,
                     'categoria': detalle.articulo.categoria.nombre,
                     'unidad_medida': unidad_medida,  # Campo esperado por JavaScript
-                    'stock_actual': float(detalle.articulo.stock_actual),
-                    'cantidad_solicitada': float(detalle.cantidad_solicitada),
-                    'cantidad_aprobada': float(detalle.cantidad_aprobada),
-                    'cantidad_despachada': float(detalle.cantidad_despachada),
+                    'stock_actual': int(detalle.articulo.stock_actual),
+                    'cantidad_solicitada': int(detalle.cantidad_solicitada),
+                    'cantidad_aprobada': int(detalle.cantidad_aprobada),
+                    'cantidad_despachada': int(detalle.cantidad_despachada),
                     'cantidad_pendiente': cantidad_pendiente,
                     'observaciones': detalle.observaciones or ''
                 })

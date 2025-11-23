@@ -97,7 +97,7 @@ class Articulo(BaseModel):
         stock_minimo: Stock mínimo requerido.
         stock_maximo: Stock máximo permitido (opcional).
         punto_reorden: Punto de reorden para alertas (opcional).
-        unidades_medida: Unidades de medida aplicables al artículo (ManyToMany).
+        unidad_medida: Unidad de medida del artículo.
         ubicacion_fisica: Bodega donde se almacena el artículo.
         observaciones: Observaciones adicionales.
     """
@@ -125,41 +125,36 @@ class Articulo(BaseModel):
         related_name='articulos',
         verbose_name='Categoría'
     )
-    stock_actual = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    stock_actual = models.IntegerField(
         default=0,
         validators=[MinValueValidator(0)],
         verbose_name='Stock Actual'
     )
-    stock_minimo = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    stock_minimo = models.IntegerField(
         default=0,
         validators=[MinValueValidator(0)],
         verbose_name='Stock Mínimo'
     )
-    stock_maximo = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    stock_maximo = models.IntegerField(
         blank=True,
         null=True,
         validators=[MinValueValidator(0)],
         verbose_name='Stock Máximo'
     )
-    punto_reorden = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    punto_reorden = models.IntegerField(
         blank=True,
         null=True,
         validators=[MinValueValidator(0)],
         verbose_name='Punto de Reorden'
     )
-    unidades_medida = models.ManyToManyField(
+    unidad_medida = models.ForeignKey(
         UnidadMedida,
+        on_delete=models.PROTECT,
         related_name='articulos',
-        verbose_name='Unidades de Medida',
-        help_text='Unidades de medida aplicables al artículo'
+        blank=True,
+        null=True,
+        verbose_name='Unidad de Medida',
+        help_text='Unidad de medida del artículo'
     )
     ubicacion_fisica = models.ForeignKey(
         Bodega,
@@ -223,10 +218,8 @@ class Movimiento(BaseModel):
         related_name='movimientos',
         verbose_name='Tipo de Movimiento'
     )
-    cantidad = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0.01)],
+    cantidad = models.IntegerField(
+        validators=[MinValueValidator(1)],
         verbose_name='Cantidad'
     )
     operacion = models.CharField(
@@ -244,14 +237,10 @@ class Movimiento(BaseModel):
         verbose_name='Usuario'
     )
     motivo = models.TextField(verbose_name='Motivo')
-    stock_antes = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    stock_antes = models.IntegerField(
         verbose_name='Stock Antes'
     )
-    stock_despues = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    stock_despues = models.IntegerField(
         verbose_name='Stock Después'
     )
 
@@ -335,10 +324,8 @@ class DetalleEntregaBase(BaseModel):
 
     Principio DRY: Evita duplicación entre DetalleEntregaArticulo y DetalleEntregaBien.
     """
-    cantidad = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0.01)],
+    cantidad = models.IntegerField(
+        validators=[MinValueValidator(1)],
         verbose_name='Cantidad Entregada'
     )
     observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
