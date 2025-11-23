@@ -121,10 +121,6 @@ DATABASES = {
     },
 }
 
-# Router de base de datos para multi-DB
-DATABASE_ROUTERS = ['core.db_router.DatabaseRouter']
-
-
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 

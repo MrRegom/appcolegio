@@ -85,7 +85,7 @@ class CategoriaForm(forms.ModelForm):
 
     class Meta:
         model = Categoria
-        fields = ['codigo', 'nombre', 'descripcion', 'observaciones', 'activo']
+        fields = ['codigo', 'nombre', 'descripcion', 'activo']
         widgets = {
             'codigo': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -101,11 +101,6 @@ class CategoriaForm(forms.ModelForm):
                 'placeholder': 'Descripción de la categoría',
                 'rows': 3
             }),
-            'observaciones': forms.Textarea(attrs={
-                'class': 'form-control',
-                'placeholder': 'Observaciones adicionales',
-                'rows': 2
-            }),
             'activo': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
             })
@@ -114,7 +109,6 @@ class CategoriaForm(forms.ModelForm):
             'codigo': 'Código',
             'nombre': 'Nombre',
             'descripcion': 'Descripción',
-            'observaciones': 'Observaciones',
             'activo': 'Activo'
         }
 
