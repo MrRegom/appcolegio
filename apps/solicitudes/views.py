@@ -902,7 +902,7 @@ class SolicitudArticuloCreateView(SolicitudCreateView):
         # Agregar lista de artículos disponibles para el modal
         context['articulos'] = Articulo.objects.filter(
             activo=True, eliminado=False
-        ).select_related('categoria').prefetch_related('unidades_medida').order_by('codigo')
+        ).select_related('categoria', 'unidad_medida').order_by('codigo')
 
         return context
 
