@@ -23,7 +23,7 @@
                                     <select class="form-select" id="articulo" name="articulo" required>
                                         <option value="">Seleccione un artículo...</option>
                                         {% for art in articulos %}
-                                        <option value="{{ art.id }}">{{ art.codigo }} - {{ art.nombre }} (Stock: {{ art.stock_actual }} {{ art.unidad_medida }})</option>
+                                        <option value="{{ art.id }}">{{ art.codigo }} - {{ art.nombre }} (Stock: {{ art.stock_actual }} {{ art.unidad_medida.simbolo|default:"unidad" }})</option>
                                         {% endfor %}
                                     </select>
                                 </div>

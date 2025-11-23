@@ -114,7 +114,7 @@
                                         <td><strong>{{ detalle.articulo.codigo }}</strong></td>
                                         <td>{{ detalle.articulo.nombre }}</td>
                                         <td>{{ detalle.articulo.categoria.nombre }}</td>
-                                        <td>{{ detalle.cantidad }} {% for u in detalle.articulo.unidades_medida.all %}{{ u.simbolo }}{% if not forloop.last %}, {% endif %}{% empty %}unidad{% endfor %}</td>
+                                        <td>{{ detalle.cantidad }} {{ detalle.articulo.unidad_medida.simbolo|default:"unidad" }}</td>
                                         <td>{{ detalle.lote|default:"-" }}</td>
                                         <td>{{ detalle.observaciones|default:"-" }}</td>
                                     </tr>

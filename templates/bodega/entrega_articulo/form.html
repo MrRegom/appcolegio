@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
             codigo: "{{ articulo.codigo|escapejs }}",
             nombre: "{{ articulo.nombre|escapejs }}",
             stock: parseFloat("{{ articulo.stock_actual|default:0 }}".replace(',', '.')),
-            unidad: "{% for u in articulo.unidades_medida.all %}{{ u.simbolo|escapejs }}{% if not forloop.last %}, {% endif %}{% empty %}unidad{% endfor %}"
+            unidad: "{{ articulo.unidad_medida.simbolo|default:"unidad"|escapejs }}"
         }{% if not forloop.last %},{% endif %}
         {% endfor %}
     ];

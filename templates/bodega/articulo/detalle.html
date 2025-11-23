@@ -41,13 +41,13 @@
                             <dd class="col-sm-9">{{ articulo.categoria.nombre }}</dd>
                             <dt class="col-sm-3">Ubicación:</dt>
                             <dd class="col-sm-9">{{ articulo.ubicacion_fisica.nombre }}</dd>
-                            <dt class="col-sm-3">Unidades de Medida:</dt>
+                            <dt class="col-sm-3">Unidad de Medida:</dt>
                             <dd class="col-sm-9">
-                                {% for unidad in articulo.unidades_medida.all %}
-                                <span class="badge bg-success">{{ unidad.codigo }} ({{ unidad.simbolo }})</span>
-                                {% empty %}
+                                {% if articulo.unidad_medida %}
+                                <span class="badge bg-success">{{ articulo.unidad_medida.codigo }} ({{ articulo.unidad_medida.simbolo }})</span>
+                                {% else %}
                                 <span class="text-muted">Ninguna configurada</span>
-                                {% endfor %}
+                                {% endif %}
                             </dd>
                         </dl>
                         <h5 class="mt-4">Stock</h5>
@@ -55,12 +55,12 @@
                             <dt class="col-sm-3">Stock Actual:</dt>
                             <dd class="col-sm-9">
                                 <strong>{{ articulo.stock_actual }}</strong>
-                                <span class="text-muted">({% for u in articulo.unidades_medida.all %}{{ u.simbolo }}{% if not forloop.last %}, {% endif %}{% empty %}unidad{% endfor %})</span>
+                                <span class="text-muted">({{ articulo.unidad_medida.simbolo|default:"unidad" }})</span>
                             </dd>
                             <dt class="col-sm-3">Stock Mínimo:</dt>
                             <dd class="col-sm-9">
                                 {{ articulo.stock_minimo }}
-                                <span class="text-muted">({% for u in articulo.unidades_medida.all %}{{ u.simbolo }}{% if not forloop.last %}, {% endif %}{% empty %}unidad{% endfor %})</span>
+                                <span class="text-muted">({{ articulo.unidad_medida.simbolo|default:"unidad" }})</span>
                             </dd>
                             <dt class="col-sm-3">Stock Máximo:</dt>
                             <dd class="col-sm-9">{{ articulo.stock_maximo|default:"-" }}</dd>
