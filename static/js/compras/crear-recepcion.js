@@ -177,8 +177,14 @@
     function limpiarArticulos() {
         articulosSeleccionados = [];
         const tbody = document.getElementById('tbody-articulos');
-        tbody.innerHTML = '';
-        actualizarVisualizacionArticulos();
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" class="text-center text-muted">
+                    No hay artículos agregados. Haga clic en "Agregar Artículo" para comenzar.
+                </td>
+            </tr>
+        `;
+        contadorFilas = 0;
     }
 
     /**
@@ -248,6 +254,12 @@
      */
     function agregarFilaArticulo(articulo) {
         const tbody = document.getElementById('tbody-articulos');
+
+        // Limpiar fila vacía si existe (cuando es el primer artículo)
+        if (tbody.children.length === 1 && tbody.children[0].cells.length === 1) {
+            tbody.innerHTML = '';
+        }
+
         const fila = document.createElement('tr');
         fila.dataset.articuloId = articulo.id;
         fila.dataset.filaId = contadorFilas;
@@ -260,13 +272,16 @@
                 <input type="hidden" name="detalles[${contadorFilas}][articulo_id]" value="${articulo.id}">
             </td>
             <td>
+                <span class="text-muted">-</span>
+            </td>
+            <td>
                 <input type="number"
                        name="detalles[${contadorFilas}][cantidad]"
                        class="form-control form-control-sm"
-                       min="0.01"
-                       step="0.01"
+                       min="1"
+                       step="1"
                        required
-                       placeholder="0.00">
+                       placeholder="0">
                 <small class="text-muted">${articulo.unidad}</small>
             </td>
             <td>
@@ -279,12 +294,6 @@
                 <input type="date"
                        name="detalles[${contadorFilas}][fecha_vencimiento]"
                        class="form-control form-control-sm">
-            </td>
-            <td>
-                <input type="text"
-                       name="detalles[${contadorFilas}][observaciones]"
-                       class="form-control form-control-sm"
-                       placeholder="Opcional">
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-danger btn-eliminar-fila" data-fila-id="${contadorFilas}">
@@ -308,10 +317,19 @@
      */
     function agregarFilaArticuloConCantidad(articulo, cantidad) {
         const tbody = document.getElementById('tbody-articulos');
+
+        // Limpiar fila vacía si existe (cuando es el primer artículo)
+        if (tbody.children.length === 1 && tbody.children[0].cells.length === 1) {
+            tbody.innerHTML = '';
+        }
+
         const fila = document.createElement('tr');
         fila.dataset.articuloId = articulo.id;
         fila.dataset.filaId = contadorFilas;
         fila.dataset.tipo = articulo.tipo || 'articulo';
+
+        // Convertir cantidad a entero
+        const cantidadInt = parseInt(cantidad) || 0;
 
         fila.innerHTML = `
             <td>
@@ -320,14 +338,19 @@
                 <input type="hidden" name="detalles[${contadorFilas}][articulo_id]" value="${articulo.id}">
             </td>
             <td>
+                <div><strong>${cantidadInt}</strong> <span class="text-muted">${articulo.unidad}</span></div>
+                <small class="text-muted">Pedido en orden de compra</small>
+            </td>
+            <td>
                 <input type="number"
                        name="detalles[${contadorFilas}][cantidad]"
                        class="form-control form-control-sm"
-                       min="0.01"
-                       step="0.01"
-                       value="${cantidad}"
+                       min="1"
+                       step="1"
+                       value="${cantidadInt}"
+                       max="${cantidadInt}"
                        required
-                       placeholder="0.00">
+                       placeholder="0">
                 <small class="text-muted">${articulo.unidad}</small>
             </td>
             <td>
@@ -340,12 +363,6 @@
                 <input type="date"
                        name="detalles[${contadorFilas}][fecha_vencimiento]"
                        class="form-control form-control-sm">
-            </td>
-            <td>
-                <input type="text"
-                       name="detalles[${contadorFilas}][observaciones]"
-                       class="form-control form-control-sm"
-                       placeholder="Opcional">
             </td>
             <td class="text-center">
                 <button type="button" class="btn btn-sm btn-danger btn-eliminar-fila" data-fila-id="${contadorFilas}">
@@ -387,15 +404,18 @@
      */
     function actualizarVisualizacionArticulos() {
         const tbody = document.getElementById('tbody-articulos');
-        const sinArticulos = document.getElementById('sin-articulos');
-        const tabla = document.getElementById('tabla-articulos');
 
-        if (articulosSeleccionados.length === 0) {
-            tabla.style.display = 'none';
-            sinArticulos.style.display = 'block';
-        } else {
-            tabla.style.display = 'table';
-            sinArticulos.style.display = 'none';
+        if (!tbody) return;
+
+        // Si no hay artículos, mostrar fila vacía
+        if (articulosSeleccionados.length === 0 && tbody.children.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted">
+                        No hay artículos agregados. Haga clic en "Agregar Artículo" para comenzar.
+                    </td>
+                </tr>
+            `;
         }
     }
 
