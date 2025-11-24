@@ -830,11 +830,10 @@ class ObtenerArticulosOrdenCompraView(View):
             articulos_data = []
 
             # Obtener artículos de bodega
-            detalles_articulos = orden.detalles_articulos.all().select_related('articulo')
+            detalles_articulos = orden.detalles_articulos.all().select_related('articulo', 'articulo__unidad_medida')
             for detalle in detalles_articulos:
-                # Obtener unidades de medida concatenadas
-                unidades = detalle.articulo.unidades_medida.all()
-                unidades_str = ', '.join([u.simbolo for u in unidades]) if unidades.exists() else 'unidad'
+                # Obtener unidad de medida (ForeignKey, no ManyToMany)
+                unidad_medida = detalle.articulo.unidad_medida.simbolo if detalle.articulo.unidad_medida else 'unidad'
 
                 articulos_data.append({
                     'id': detalle.articulo.id,
@@ -842,7 +841,7 @@ class ObtenerArticulosOrdenCompraView(View):
                     'codigo': detalle.articulo.codigo,
                     'nombre': detalle.articulo.nombre,
                     'cantidad': str(detalle.cantidad),
-                    'unidad_medida': unidades_str,
+                    'unidad_medida': unidad_medida,
                     'tipo': 'articulo'
                 })
 
