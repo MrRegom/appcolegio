@@ -205,10 +205,8 @@ class DetalleOrdenCompra(BaseModel):
         related_name='detalles_compra',
         verbose_name='Activo'
     )
-    cantidad = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
+    cantidad = models.IntegerField(
+        validators=[MinValueValidator(1)],
         verbose_name='Cantidad'
     )
     precio_unitario = models.DecimalField(
@@ -231,11 +229,9 @@ class DetalleOrdenCompra(BaseModel):
         validators=[MinValueValidator(Decimal('0'))],
         verbose_name='Subtotal'
     )
-    cantidad_recibida = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal('0'),
-        validators=[MinValueValidator(Decimal('0'))],
+    cantidad_recibida = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
         verbose_name='Cantidad Recibida'
     )
     observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
@@ -253,7 +249,7 @@ class DetalleOrdenCompra(BaseModel):
         """Calcula el subtotal automáticamente antes de guardar."""
         precio = self.precio_unitario or Decimal('0')
         descuento = self.descuento or Decimal('0')
-        self.subtotal = (self.cantidad * precio) - descuento
+        self.subtotal = (Decimal(self.cantidad) * precio) - descuento
         super().save(*args, **kwargs)
 
 
@@ -277,10 +273,8 @@ class DetalleOrdenCompraArticulo(BaseModel):
         related_name='detalles_compra',
         verbose_name='Artículo'
     )
-    cantidad = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
+    cantidad = models.IntegerField(
+        validators=[MinValueValidator(1)],
         verbose_name='Cantidad'
     )
     precio_unitario = models.DecimalField(
@@ -303,11 +297,9 @@ class DetalleOrdenCompraArticulo(BaseModel):
         validators=[MinValueValidator(Decimal('0'))],
         verbose_name='Subtotal'
     )
-    cantidad_recibida = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=Decimal('0'),
-        validators=[MinValueValidator(Decimal('0'))],
+    cantidad_recibida = models.IntegerField(
+        default=0,
+        validators=[MinValueValidator(0)],
         verbose_name='Cantidad Recibida'
     )
     observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
@@ -325,7 +317,7 @@ class DetalleOrdenCompraArticulo(BaseModel):
         """Calcula el subtotal automáticamente antes de guardar."""
         precio = self.precio_unitario or Decimal('0')
         descuento = self.descuento or Decimal('0')
-        self.subtotal = (self.cantidad * precio) - descuento
+        self.subtotal = (Decimal(self.cantidad) * precio) - descuento
         super().save(*args, **kwargs)
 
 
@@ -396,10 +388,8 @@ class DetalleRecepcionBase(BaseModel):
     Este modelo no crea tabla en la base de datos (abstract=True).
     """
 
-    cantidad = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal('0.01'))],
+    cantidad = models.IntegerField(
+        validators=[MinValueValidator(1)],
         verbose_name='Cantidad Recibida'
     )
     observaciones = models.TextField(blank=True, null=True, verbose_name='Observaciones')
