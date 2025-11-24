@@ -32,6 +32,12 @@ const EntregaBienes = {
         if (form) {
             form.addEventListener('submit', (e) => this.validarYEnviarFormulario(e));
         }
+
+        // Event listener para el select de solicitud
+        const selectSolicitud = document.getElementById('id_solicitud');
+        if (selectSolicitud) {
+            selectSolicitud.addEventListener('change', (e) => this.cargarBienesSolicitud(e.target.value));
+        }
     },
 
     /**
@@ -55,27 +61,154 @@ const EntregaBienes = {
         const selectActivo = this.crearSelectActivo(idFila);
         celdaActivo.appendChild(selectActivo);
 
-        // Celda de cantidad
-        const celdaCantidad = fila.insertCell(1);
+        // Celda de "Solicitado" (vacía para bienes agregados manualmente)
+        const celdaSolicitado = fila.insertCell(1);
+        const spanSolicitado = document.createElement('span');
+        spanSolicitado.className = 'text-muted';
+        spanSolicitado.textContent = '-';
+        celdaSolicitado.appendChild(spanSolicitado);
+
+        // Celda de cantidad a despachar
+        const celdaCantidad = fila.insertCell(2);
         const inputCantidad = this.crearInputCantidad(idFila);
         celdaCantidad.appendChild(inputCantidad);
 
-        // Celda de número de serie
-        const celdaSerie = fila.insertCell(2);
-        const inputSerie = this.crearInputSerie(idFila);
-        celdaSerie.appendChild(inputSerie);
-
-        // Celda de estado físico
-        const celdaEstado = fila.insertCell(3);
-        const selectEstado = this.crearSelectEstado(idFila);
-        celdaEstado.appendChild(selectEstado);
-
         // Celda de acciones
-        const celdaAcciones = fila.insertCell(4);
+        const celdaAcciones = fila.insertCell(3);
         const btnEliminar = this.crearBotonEliminar(idFila);
         celdaAcciones.appendChild(btnEliminar);
 
         this.contadorFilas++;
+    },
+
+    /**
+     * Carga bienes de una solicitud mediante AJAX
+     */
+    async cargarBienesSolicitud(solicitudId) {
+        if (!solicitudId) {
+            // Si no hay solicitud, limpiar la tabla
+            this.limpiarTablaBienes();
+            return;
+        }
+
+        try {
+            const response = await fetch(`/bodega/ajax/solicitud/${solicitudId}/bienes/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                this.cargarBienesEnTabla(data.bienes, data.solicitud);
+            } else {
+                alert(`Error: ${data.error}`);
+            }
+        } catch (error) {
+            console.error('Error al cargar bienes:', error);
+            alert('Error al cargar los bienes de la solicitud.');
+        }
+    },
+
+    /**
+     * Carga bienes en la tabla
+     */
+    cargarBienesEnTabla(bienes, solicitud) {
+        // Limpiar tabla actual
+        this.limpiarTablaBienes();
+
+        if (!bienes || bienes.length === 0) {
+            alert('Esta solicitud no tiene bienes/activos asociados.');
+            return;
+        }
+
+        // Agregar cada bien a la tabla
+        bienes.forEach(bien => {
+            this.agregarBienDesdeSolicitud(bien);
+        });
+
+        // Rellenar otros campos del formulario
+        if (solicitud) {
+            // Rellenar motivo si está vacío
+            const inputMotivo = document.getElementById('id_motivo');
+            if (inputMotivo && !inputMotivo.value) {
+                inputMotivo.value = solicitud.motivo || '';
+            }
+        }
+    },
+
+    /**
+     * Agrega un bien desde una solicitud
+     */
+    agregarBienDesdeSolicitud(bien) {
+        const tbody = document.getElementById('bienesBody');
+        if (!tbody) return;
+
+        // Limpiar fila vacía si existe
+        if (tbody.children.length === 1 && tbody.children[0].cells.length === 1) {
+            tbody.innerHTML = '';
+        }
+
+        const fila = tbody.insertRow();
+        fila.id = `fila_${this.contadorFilas}`;
+        const idFila = this.contadorFilas;
+
+        // Celda de selección de activo (pre-seleccionado)
+        const celdaActivo = fila.insertCell(0);
+        const selectActivo = this.crearSelectActivo(idFila);
+        selectActivo.value = bien.activo_id;
+        celdaActivo.appendChild(selectActivo);
+
+        // Celda de "Solicitado" con información de seguimiento
+        const celdaSolicitado = fila.insertCell(1);
+        const divInfo = document.createElement('div');
+        divInfo.innerHTML = `
+            <div><strong>${bien.cantidad_solicitada}</strong> <span class="text-muted">solicitado(s)</span></div>
+            <small class="text-muted">Aprobado: ${bien.cantidad_aprobada} | Despachado: ${bien.cantidad_despachada}</small>
+        `;
+        celdaSolicitado.appendChild(divInfo);
+
+        // Celda de cantidad a despachar (pre-llenada con cantidad pendiente)
+        const celdaCantidad = fila.insertCell(2);
+        const inputCantidad = this.crearInputCantidad(idFila);
+        inputCantidad.value = bien.cantidad_pendiente || bien.cantidad_aprobada || 1;
+        inputCantidad.max = bien.cantidad_pendiente || bien.cantidad_aprobada;
+        celdaCantidad.appendChild(inputCantidad);
+
+        // Agregar información de pendiente debajo del input
+        const smallPendiente = document.createElement('small');
+        smallPendiente.className = 'text-muted d-block mt-1';
+        smallPendiente.textContent = `Pendiente: ${bien.cantidad_pendiente}`;
+        celdaCantidad.appendChild(smallPendiente);
+
+        // Celda de acciones
+        const celdaAcciones = fila.insertCell(3);
+        const btnEliminar = this.crearBotonEliminar(idFila);
+        celdaAcciones.appendChild(btnEliminar);
+
+        // Guardar el detalle_solicitud_id para enviar en el formulario
+        fila.dataset.detalleSolicitudId = bien.detalle_solicitud_id;
+
+        this.contadorFilas++;
+    },
+
+    /**
+     * Limpia la tabla de bienes
+     */
+    limpiarTablaBienes() {
+        const tbody = document.getElementById('bienesBody');
+        if (!tbody) return;
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center text-muted">
+                    No hay bienes agregados. Haga clic en "Agregar Bien" para comenzar.
+                </td>
+            </tr>
+        `;
+        this.contadorFilas = 0;
     },
 
     /**
@@ -169,7 +302,7 @@ const EntregaBienes = {
         if (tbody && tbody.children.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="5" class="text-center text-muted">
+                    <td colspan="4" class="text-center text-muted">
                         No hay bienes agregados. Haga clic en "Agregar Bien" para comenzar.
                     </td>
                 </tr>
@@ -199,8 +332,6 @@ const EntregaBienes = {
 
             const selectActivo = document.getElementById(`activo_${i}`);
             const inputCantidad = document.getElementById(`cantidad_${i}`);
-            const inputSerie = document.getElementById(`serie_${i}`);
-            const selectEstado = document.getElementById(`estado_fisico_${i}`);
 
             if (!selectActivo || !selectActivo.value) {
                 alert('Seleccione un activo/bien en todas las filas.');
@@ -212,11 +343,13 @@ const EntregaBienes = {
                 return false;
             }
 
+            // Obtener detalle_solicitud_id si existe
+            const detalleSolicitudId = fila.dataset.detalleSolicitudId ? parseInt(fila.dataset.detalleSolicitudId) : null;
+
             detalles.push({
                 equipo_id: parseInt(selectActivo.value),
                 cantidad: parseInt(inputCantidad.value),
-                numero_serie: inputSerie ? (inputSerie.value || null) : null,
-                estado_fisico: selectEstado ? (selectEstado.value || null) : null
+                detalle_solicitud_id: detalleSolicitudId
             });
         }
 
