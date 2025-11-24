@@ -382,7 +382,7 @@ class CategoriaDeleteView(BaseAuditedViewMixin, SoftDeleteMixin, DeleteView):
 
 # ==================== VISTAS DE ARTÍCULO ====================
 
-class ArticuloListView(BaseAuditedViewMixin, PaginatedListMixin, FilteredListMixin, ListView):
+class ArticuloListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
     """
     Vista para listar artículos con paginación y filtros.
 
