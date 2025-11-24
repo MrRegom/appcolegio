@@ -726,7 +726,7 @@ class SolicitudActivoCreateView(SolicitudCreateView):
 
     def get_context_data(self, **kwargs) -> dict:
         """Agrega datos adicionales al contexto y lista de activos disponibles."""
-        from apps.inventario.models import Activo
+        from apps.activos.models import Activo
 
         context = super(SolicitudCreateView, self).get_context_data(**kwargs)
         context['titulo'] = 'Crear Solicitud de Bienes'
