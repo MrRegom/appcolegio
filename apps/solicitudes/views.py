@@ -10,7 +10,7 @@ Este archivo implementa todas las vistas usando CBVs siguiendo SOLID y DRY:
 - Workflow de aprobación y despacho
 """
 from typing import Any
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Q
 from django.urls import reverse_lazy
 from django.shortcuts import redirect
 from django.contrib import messages
@@ -86,7 +86,7 @@ class MenuSolicitudesView(BaseAuditedViewMixin, TemplateView):
 
 # ==================== VISTAS DE SOLICITUDES GENERALES ====================
 
-class SolicitudListView(BaseAuditedViewMixin, PaginatedListMixin, FilteredListMixin, ListView):
+class SolicitudListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
     """
     Vista para listar todas las solicitudes con filtros.
 
