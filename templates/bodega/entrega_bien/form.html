@@ -23,6 +23,19 @@
                         </div>
                         <div class="card-body">
                             <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label for="{{ form.solicitud.id_for_label }}" class="form-label">
+                                        {{ form.solicitud.label }}
+                                    </label>
+                                    {{ form.solicitud }}
+                                    {% if form.solicitud.errors %}
+                                    <div class="text-danger">{{ form.solicitud.errors }}</div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">Si selecciona una solicitud, se cargarán automáticamente los bienes de la solicitud</small>
+                                </div>
+                            </div>
+
+                            <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="{{ form.tipo.id_for_label }}" class="form-label">
                                         {{ form.tipo.label }} *
@@ -92,16 +105,15 @@
                                 <table class="table table-bordered" id="tablaBienes">
                                     <thead>
                                         <tr>
-                                            <th width="30%">Activo/Bien</th>
-                                            <th width="15%">Cantidad</th>
-                                            <th width="20%">Número de Serie</th>
-                                            <th width="20%">Estado Físico</th>
-                                            <th width="15%">Acciones</th>
+                                            <th width="45%">Activo/Bien</th>
+                                            <th width="25%">Solicitado</th>
+                                            <th width="20%">Cantidad a Despachar</th>
+                                            <th width="10%">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody id="bienesBody">
                                         <tr>
-                                            <td colspan="5" class="text-center text-muted">
+                                            <td colspan="4" class="text-center text-muted">
                                                 No hay bienes agregados. Haga clic en "Agregar Bien" para comenzar.
                                             </td>
                                         </tr>
