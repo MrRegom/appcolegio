@@ -36,6 +36,15 @@ db.sqlite3-journal
 /staticfiles/
 /media/
 
+# Testing & Coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+*.cover
+.hypothesis/
+
 # Environment variables
 .env
 .env.local
@@ -69,3 +78,6 @@ wsgi_pythonanywhere_example.py
 
 # Archivos del sistema
 nul
+
+#Claude AI
+.claude

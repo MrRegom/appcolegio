@@ -102,12 +102,12 @@
                                     <span class="text-muted">Ninguna</span>
                                 {% endfor %}
                                 <br>
-                                <strong>Unidades asociadas:</strong>
-                                {% for unidad in form.instance.unidades_medida.all %}
-                                    <span class="badge bg-success">{{ unidad.nombre }} ({{ unidad.simbolo }})</span>
-                                {% empty %}
+                                <strong>Unidad asociada:</strong>
+                                {% if form.instance.unidad_medida %}
+                                    <span class="badge bg-success">{{ form.instance.unidad_medida.nombre }} ({{ form.instance.unidad_medida.simbolo }})</span>
+                                {% else %}
                                     <span class="text-muted">Ninguna</span>
-                                {% endfor %}
+                                {% endif %}
                             </div>
                             {% endif %}
                             <div class="row g-3">
@@ -117,9 +117,14 @@
                                     <small class="text-muted">{{ form.marca_seleccionada.help_text }}</small>
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form.unidad_seleccionada.label_tag }} <span class="text-danger">*</span>
-                                    {{ form.unidad_seleccionada }}
-                                    <small class="text-muted">{{ form.unidad_seleccionada.help_text }}</small>
+                                    <label for="{{ form.unidad_medida.id_for_label }}" class="form-label">Unidad de Medida <span class="text-danger">*</span></label>
+                                    {{ form.unidad_medida }}
+                                    {% if form.unidad_medida.help_text %}
+                                    <small class="text-muted">{{ form.unidad_medida.help_text }}</small>
+                                    {% endif %}
+                                    {% if form.unidad_medida.errors %}
+                                    <div class="invalid-feedback d-block">{{ form.unidad_medida.errors }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>

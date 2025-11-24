@@ -35,11 +35,11 @@
                                 </span>
                             </dd>
                             <dt class="col-sm-4">Cantidad:</dt>
-                            <dd class="col-sm-8"><strong>{{ movimiento.cantidad }} {% for u in movimiento.articulo.unidades_medida.all %}{{ u.simbolo }}{% if not forloop.last %}, {% endif %}{% empty %}unidad{% endfor %}</strong></dd>
+                            <dd class="col-sm-8"><strong>{{ movimiento.cantidad }} {{ movimiento.articulo.unidad_medida.simbolo|default:"unidad" }}</strong></dd>
                             <dt class="col-sm-4">Stock Antes:</dt>
-                            <dd class="col-sm-8">{{ movimiento.stock_antes }} {% for u in movimiento.articulo.unidades_medida.all %}{{ u.simbolo }}{% if not forloop.last %}, {% endif %}{% empty %}unidad{% endfor %}</dd>
+                            <dd class="col-sm-8">{{ movimiento.stock_antes }} {{ movimiento.articulo.unidad_medida.simbolo|default:"unidad" }}</dd>
                             <dt class="col-sm-4">Stock Después:</dt>
-                            <dd class="col-sm-8">{{ movimiento.stock_despues }} {% for u in movimiento.articulo.unidades_medida.all %}{{ u.simbolo }}{% if not forloop.last %}, {% endif %}{% empty %}unidad{% endfor %}</dd>
+                            <dd class="col-sm-8">{{ movimiento.stock_despues }} {{ movimiento.articulo.unidad_medida.simbolo|default:"unidad" }}</dd>
                             <dt class="col-sm-4">Usuario:</dt>
                             <dd class="col-sm-8">{{ movimiento.usuario.username }}</dd>
                             <dt class="col-sm-4">Motivo:</dt>

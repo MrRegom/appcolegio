@@ -68,7 +68,7 @@
                                         <td>{{ articulo.nombre }}</td>
                                         <td>{{ articulo.categoria.nombre }}</td>
                                         <td>
-                                            {{ articulo.stock_actual }} ({% for u in articulo.unidades_medida.all %}{{ u.simbolo }}{% if not forloop.last %}, {% endif %}{% empty %}unidad{% endfor %})
+                                            {{ articulo.stock_actual }} ({{ articulo.unidad_medida.simbolo|default:"unidad" }})
                                         </td>
                                         <td>{{ articulo.ubicacion_fisica.nombre }}</td>
                                         <td>

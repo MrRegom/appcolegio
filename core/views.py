@@ -89,12 +89,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         from apps.bodega.models import Articulo
         ultimos_productos = Articulo.objects.filter(
             eliminado=False
-        ).select_related('categoria', 'ubicacion_fisica').prefetch_related('unidades_medida').order_by('-fecha_creacion')[:10]
-        
+        ).select_related('categoria', 'ubicacion_fisica', 'unidad_medida').order_by('-fecha_creacion')[:10]
+
         # Top 10 productos por stock (mayor stock)
         productos_top_stock = Articulo.objects.filter(
             eliminado=False
-        ).select_related('categoria', 'ubicacion_fisica').prefetch_related('unidades_medida').order_by('-stock_actual')[:10]
+        ).select_related('categoria', 'ubicacion_fisica', 'unidad_medida').order_by('-stock_actual')[:10]
         
         # Artículos con stock bajo (menor al mínimo)
         from apps.bodega.repositories import ArticuloRepository

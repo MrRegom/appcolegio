@@ -17,7 +17,7 @@
                             <dt class="col-sm-4">Nombre:</dt>
                             <dd class="col-sm-8">{{ articulo.nombre }}</dd>
                             <dt class="col-sm-4">Stock:</dt>
-                            <dd class="col-sm-8">{{ articulo.stock_actual }} {% for u in articulo.unidades_medida.all %}{{ u.simbolo }}{% if not forloop.last %}, {% endif %}{% empty %}unidad{% endfor %}</dd>
+                            <dd class="col-sm-8">{{ articulo.stock_actual }} {{ articulo.unidad_medida.simbolo|default:"unidad" }}</dd>
                         </dl>
                         <form method="post">
                             {% csrf_token %}

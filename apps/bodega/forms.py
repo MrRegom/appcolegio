@@ -140,10 +140,10 @@ class ArticuloForm(forms.ModelForm):
     """
     Formulario para crear y editar artículos de bodega.
 
-    Permite seleccionar una marca y una unidad de medida a la vez,
-    que se agregarán a las relaciones ManyToMany del artículo.
+    Permite seleccionar una marca (relación ManyToMany) y una unidad de medida
+    (relación ForeignKey) para el artículo.
     """
-    # Campos personalizados para selección simple
+    # Campo personalizado para selección simple de marca
     marca_seleccionada = forms.ModelChoiceField(
         queryset=None,
         required=False,
@@ -152,18 +152,10 @@ class ArticuloForm(forms.ModelForm):
         help_text='Seleccione una marca para agregar al artículo'
     )
 
-    unidad_seleccionada = forms.ModelChoiceField(
-        queryset=None,
-        required=True,
-        label='Unidad de Medida',
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        help_text='Seleccione una unidad de medida para agregar al artículo'
-    )
-
     class Meta:
         model = Articulo
         fields = [
-            'codigo', 'nombre', 'descripcion', 'categoria',
+            'codigo', 'nombre', 'descripcion', 'categoria', 'unidad_medida',
             'stock_actual', 'stock_minimo', 'stock_maximo', 'punto_reorden',
             'ubicacion_fisica', 'observaciones', 'activo'
         ]
@@ -187,30 +179,34 @@ class ArticuloForm(forms.ModelForm):
                 'class': 'form-select',
                 'required': True
             }),
+            'unidad_medida': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True
+            }),
             'stock_actual': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': '0.00',
-                'step': '0.01',
+                'placeholder': '0',
+                'step': '1',
                 'min': '0',
                 'readonly': True,
                 'disabled': True
             }),
             'stock_minimo': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': '0.00',
-                'step': '0.01',
+                'placeholder': '0',
+                'step': '1',
                 'min': '0'
             }),
             'stock_maximo': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Opcional',
-                'step': '0.01',
+                'step': '1',
                 'min': '0'
             }),
             'punto_reorden': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Opcional',
-                'step': '0.01',
+                'step': '1',
                 'min': '0'
             }),
             'ubicacion_fisica': forms.Select(attrs={
@@ -242,6 +238,12 @@ class ArticuloForm(forms.ModelForm):
             eliminado=False
         ).order_by('codigo')
 
+        # Configurar queryset para unidad_medida
+        self.fields['unidad_medida'].queryset = UnidadMedida.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('codigo')
+
         # Configurar queryset para marca_seleccionada
         from apps.activos.models import Marca
         self.fields['marca_seleccionada'].queryset = Marca.objects.filter(
@@ -249,13 +251,6 @@ class ArticuloForm(forms.ModelForm):
             eliminado=False
         ).order_by('nombre')
         self.fields['marca_seleccionada'].empty_label = 'Seleccione una marca (opcional)'
-
-        # Configurar queryset para unidad_seleccionada
-        self.fields['unidad_seleccionada'].queryset = UnidadMedida.objects.filter(
-            activo=True,
-            eliminado=False
-        ).order_by('codigo')
-        self.fields['unidad_seleccionada'].empty_label = 'Seleccione una unidad de medida'
 
         # Hacer el campo stock_actual de solo lectura
         self.fields['stock_actual'].disabled = True
@@ -266,14 +261,11 @@ class ArticuloForm(forms.ModelForm):
             self.fields['codigo'].disabled = True
             self.fields['codigo'].widget.attrs['readonly'] = True
             self.fields['codigo'].help_text = 'El código no puede modificarse al editar'
-            # En edición, marca y unidad son opcionales (solo para agregar nuevas)
-            self.fields['unidad_seleccionada'].required = False
-            self.fields['unidad_seleccionada'].help_text = 'Seleccione una unidad adicional (opcional)'
 
     def save(self, commit=True):
         """
-        Guardar el artículo y agregar la marca y unidad seleccionadas
-        a las relaciones ManyToMany.
+        Guardar el artículo y agregar la marca seleccionada a la relación ManyToMany.
+        La unidad de medida se guarda automáticamente al ser un ForeignKey.
         """
         instance = super().save(commit=False)
 
@@ -289,12 +281,6 @@ class ArticuloForm(forms.ModelForm):
             if marca:
                 if not instance.marcas.filter(pk=marca.pk).exists():
                     instance.marcas.add(marca)
-
-            # Agregar unidad seleccionada a la relación M2M (si se seleccionó)
-            unidad = self.cleaned_data.get('unidad_seleccionada')
-            if unidad:
-                if not instance.unidades_medida.filter(pk=unidad.pk).exists():
-                    instance.unidades_medida.add(unidad)
 
         return instance
 
@@ -377,9 +363,9 @@ class MovimientoForm(forms.ModelForm):
             }),
             'cantidad': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': '0.00',
-                'step': '0.01',
-                'min': '0.01',
+                'placeholder': '0',
+                'step': '1',
+                'min': '1',
                 'required': True
             }),
             'operacion': forms.Select(attrs={
@@ -425,14 +411,10 @@ class MovimientoForm(forms.ModelForm):
         # Validar stock disponible para salidas
         if articulo and cantidad and operacion == 'SALIDA':
             if articulo.stock_actual < cantidad:
-                # Obtener unidades de medida
-                unidades = articulo.unidades_medida.all()
-                if unidades.exists():
-                    unidades_str = ', '.join([u.simbolo for u in unidades])
-                else:
-                    unidades_str = 'unidad'
+                # Obtener unidad de medida
+                unidad_str = articulo.unidad_medida.simbolo if articulo.unidad_medida else 'unidad'
                 raise ValidationError({
-                    'cantidad': f'Stock insuficiente. Disponible: {articulo.stock_actual} {unidades_str}'
+                    'cantidad': f'Stock insuficiente. Disponible: {articulo.stock_actual} {unidad_str}'
                 })
 
         return cleaned_data
