@@ -464,11 +464,24 @@ class DetalleEntregaArticulo(DetalleEntregaBase):
 class EntregaBien(EntregaBase):
     """
     Modelo para gestionar entregas de bienes/activos fijos.
-    Hereda de EntregaBase (DRY) sin agregar campos adicionales.
+    Hereda de EntregaBase (DRY) y agrega el campo opcional 'solicitud'.
+
+    Puede estar vinculada opcionalmente a una Solicitud de activos,
+    permitiendo entregas totales o parciales de la solicitud.
 
     Diferencia con EntregaArticulo: No requiere bodega de origen.
     Los bienes pueden ser activos que no están en bodega.
     """
+    solicitud = models.ForeignKey(
+        'solicitudes.Solicitud',
+        on_delete=models.PROTECT,
+        related_name='entregas_bienes',
+        blank=True,
+        null=True,
+        verbose_name='Solicitud Asociada',
+        help_text='Solicitud de activos asociada a esta entrega (opcional)'
+    )
+
     class Meta:
         db_table = 'tba_bodega_entrega_bien'
         verbose_name = 'Entrega de Bien/Activo'
@@ -490,6 +503,9 @@ class DetalleEntregaBien(DetalleEntregaBase):
     """
     Detalle de bienes/activos entregados.
     Hereda de DetalleEntregaBase (DRY) y agrega campos específicos de bienes.
+
+    Puede estar vinculado a un DetalleSolicitud para rastrear el despacho
+    de solicitudes específicas.
     """
     entrega = models.ForeignKey(
         EntregaBien,
@@ -516,6 +532,15 @@ class DetalleEntregaBien(DetalleEntregaBase):
         null=True,
         verbose_name='Estado Físico',
         help_text='Estado físico del bien al momento de la entrega'
+    )
+    detalle_solicitud = models.ForeignKey(
+        'solicitudes.DetalleSolicitud',
+        on_delete=models.PROTECT,
+        related_name='detalles_entregas_bienes',
+        blank=True,
+        null=True,
+        verbose_name='Detalle de Solicitud',
+        help_text='Vincula con línea específica de solicitud (opcional)'
     )
 
     class Meta:
