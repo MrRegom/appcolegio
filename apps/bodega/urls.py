@@ -43,4 +43,5 @@ urlpatterns = [
 
     # AJAX
     path('ajax/solicitud/<int:solicitud_id>/articulos/', views.obtener_articulos_solicitud, name='ajax_solicitud_articulos'),
+    path('ajax/solicitud/<int:solicitud_id>/bienes/', views.obtener_bienes_solicitud, name='ajax_solicitud_bienes'),
 ]

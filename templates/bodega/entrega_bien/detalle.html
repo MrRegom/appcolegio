@@ -47,6 +47,16 @@
                                             </span>
                                         </td>
                                     </tr>
+                                    {% if entrega.solicitud %}
+                                    <tr>
+                                        <th>Solicitud Asociada:</th>
+                                        <td>
+                                            <a href="{% url 'solicitudes:solicitud_detalle' entrega.solicitud.pk %}" class="text-primary">
+                                                {{ entrega.solicitud.numero }}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endif %}
                                 </table>
                             </div>
                             <div class="col-md-6">

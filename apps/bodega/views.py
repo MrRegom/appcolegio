@@ -382,7 +382,7 @@ class CategoriaDeleteView(BaseAuditedViewMixin, SoftDeleteMixin, DeleteView):
 
 # ==================== VISTAS DE ARTÍCULO ====================
 
-class ArticuloListView(BaseAuditedViewMixin, PaginatedListMixin, FilteredListMixin, ListView):
+class ArticuloListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
     """
     Vista para listar artículos con paginación y filtros.
 
@@ -1094,6 +1094,64 @@ def obtener_articulos_solicitud(request, solicitud_id):
                 'bodega_origen_id': solicitud.bodega_origen.id if solicitud.bodega_origen else None
             },
             'articulos': articulos_data
+        })
+
+    except Solicitud.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Solicitud no encontrada'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+def obtener_bienes_solicitud(request, solicitud_id):
+    """
+    Endpoint AJAX para obtener los bienes/activos de una solicitud.
+
+    Retorna los bienes con cantidades solicitadas, aprobadas y despachadas.
+    Permite al usuario ver qué bienes puede entregar y en qué cantidades.
+    """
+    try:
+        from apps.solicitudes.models import Solicitud, DetalleSolicitud
+
+        solicitud = Solicitud.objects.prefetch_related(
+            'detalles__activo__categoria'
+        ).get(id=solicitud_id, tipo='ACTIVO', eliminado=False)
+
+        bienes_data = []
+        for detalle in solicitud.detalles.filter(eliminado=False):
+            if detalle.activo:  # Solo activos (no artículos)
+                # Calcular cantidad pendiente de despacho
+                cantidad_pendiente = int(detalle.cantidad_aprobada - detalle.cantidad_despachada)
+
+                # Mostrar TODOS los bienes, no solo los pendientes
+                bienes_data.append({
+                    'detalle_solicitud_id': detalle.id,
+                    'activo_id': detalle.activo.id,
+                    'activo_codigo': detalle.activo.codigo,
+                    'activo_nombre': detalle.activo.nombre,
+                    'categoria': detalle.activo.categoria.nombre if detalle.activo.categoria else '-',
+                    'cantidad_solicitada': int(detalle.cantidad_solicitada),
+                    'cantidad_aprobada': int(detalle.cantidad_aprobada),
+                    'cantidad_despachada': int(detalle.cantidad_despachada),
+                    'cantidad_pendiente': cantidad_pendiente,
+                    'observaciones': detalle.observaciones or ''
+                })
+
+        return JsonResponse({
+            'success': True,
+            'solicitud': {
+                'numero': solicitud.numero,
+                'solicitante': solicitud.solicitante.get_full_name() or solicitud.solicitante.username,
+                'departamento': solicitud.departamento.nombre if solicitud.departamento else solicitud.area_solicitante,
+                'motivo': solicitud.motivo
+            },
+            'bienes': bienes_data
         })
 
     except Solicitud.DoesNotExist:

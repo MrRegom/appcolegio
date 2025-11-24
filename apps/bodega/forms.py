@@ -572,10 +572,14 @@ class EntregaBienForm(forms.ModelForm):
     class Meta:
         model = EntregaBien
         fields = [
-            'tipo', 'recibido_por',
+            'solicitud', 'tipo', 'recibido_por',
             'departamento_destino', 'motivo', 'observaciones'
         ]
         widgets = {
+            'solicitud': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_solicitud'
+            }),
             'tipo': forms.Select(attrs={
                 'class': 'form-select',
                 'required': True
@@ -600,6 +604,7 @@ class EntregaBienForm(forms.ModelForm):
             })
         }
         labels = {
+            'solicitud': 'Solicitud Asociada (Opcional)',
             'tipo': 'Tipo de Entrega',
             'recibido_por': 'Recibido Por (Usuario)',
             'departamento_destino': 'Departamento Destino',
@@ -609,6 +614,21 @@ class EntregaBienForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Filtrar TODAS las solicitudes de activos/bienes (sin importar el estado)
+        from apps.solicitudes.models import Solicitud
+        try:
+            self.fields['solicitud'].queryset = Solicitud.objects.filter(
+                tipo='ACTIVO',
+                eliminado=False
+            ).select_related('estado', 'solicitante').order_by('-numero')
+            self.fields['solicitud'].empty_label = 'Seleccione solicitud (opcional)'
+            # Personalizar cómo se muestra cada solicitud en el dropdown
+            self.fields['solicitud'].label_from_instance = lambda obj: f"{obj.numero} - {obj.estado.nombre} - {obj.solicitante.get_full_name() or obj.solicitante.username}"
+        except:
+            self.fields['solicitud'].queryset = Solicitud.objects.none()
+            self.fields['solicitud'].empty_label = 'No hay solicitudes disponibles'
+
         # Filtrar solo tipos activos
         self.fields['tipo'].queryset = TipoEntrega.objects.filter(
             activo=True, eliminado=False
