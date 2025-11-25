@@ -11,7 +11,7 @@ from django.contrib.auth.models import User
 from .models import (
     Proveedor, EstadoOrdenCompra, OrdenCompra,
     DetalleOrdenCompra, DetalleOrdenCompraArticulo,
-    EstadoRecepcion, RecepcionArticulo, DetalleRecepcionArticulo,
+    EstadoRecepcion, TipoRecepcion, RecepcionArticulo, DetalleRecepcionArticulo,
     RecepcionActivo, DetalleRecepcionActivo
 )
 from apps.bodega.models import Bodega, Articulo
@@ -256,6 +256,34 @@ class EstadoRecepcionRepository:
         return EstadoRecepcion.objects.filter(
             eliminado=False, activo=True
         ).order_by('codigo').first()
+
+
+class TipoRecepcionRepository:
+    """Repository para tipos de recepción."""
+
+    @staticmethod
+    def get_all() -> QuerySet[TipoRecepcion]:
+        """Retorna todos los tipos no eliminados."""
+        return TipoRecepcion.objects.filter(
+            eliminado=False, activo=True
+        ).order_by('codigo')
+
+    @staticmethod
+    def get_by_codigo(codigo: str) -> Optional[TipoRecepcion]:
+        """Obtiene un tipo por su código."""
+        try:
+            return TipoRecepcion.objects.get(
+                codigo=codigo, eliminado=False, activo=True
+            )
+        except TipoRecepcion.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_que_requiere_orden() -> QuerySet[TipoRecepcion]:
+        """Obtiene tipos que requieren orden de compra."""
+        return TipoRecepcion.objects.filter(
+            eliminado=False, activo=True, requiere_orden=True
+        ).order_by('codigo')
 
 
 # ==================== RECEPCIÓN REPOSITORY BASE (DRY) ====================
