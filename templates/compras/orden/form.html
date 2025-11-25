@@ -43,74 +43,38 @@
                         </div>
                         {% endif %}
 
-                        <form method="post">
+                        <form method="post" id="form-orden-compra">
                             {% csrf_token %}
 
-                            <div class="alert alert-info">
-                                <i class="ri-information-line"></i> El número de orden se generará automáticamente con el formato: <strong>OC-2025-XXXXXX</strong>
-                            </div>
+                            <!-- Campos ocultos -->
+                            {{ form.fecha_orden }}
+                            {{ form.estado }}
 
                             <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label">Fecha de Orden <span class="text-danger">*</span></label>
-                                    {{ form.fecha_orden }}
-                                    {% if form.fecha_orden.errors %}
-                                        <div class="text-danger small">{{ form.fecha_orden.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-6">
+                                <!-- Fila con 3 columnas: Fecha Entrega, Proveedor, Bodega -->
+                                <div class="col-md-4">
                                     <label class="form-label">Fecha Entrega Esperada</label>
                                     {{ form.fecha_entrega_esperada }}
                                     {% if form.fecha_entrega_esperada.errors %}
                                         <div class="text-danger small">{{ form.fecha_entrega_esperada.errors.0 }}</div>
                                     {% endif %}
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label">Proveedor <span class="text-danger">*</span></label>
                                     {{ form.proveedor }}
                                     {% if form.proveedor.errors %}
                                         <div class="text-danger small">{{ form.proveedor.errors.0 }}</div>
                                     {% endif %}
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label">Bodega Destino <span class="text-danger">*</span></label>
                                     {{ form.bodega_destino }}
                                     {% if form.bodega_destino.errors %}
                                         <div class="text-danger small">{{ form.bodega_destino.errors.0 }}</div>
                                     {% endif %}
-                                    <div class="form-text">Bodega donde se recibirán los artículos/activos</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Estado</label>
-                                    {{ form.estado }}
-                                    {% if form.estado.errors %}
-                                        <div class="text-danger small">{{ form.estado.errors.0 }}</div>
-                                    {% endif %}
-                                </div>
-                                <div class="col-md-12">
-                                    <label class="form-label">Solicitudes Aprobadas Asociadas</label>
-                                    <select
-                                        name="solicitudes"
-                                        id="id_solicitudes"
-                                        class="form-select"
-                                        multiple
-                                        size="5"
-                                        data-url-detalles="{% url 'compras:obtener_detalles_solicitudes' %}"
-                                    >
-                                        {% for solicitud in form.solicitudes.field.queryset %}
-                                        <option value="{{ solicitud.id }}">{{ solicitud.numero }} - {{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }} ({{ solicitud.fecha_solicitud|date:"d/m/Y" }})</option>
-                                        {% endfor %}
-                                    </select>
-                                    {% if form.solicitudes.errors %}
-                                        <div class="text-danger small">{{ form.solicitudes.errors.0 }}</div>
-                                    {% endif %}
-                                    <div class="form-text">{{ form.solicitudes.help_text }}</div>
                                 </div>
 
-                                <!-- Preview de artículos de solicitudes -->
-                                <div class="col-md-12">
-                                    <div id="preview-articulos" class="d-none"></div>
-                                </div>
+                                <!-- Campo observaciones debajo -->
                                 <div class="col-md-12">
                                     <label class="form-label">Observaciones</label>
                                     {{ form.observaciones }}
@@ -118,6 +82,169 @@
                                         <div class="text-danger small">{{ form.observaciones.errors.0 }}</div>
                                     {% endif %}
                                 </div>
+
+                                <!-- Campos solicitudes ocultos (se llenarán dinámicamente) -->
+                                <div id="solicitudes-hidden-inputs">
+                                    {{ form.solicitudes }}
+                                </div>
+
+                                <!-- Campos ocultos para artículos y bienes agregados manualmente -->
+                                <input type="hidden" id="articulosJson" name="articulos_json" value="">
+                                <input type="hidden" id="bienesJson" name="bienes_json" value="">
+
+                                <!-- Tabla de solicitudes disponibles -->
+                                <div class="col-md-12">
+                                    <label class="form-label">Solicitudes Disponibles (En Aprobación / Aprobadas)</label>
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-hover table-sm mb-0" id="tabla-solicitudes-disponibles">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Número</th>
+                                                            <th>Fecha</th>
+                                                            <th>Tipo</th>
+                                                            <th>Solicitante</th>
+                                                            <th>Estado</th>
+                                                            <th class="text-center">Acción</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {% for solicitud in form.solicitudes.field.queryset %}
+                                                        <tr data-solicitud-id="{{ solicitud.id }}" data-solicitud-numero="{{ solicitud.numero }}" data-solicitud-tipo="{{ solicitud.tipo }}" data-solicitante="{{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}">
+                                                            <td><strong>{{ solicitud.numero }}</strong></td>
+                                                            <td>{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</td>
+                                                            <td>
+                                                                {% if solicitud.tipo == 'ARTICULO' %}
+                                                                    <span class="badge bg-primary">Artículos</span>
+                                                                {% else %}
+                                                                    <span class="badge bg-info">Activos</span>
+                                                                {% endif %}
+                                                            </td>
+                                                            <td>{{ solicitud.solicitante.get_full_name|default:solicitud.solicitante.username }}</td>
+                                                            <td>
+                                                                <span class="badge" style="background-color: {{ solicitud.estado.color }}">
+                                                                    {{ solicitud.estado.nombre }}
+                                                                </span>
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <button type="button" class="btn btn-sm btn-success btn-toggle-solicitud" data-solicitud-id="{{ solicitud.id }}" data-action="agregar">
+                                                                    <i class="ri-add-line"></i> Agregar
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                        {% empty %}
+                                                        <tr>
+                                                            <td colspan="6" class="text-center text-muted">
+                                                                No hay solicitudes disponibles
+                                                            </td>
+                                                        </tr>
+                                                        {% endfor %}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-text">
+                                        <i class="ri-information-line"></i> Haga clic en "Agregar" para asociar solicitudes. Las filas agregadas se marcarán en verde.
+                                    </div>
+                                    {% if form.solicitudes.errors %}
+                                        <div class="text-danger small mt-2">{{ form.solicitudes.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Tabla de Artículos -->
+                                <div class="col-md-12" id="seccion-articulos" style="display: none;">
+                                    <div class="card">
+                                        <div class="card-header bg-primary bg-opacity-10">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h5 class="card-title mb-0 text-primary">
+                                                    <i class="ri-shopping-cart-line"></i> Artículos de Bodega
+                                                </h5>
+                                                <button type="button" class="btn btn-success btn-sm" id="btn-agregar-articulo-manual">
+                                                    <i class="ri-add-line"></i> Añadir Artículo
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-sm" id="tabla-articulos-orden">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th width="35%">Artículo</th>
+                                                            <th width="12%">Cantidad</th>
+                                                            <th width="15%">Precio Unit.</th>
+                                                            <th width="12%">Descuento</th>
+                                                            <th width="15%">Subtotal</th>
+                                                            <th width="11%">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="tbody-articulos-orden">
+                                                        <tr>
+                                                            <td colspan="6" class="text-center text-muted">
+                                                                No hay artículos agregados. Haga clic en "Añadir Artículo" para comenzar.
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                    <tfoot class="table-light">
+                                                        <tr>
+                                                            <td colspan="4" class="text-end"><strong>Total Artículos:</strong></td>
+                                                            <td><strong id="total-articulos">$0</strong></td>
+                                                            <td></td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Tabla de Bienes/Activos -->
+                                <div class="col-md-12" id="seccion-bienes" style="display: none;">
+                                    <div class="card">
+                                        <div class="card-header bg-info bg-opacity-10">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h5 class="card-title mb-0 text-info">
+                                                    <i class="ri-inbox-line"></i> Bienes / Activos
+                                                </h5>
+                                                <button type="button" class="btn btn-success btn-sm" id="btn-agregar-bien-manual">
+                                                    <i class="ri-add-line"></i> Añadir Bien/Activo
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered table-sm" id="tabla-bienes-orden">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th width="35%">Bien/Activo</th>
+                                                            <th width="12%">Cantidad</th>
+                                                            <th width="15%">Precio Unit.</th>
+                                                            <th width="12%">Descuento</th>
+                                                            <th width="15%">Subtotal</th>
+                                                            <th width="11%">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="tbody-bienes-orden">
+                                                        <tr>
+                                                            <td colspan="6" class="text-center text-muted">
+                                                                No hay bienes agregados
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                    <tfoot class="table-light">
+                                                        <tr>
+                                                            <td colspan="4" class="text-end"><strong>Total Bienes:</strong></td>
+                                                            <td><strong id="total-bienes">$0</strong></td>
+                                                            <td></td>
+                                                        </tr>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
                             </div>
 
                             <div class="mt-4">
@@ -146,9 +273,35 @@
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block extra_js %}
-<!-- Carga automática de artículos de solicitudes -->
-<script src="{% static 'js/compras/crear-orden.js' %}"></script>
+<!-- Datos para JavaScript -->
+<script>
+const ARTICULOS_DISPONIBLES = [
+    {% for articulo in articulos_disponibles %}
+    {
+        id: {{ articulo.id }},
+        codigo: "{{ articulo.codigo|escapejs }}",
+        nombre: "{{ articulo.nombre|escapejs }}",
+        categoria: "{{ articulo.categoria.nombre|escapejs }}",
+        unidad: "{{ articulo.unidad_medida.simbolo|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+
+const ACTIVOS_DISPONIBLES = [
+    {% for activo in activos_disponibles %}
+    {
+        id: {{ activo.id }},
+        codigo: "{{ activo.codigo|escapejs }}",
+        nombre: "{{ activo.nombre|escapejs }}",
+        categoria: "{{ activo.categoria.nombre|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
+</script>
+<!-- Carga automática de artículos de solicitudes - Versión refactorizada con SRP -->
+<script src="{% static 'js/compras/crear-orden-refactored.js' %}?v=1"></script>
 {% endblock %}
