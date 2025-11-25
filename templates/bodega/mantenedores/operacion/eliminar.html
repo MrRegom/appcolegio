@@ -1,0 +1,105 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box">
+                    <h4 class="mb-sm-0">{{ titulo }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="alert alert-warning" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="ri-alert-line"></i> Confirmar Eliminación
+                            </h5>
+                            <p class="mb-0">
+                                ¿Está seguro que desea eliminar la operación <strong>{{ operacion.nombre }}</strong> ({{ operacion.codigo }})?
+                            </p>
+                        </div>
+
+                        {% if tiene_movimientos %}
+                        <div class="alert alert-danger" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="ri-error-warning-line"></i> No se puede eliminar
+                            </h5>
+                            <p class="mb-0">
+                                Esta operación tiene <strong>{{ count_movimientos }}</strong> movimiento(s) asociado(s).
+                                No se puede eliminar. Considere desactivarla en su lugar.
+                            </p>
+                        </div>
+                        {% endif %}
+
+                        <div class="card mt-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Información de la Operación</h6>
+                                <table class="table table-borderless mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row" style="width: 200px;">Código:</th>
+                                            <td>{{ operacion.codigo }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Nombre:</th>
+                                            <td>{{ operacion.nombre }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Tipo:</th>
+                                            <td>
+                                                {% if operacion.tipo == 'ENTRADA' %}
+                                                    <span class="badge bg-success">
+                                                        <i class="ri-arrow-down-line"></i> Entrada
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="ri-arrow-up-line"></i> Salida
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Descripción:</th>
+                                            <td>{{ operacion.descripcion|default:"-" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Estado:</th>
+                                            <td>
+                                                {% if operacion.activo %}
+                                                    <span class="badge bg-success">Activo</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactivo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            {% if not tiene_movimientos %}
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="ri-delete-bin-line"></i> Sí, Eliminar
+                                </button>
+                            </form>
+                            {% endif %}
+                            <a href="{% url 'bodega:operacion_lista' %}" class="btn btn-secondary">
+                                <i class="ri-arrow-left-line"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

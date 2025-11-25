@@ -1,0 +1,104 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">{{ titulo }}</h4>
+                    <div class="page-title-right">
+                        {% if puede_crear %}
+                        <a href="{% url 'bodega:operacion_crear' %}" class="btn btn-primary">
+                            <i class="ri-add-line"></i> Nueva Operación
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-header">
+                        <form method="get" class="row g-3">
+                            <div class="col-md-8">
+                                <input type="text" name="q" class="form-control" placeholder="Buscar por código o nombre..." value="{{ query }}">
+                            </div>
+                            <div class="col-md-2">
+                                <select name="tipo" class="form-select">
+                                    <option value="">Todos los tipos</option>
+                                    <option value="ENTRADA" {% if tipo_filtro == 'ENTRADA' %}selected{% endif %}>Entrada</option>
+                                    <option value="SALIDA" {% if tipo_filtro == 'SALIDA' %}selected{% endif %}>Salida</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="ri-search-line"></i> Buscar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>Nombre</th>
+                                        <th>Tipo</th>
+                                        <th>Descripción</th>
+                                        <th>Estado</th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for operacion in operaciones %}
+                                    <tr>
+                                        <td><strong>{{ operacion.codigo }}</strong></td>
+                                        <td>{{ operacion.nombre }}</td>
+                                        <td>
+                                            {% if operacion.tipo == 'ENTRADA' %}
+                                                <span class="badge bg-success">
+                                                    <i class="ri-arrow-down-line"></i> Entrada
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="ri-arrow-up-line"></i> Salida
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ operacion.descripcion|truncatewords:10|default:"-" }}</td>
+                                        <td>
+                                            {% if operacion.activo %}
+                                                <span class="badge bg-success">Activo</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Inactivo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'bodega:operacion_editar' operacion.pk %}" class="btn btn-sm btn-info">
+                                                <i class="ri-edit-line"></i> Editar
+                                            </a>
+                                            <a href="{% url 'bodega:operacion_eliminar' operacion.pk %}" class="btn btn-sm btn-danger">
+                                                <i class="ri-delete-bin-line"></i> Eliminar
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="text-center">No hay operaciones registradas</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
