@@ -110,6 +110,89 @@
             {% endif %}
         </div>
 
+        <!-- Sección de Mantenedores -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <h5 class="mb-3 text-muted">
+                    <i class="ri-settings-3-line align-middle me-1"></i> Mantenedores
+                </h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Card: Estados de Recepción -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ESTADOS RECEPCIÓN</h5>
+                            <a href="{% url 'compras:estado_recepcion_lista' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            {% if permisos.puede_gestionar_mantenedores %}
+                            <a href="{% url 'compras:estado_recepcion_crear' %}" class="btn btn-sm btn-warning">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Estado
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'compras:estado_recepcion_lista' %}" class="btn btn-sm btn-outline-warning">
+                                <i class="ri-list-check align-bottom me-1"></i> Ver Estados
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Tipos de Recepción -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">TIPOS RECEPCIÓN</h5>
+                            <a href="{% url 'compras:tipo_recepcion_lista' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            {% if permisos.puede_gestionar_mantenedores %}
+                            <a href="{% url 'compras:tipo_recepcion_crear' %}" class="btn btn-sm btn-secondary">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Tipo
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'compras:tipo_recepcion_lista' %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="ri-list-check align-bottom me-1"></i> Ver Tipos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Estados de Orden de Compra -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ESTADOS OC</h5>
+                            <a href="{% url 'compras:estado_orden_compra_lista' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            {% if permisos.puede_gestionar_mantenedores %}
+                            <a href="{% url 'compras:estado_orden_compra_crear' %}" class="btn btn-sm btn-dark">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Estado
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'compras:estado_orden_compra_lista' %}" class="btn btn-sm btn-outline-dark">
+                                <i class="ri-list-check align-bottom me-1"></i> Ver Estados
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Información adicional -->
         <div class="row mt-4">
             <div class="col-12">
