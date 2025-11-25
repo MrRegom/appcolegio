@@ -40,4 +40,24 @@ urlpatterns = [
     path('recepciones-activos/<int:pk>/', views.RecepcionActivoDetailView.as_view(), name='recepcion_activo_detalle'),
     path('recepciones-activos/<int:pk>/agregar/', views.RecepcionActivoAgregarView.as_view(), name='recepcion_activo_agregar'),
     path('recepciones-activos/<int:pk>/confirmar/', views.RecepcionActivoConfirmarView.as_view(), name='recepcion_activo_confirmar'),
+
+    # ==================== MANTENEDORES ====================
+
+    # Estados de Recepción
+    path('mantenedores/estados-recepcion/', views.EstadoRecepcionListView.as_view(), name='estado_recepcion_lista'),
+    path('mantenedores/estados-recepcion/crear/', views.EstadoRecepcionCreateView.as_view(), name='estado_recepcion_crear'),
+    path('mantenedores/estados-recepcion/<int:pk>/editar/', views.EstadoRecepcionUpdateView.as_view(), name='estado_recepcion_editar'),
+    path('mantenedores/estados-recepcion/<int:pk>/eliminar/', views.EstadoRecepcionDeleteView.as_view(), name='estado_recepcion_eliminar'),
+
+    # Tipos de Recepción
+    path('mantenedores/tipos-recepcion/', views.TipoRecepcionListView.as_view(), name='tipo_recepcion_lista'),
+    path('mantenedores/tipos-recepcion/crear/', views.TipoRecepcionCreateView.as_view(), name='tipo_recepcion_crear'),
+    path('mantenedores/tipos-recepcion/<int:pk>/editar/', views.TipoRecepcionUpdateView.as_view(), name='tipo_recepcion_editar'),
+    path('mantenedores/tipos-recepcion/<int:pk>/eliminar/', views.TipoRecepcionDeleteView.as_view(), name='tipo_recepcion_eliminar'),
+
+    # Estados de Orden de Compra
+    path('mantenedores/estados-orden-compra/', views.EstadoOrdenCompraListView.as_view(), name='estado_orden_compra_lista'),
+    path('mantenedores/estados-orden-compra/crear/', views.EstadoOrdenCompraCreateView.as_view(), name='estado_orden_compra_crear'),
+    path('mantenedores/estados-orden-compra/<int:pk>/editar/', views.EstadoOrdenCompraUpdateView.as_view(), name='estado_orden_compra_editar'),
+    path('mantenedores/estados-orden-compra/<int:pk>/eliminar/', views.EstadoOrdenCompraDeleteView.as_view(), name='estado_orden_compra_eliminar'),
 ]
