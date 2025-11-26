@@ -78,6 +78,14 @@
                         </div>
                     </div>
                 </div>
+                <!-- Accesos directos a reportes de Bodega -->
+                <div class="mb-3">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{% url 'reportes:articulos_sin_movimiento' %}" class="btn btn-sm btn-outline-primary">
+                            <i class="ri-time-line me-1"></i> Artículos sin movimiento
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="row mb-4">
@@ -190,6 +198,14 @@
                             <h3 class="report-section-title mb-0">Reportes de Compras</h3>
                             <p class="report-section-subtitle mb-0">Análisis completo del módulo de compras</p>
                         </div>
+                    </div>
+                </div>
+                <!-- Accesos directos a reportes de Compras -->
+                <div class="mb-3">
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{% url 'reportes:oc_atrasadas_por_proveedor' %}" class="btn btn-sm btn-outline-success">
+                            <i class="ri-error-warning-line me-1"></i> OC atrasadas por proveedor
+                        </a>
                     </div>
                 </div>
             </div>
