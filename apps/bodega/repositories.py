@@ -9,7 +9,7 @@ from decimal import Decimal
 from django.db.models import QuerySet, Q
 from django.contrib.auth.models import User
 from .models import (
-    Bodega, Categoria, Articulo, TipoMovimiento, Movimiento,
+    Bodega, Categoria, Marca, Articulo, Operacion, TipoMovimiento, Movimiento,
     EstadoEntrega, TipoEntrega, EntregaArticulo, DetalleEntregaArticulo,
     EntregaBien, DetalleEntregaBien
 )
@@ -163,6 +163,87 @@ class CategoriaRepository:
             True si existe, False en caso contrario
         """
         queryset = Categoria.objects.filter(codigo=codigo)
+        if exclude_id:
+            queryset = queryset.exclude(id=exclude_id)
+        return queryset.exists()
+
+
+# ==================== MARCA REPOSITORY ====================
+
+class MarcaRepository:
+    """Repository para gestionar acceso a datos de Marca."""
+
+    @staticmethod
+    def get_all() -> QuerySet[Marca]:
+        """Retorna todas las marcas no eliminadas."""
+        return Marca.objects.filter(eliminado=False).order_by('codigo')
+
+    @staticmethod
+    def get_active() -> QuerySet[Marca]:
+        """Retorna solo marcas activas y no eliminadas."""
+        return Marca.objects.filter(activo=True, eliminado=False).order_by('codigo')
+
+    @staticmethod
+    def get_by_id(marca_id: int) -> Optional[Marca]:
+        """
+        Obtiene una marca por su ID.
+
+        Args:
+            marca_id: ID de la marca
+
+        Returns:
+            Marca si existe, None en caso contrario
+        """
+        try:
+            return Marca.objects.get(id=marca_id, eliminado=False)
+        except Marca.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_by_codigo(codigo: str) -> Optional[Marca]:
+        """
+        Obtiene una marca por su código.
+
+        Args:
+            codigo: Código único de la marca
+
+        Returns:
+            Marca si existe, None en caso contrario
+        """
+        try:
+            return Marca.objects.get(codigo=codigo, eliminado=False)
+        except Marca.DoesNotExist:
+            return None
+
+    @staticmethod
+    def search(query: str) -> QuerySet[Marca]:
+        """
+        Búsqueda de marcas por código o nombre.
+
+        Args:
+            query: Término de búsqueda
+
+        Returns:
+            QuerySet con resultados
+        """
+        return Marca.objects.filter(
+            Q(codigo__icontains=query) | Q(nombre__icontains=query),
+            eliminado=False
+        ).order_by('codigo')
+
+    @staticmethod
+    def exists_by_codigo(codigo: str, exclude_id: Optional[int] = None) -> bool:
+        """
+        Verifica si existe una marca con el código dado.
+
+        Args:
+            codigo: Código a verificar
+            exclude_id: ID a excluir de la búsqueda (para ediciones)
+
+        Returns:
+            True si existe, False en caso contrario
+        """
+        queryset = Marca.objects.filter(codigo=codigo)
         if exclude_id:
             queryset = queryset.exclude(id=exclude_id)
         return queryset.exists()
@@ -326,6 +407,104 @@ class ArticuloRepository:
         articulo.stock_actual = nuevo_stock
         articulo.save(update_fields=['stock_actual', 'fecha_actualizacion'])
         return articulo
+
+
+# ==================== OPERACION REPOSITORY ====================
+
+class OperacionRepository:
+    """Repository para gestionar acceso a datos de Operacion."""
+
+    @staticmethod
+    def get_all() -> QuerySet[Operacion]:
+        """Retorna todas las operaciones no eliminadas."""
+        return Operacion.objects.filter(eliminado=False).order_by('codigo')
+
+    @staticmethod
+    def get_active() -> QuerySet[Operacion]:
+        """Retorna solo operaciones activas y no eliminadas."""
+        return Operacion.objects.filter(activo=True, eliminado=False).order_by('codigo')
+
+    @staticmethod
+    def get_by_id(operacion_id: int) -> Optional[Operacion]:
+        """
+        Obtiene una operación por su ID.
+
+        Args:
+            operacion_id: ID de la operación
+
+        Returns:
+            Operacion si existe, None en caso contrario
+        """
+        try:
+            return Operacion.objects.get(id=operacion_id, eliminado=False)
+        except Operacion.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_by_codigo(codigo: str) -> Optional[Operacion]:
+        """
+        Obtiene una operación por su código.
+
+        Args:
+            codigo: Código único de la operación
+
+        Returns:
+            Operacion si existe, None en caso contrario
+        """
+        try:
+            return Operacion.objects.get(codigo=codigo, eliminado=False)
+        except Operacion.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_by_tipo(tipo: str) -> QuerySet[Operacion]:
+        """
+        Obtiene operaciones por tipo (ENTRADA/SALIDA).
+
+        Args:
+            tipo: Tipo de operación ('ENTRADA' o 'SALIDA')
+
+        Returns:
+            QuerySet con operaciones del tipo especificado
+        """
+        return Operacion.objects.filter(
+            tipo=tipo,
+            eliminado=False,
+            activo=True
+        ).order_by('codigo')
+
+    @staticmethod
+    def search(query: str) -> QuerySet[Operacion]:
+        """
+        Búsqueda de operaciones por código o nombre.
+
+        Args:
+            query: Término de búsqueda
+
+        Returns:
+            QuerySet con resultados
+        """
+        return Operacion.objects.filter(
+            Q(codigo__icontains=query) | Q(nombre__icontains=query),
+            eliminado=False
+        ).order_by('codigo')
+
+    @staticmethod
+    def exists_by_codigo(codigo: str, exclude_id: Optional[int] = None) -> bool:
+        """
+        Verifica si existe una operación con el código dado.
+
+        Args:
+            codigo: Código a verificar
+            exclude_id: ID a excluir de la búsqueda (para ediciones)
+
+        Returns:
+            True si existe, False en caso contrario
+        """
+        queryset = Operacion.objects.filter(codigo=codigo)
+        if exclude_id:
+            queryset = queryset.exclude(id=exclude_id)
+        return queryset.exists()
 
 
 # ==================== TIPO MOVIMIENTO REPOSITORY ====================

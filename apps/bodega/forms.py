@@ -6,8 +6,8 @@ from django import forms
 from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from .models import (
-    Bodega, UnidadMedida, Categoria, Articulo, TipoMovimiento, Movimiento,
-    TipoEntrega, EntregaArticulo, EntregaBien
+    Bodega, UnidadMedida, Categoria, Marca, Articulo, Operacion,
+    TipoMovimiento, Movimiento, TipoEntrega, EntregaArticulo, EntregaBien
 )
 
 
@@ -140,22 +140,14 @@ class ArticuloForm(forms.ModelForm):
     """
     Formulario para crear y editar artículos de bodega.
 
-    Permite seleccionar una marca (relación ManyToMany) y una unidad de medida
+    Permite seleccionar una marca (relación ForeignKey) y una unidad de medida
     (relación ForeignKey) para el artículo.
     """
-    # Campo personalizado para selección simple de marca
-    marca_seleccionada = forms.ModelChoiceField(
-        queryset=None,
-        required=False,
-        label='Marca',
-        widget=forms.Select(attrs={'class': 'form-select'}),
-        help_text='Seleccione una marca para agregar al artículo'
-    )
 
     class Meta:
         model = Articulo
         fields = [
-            'codigo', 'nombre', 'descripcion', 'categoria', 'unidad_medida',
+            'codigo', 'nombre', 'descripcion', 'marca', 'categoria', 'unidad_medida',
             'stock_actual', 'stock_minimo', 'stock_maximo', 'punto_reorden',
             'ubicacion_fisica', 'observaciones', 'activo'
         ]
@@ -174,6 +166,9 @@ class ArticuloForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Descripción detallada',
                 'rows': 3
+            }),
+            'marca': forms.Select(attrs={
+                'class': 'form-select'
             }),
             'categoria': forms.Select(attrs={
                 'class': 'form-select',
@@ -226,6 +221,13 @@ class ArticuloForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        # Filtrar solo marcas activas y no eliminadas
+        self.fields['marca'].queryset = Marca.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('nombre')
+        self.fields['marca'].empty_label = 'Seleccione una marca (opcional)'
+
         # Filtrar solo categorías activas y no eliminadas
         self.fields['categoria'].queryset = Categoria.objects.filter(
             activo=True,
@@ -244,14 +246,6 @@ class ArticuloForm(forms.ModelForm):
             eliminado=False
         ).order_by('codigo')
 
-        # Configurar queryset para marca_seleccionada
-        from apps.activos.models import Marca
-        self.fields['marca_seleccionada'].queryset = Marca.objects.filter(
-            activo=True,
-            eliminado=False
-        ).order_by('nombre')
-        self.fields['marca_seleccionada'].empty_label = 'Seleccione una marca (opcional)'
-
         # Hacer el campo stock_actual de solo lectura
         self.fields['stock_actual'].disabled = True
         self.fields['stock_actual'].required = False
@@ -262,27 +256,6 @@ class ArticuloForm(forms.ModelForm):
             self.fields['codigo'].widget.attrs['readonly'] = True
             self.fields['codigo'].help_text = 'El código no puede modificarse al editar'
 
-    def save(self, commit=True):
-        """
-        Guardar el artículo y agregar la marca seleccionada a la relación ManyToMany.
-        La unidad de medida se guarda automáticamente al ser un ForeignKey.
-        """
-        instance = super().save(commit=False)
-
-        if commit:
-            # Primero guardar la instancia
-            instance.save()
-
-            # Luego guardar las relaciones M2M existentes
-            self.save_m2m()
-
-            # Agregar marca seleccionada a la relación M2M (si se seleccionó)
-            marca = self.cleaned_data.get('marca_seleccionada')
-            if marca:
-                if not instance.marcas.filter(pk=marca.pk).exists():
-                    instance.marcas.add(marca)
-
-        return instance
 
     def clean_codigo(self):
         """Validar que el código sea único (en mayúsculas)."""
@@ -394,6 +367,12 @@ class MovimientoForm(forms.ModelForm):
             eliminado=False
         ).order_by('codigo')
 
+        # Filtrar solo operaciones activas
+        self.fields['operacion'].queryset = Operacion.objects.filter(
+            activo=True,
+            eliminado=False
+        ).order_by('codigo')
+
     def clean_cantidad(self):
         """Validar que la cantidad sea positiva."""
         cantidad = self.cleaned_data.get('cantidad')
@@ -408,8 +387,8 @@ class MovimientoForm(forms.ModelForm):
         cantidad = cleaned_data.get('cantidad')
         operacion = cleaned_data.get('operacion')
 
-        # Validar stock disponible para salidas
-        if articulo and cantidad and operacion == 'SALIDA':
+        # Validar stock disponible para salidas (usando el tipo de operación)
+        if articulo and cantidad and operacion and operacion.tipo == 'SALIDA':
             if articulo.stock_actual < cantidad:
                 # Obtener unidad de medida
                 unidad_str = articulo.unidad_medida.simbolo if articulo.unidad_medida else 'unidad'
@@ -653,3 +632,188 @@ class EntregaBienForm(forms.ModelForm):
         if not motivo:
             raise ValidationError('El motivo de la entrega es obligatorio.')
         return motivo
+
+# ==================== FORMULARIOS DE MANTENEDORES ====================
+
+
+class MarcaForm(forms.ModelForm):
+    """Formulario para crear y editar marcas de artículos."""
+
+    class Meta:
+        model = Marca
+        fields = ['codigo', 'nombre', 'descripcion', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Código de marca (Ej: HP, DELL, EPSON)',
+                'maxlength': '20'
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre de la marca'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Descripción de la marca (opcional)',
+                'rows': 3
+            }),
+            'activo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+        labels = {
+            'codigo': 'Código',
+            'nombre': 'Nombre',
+            'descripcion': 'Descripción',
+            'activo': 'Activo'
+        }
+
+    def clean_codigo(self):
+        """Validar que el código sea único (en mayúsculas)."""
+        codigo = self.cleaned_data.get('codigo', '').strip().upper()
+
+        # Si estamos editando, excluir la instancia actual
+        queryset = Marca.objects.filter(codigo=codigo)
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise ValidationError(
+                f'Ya existe una marca con el código "{codigo}".'
+            )
+
+        return codigo
+
+    def clean_nombre(self):
+        """Limpiar y validar el nombre."""
+        nombre = self.cleaned_data.get('nombre', '').strip()
+        if not nombre:
+            raise ValidationError('El nombre es obligatorio.')
+        return nombre
+
+
+class OperacionForm(forms.ModelForm):
+    """Formulario para crear y editar operaciones de movimiento."""
+
+    class Meta:
+        model = Operacion
+        fields = ['codigo', 'nombre', 'tipo', 'descripcion', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: ENTRADA-COMP, SALIDA-VENTA',
+                'maxlength': '20'
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Entrada por Compra, Salida por Venta',
+                'maxlength': '50'
+            }),
+            'tipo': forms.Select(attrs={
+                'class': 'form-select',
+                'required': True
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Descripción de la operación (opcional)',
+                'rows': 3
+            }),
+            'activo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+        labels = {
+            'codigo': 'Código',
+            'nombre': 'Nombre',
+            'tipo': 'Tipo de Operación',
+            'descripcion': 'Descripción',
+            'activo': 'Activo'
+        }
+        help_texts = {
+            'tipo': 'ENTRADA suma al stock, SALIDA resta del stock',
+            'activo': 'Solo las operaciones activas estarán disponibles'
+        }
+
+    def clean_codigo(self):
+        """Validar que el código sea único (en mayúsculas)."""
+        codigo = self.cleaned_data.get('codigo', '').strip().upper()
+
+        # Si estamos editando, excluir la instancia actual
+        queryset = Operacion.objects.filter(codigo=codigo)
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise ValidationError(
+                f'Ya existe una operación con el código "{codigo}".'
+            )
+
+        return codigo
+
+    def clean_nombre(self):
+        """Limpiar y validar el nombre."""
+        nombre = self.cleaned_data.get('nombre', '').strip()
+        if not nombre:
+            raise ValidationError('El nombre es obligatorio.')
+        return nombre
+
+
+class TipoMovimientoForm(forms.ModelForm):
+    """Formulario para crear y editar tipos de movimiento de inventario."""
+
+    class Meta:
+        model = TipoMovimiento
+        fields = ['codigo', 'nombre', 'descripcion', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Ej: ENT-COMP',
+                    'maxlength': '20'
+                }
+            ),
+            'nombre': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Ej: Entrada por Compra',
+                    'maxlength': '100'
+                }
+            ),
+            'descripcion': forms.Textarea(
+                attrs={
+                    'class': 'form-control',
+                    'rows': 3,
+                    'placeholder': 'Descripción detallada del tipo de movimiento (opcional)...'
+                }
+            ),
+            'activo': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+        }
+        help_texts = {
+            'codigo': 'Código único identificador del tipo de movimiento',
+            'activo': 'Solo los tipos activos estarán disponibles para registrar movimientos'
+        }
+
+    def clean_codigo(self):
+        """Validar que el código sea único (en mayúsculas)."""
+        codigo = self.cleaned_data.get('codigo', '').strip().upper()
+
+        # Si estamos editando, excluir la instancia actual
+        queryset = TipoMovimiento.objects.filter(codigo=codigo)
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise ValidationError(
+                f'Ya existe un tipo de movimiento con el código "{codigo}".'
+            )
+
+        return codigo
+
+    def clean_nombre(self):
+        """Limpiar y validar el nombre."""
+        nombre = self.cleaned_data.get('nombre', '').strip()
+        if not nombre:
+            raise ValidationError('El nombre es obligatorio.')
+        return nombre
