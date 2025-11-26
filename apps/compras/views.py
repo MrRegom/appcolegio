@@ -1335,7 +1335,8 @@ class RecepcionArticuloConfirmarView(RecepcionConfirmarMixin, BaseAuditedViewMix
 
     def get_success_url_after_confirm(self):
         """Redirige al detalle después de confirmar."""
-        return f'compras:recepcion_articulo_detalle'
+        from django.urls import reverse
+        return reverse('compras:recepcion_articulo_detalle', kwargs={'pk': self.object.pk})
 
 
 # ==================== VISTAS DE RECEPCIÓN DE ACTIVOS ====================
@@ -1584,7 +1585,8 @@ class RecepcionActivoConfirmarView(RecepcionConfirmarMixin, BaseAuditedViewMixin
 
     def get_success_url_after_confirm(self):
         """Redirige al detalle después de confirmar."""
-        return 'compras:recepcion_activo_detalle'
+        from django.urls import reverse
+        return reverse('compras:recepcion_activo_detalle', kwargs={'pk': self.object.pk})
 
 
 # ==================== VISTAS MANTENEDORES: ESTADO RECEPCION ====================
