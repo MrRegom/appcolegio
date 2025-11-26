@@ -1,0 +1,43 @@
+{% extends "index.html" %}
+{% block content %}
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <form method="get" class="row g-2 align-items-end">
+        <div class="col-md-4">
+          <label class="form-label">Proveedor</label>
+          <select name="proveedor_id" class="form-select">
+            <option value="">(Todos)</option>
+            {% for p in proveedores %}
+              <option value="{{ p.id }}" {% if proveedor_id|stringformat:'s' == p.id|stringformat:'s' %}selected{% endif %}>{{ p.rut }} - {{ p.razon_social }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Bodega destino</label>
+          <select name="bodega_id" class="form-select">
+            <option value="">(Todas)</option>
+            {% for b in bodegas %}
+              <option value="{{ b.id }}" {% if bodega_id|stringformat:'s' == b.id|stringformat:'s' %}selected{% endif %}>{{ b.codigo }} - {{ b.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Visualizar</label>
+          <select name="format" class="form-select">
+            <option value="html" selected>En Pantalla</option>
+            <option value="pdf">PDF</option>
+            <option value="xlsx">Excel</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-success"><i class="ri-bar-chart-2-line me-1"></i> Crear Informe...</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% include "reportes/_tabla_report.html" %}
+{% endblock %}
+
+
