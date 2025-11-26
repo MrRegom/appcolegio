@@ -21,6 +21,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
+from django.shortcuts import redirect
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from core.mixins import (
@@ -28,17 +29,19 @@ from core.mixins import (
     PaginatedListMixin, FilteredListMixin
 )
 from .models import (
-    Bodega, UnidadMedida, Categoria, Articulo, TipoMovimiento, Movimiento,
-    TipoEntrega, EstadoEntrega, EntregaArticulo, EntregaBien
+    Bodega, UnidadMedida, Categoria, Marca, Articulo, Operacion,
+    TipoMovimiento, Movimiento, TipoEntrega, EstadoEntrega,
+    EntregaArticulo, EntregaBien
 )
 from .forms import (
-    UnidadMedidaForm, CategoriaForm, ArticuloForm, MovimientoForm, ArticuloFiltroForm,
+    UnidadMedidaForm, CategoriaForm, MarcaForm, ArticuloForm,
+    OperacionForm, TipoMovimientoForm, MovimientoForm, ArticuloFiltroForm,
     EntregaArticuloForm, EntregaBienForm
 )
 from .repositories import (
-    BodegaRepository, CategoriaRepository, ArticuloRepository,
-    TipoMovimientoRepository, MovimientoRepository,
-    EntregaArticuloRepository, EntregaBienRepository,
+    BodegaRepository, CategoriaRepository, MarcaRepository,
+    ArticuloRepository, OperacionRepository, TipoMovimientoRepository,
+    MovimientoRepository, EntregaArticuloRepository, EntregaBienRepository,
     EstadoEntregaRepository, TipoEntregaRepository
 )
 from .services import (
@@ -1164,3 +1167,538 @@ def obtener_bienes_solicitud(request, solicitud_id):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+# ==================== VISTAS MANTENEDORES: MARCA ====================
+
+
+class MarcaListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """
+    Vista para listar marcas de artículos.
+
+    Permisos: bodega.view_marca
+    Utiliza: MarcaRepository para acceso a datos optimizado
+    """
+    model = Marca
+    template_name = 'bodega/mantenedores/marca/lista.html'
+    context_object_name = 'marcas'
+    permission_required = 'bodega.view_marca'
+    paginate_by = 25
+
+    def get_queryset(self) -> QuerySet:
+        """Retorna marcas usando repository."""
+        repo = MarcaRepository()
+
+        # Filtrar solo no eliminados
+        queryset = Marca.objects.filter(eliminado=False).order_by('codigo')
+
+        # Búsqueda por query string
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query)
+            )
+
+        return queryset
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Marcas'
+        context['puede_crear'] = self.request.user.has_perm('bodega.add_marca')
+        context['query'] = self.request.GET.get('q', '')
+        return context
+
+
+class MarcaCreateView(BaseAuditedViewMixin, CreateView):
+    """
+    Vista para crear una nueva marca.
+
+    Permisos: bodega.add_marca
+    Auditoría: Registra acción CREAR automáticamente
+    """
+    model = Marca
+    form_class = MarcaForm
+    template_name = 'bodega/mantenedores/marca/form.html'
+    permission_required = 'bodega.add_marca'
+    success_url = reverse_lazy('bodega:marca_lista')
+
+    # Configuración de auditoría
+    audit_action = 'CREAR'
+    audit_description_template = 'Creó marca {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Marca {obj.nombre} creada exitosamente.'
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Marca'
+        context['action'] = 'Crear'
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class MarcaUpdateView(BaseAuditedViewMixin, UpdateView):
+    """
+    Vista para editar una marca existente.
+
+    Permisos: bodega.change_marca
+    Auditoría: Registra acción EDITAR automáticamente
+    """
+    model = Marca
+    form_class = MarcaForm
+    template_name = 'bodega/mantenedores/marca/form.html'
+    permission_required = 'bodega.change_marca'
+    success_url = reverse_lazy('bodega:marca_lista')
+
+    # Configuración de auditoría
+    audit_action = 'EDITAR'
+    audit_description_template = 'Editó marca {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Marca {obj.nombre} actualizada exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite editar marcas no eliminadas."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Marca: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        context['marca'] = self.object
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class MarcaDeleteView(BaseAuditedViewMixin, DeleteView):
+    """
+    Vista para eliminar (soft delete) una marca.
+
+    Permisos: bodega.delete_marca
+    Auditoría: Registra acción ELIMINAR automáticamente
+    """
+    model = Marca
+    template_name = 'bodega/mantenedores/marca/eliminar.html'
+    permission_required = 'bodega.delete_marca'
+    success_url = reverse_lazy('bodega:marca_lista')
+
+    # Configuración de auditoría
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Eliminó marca {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Marca {obj.nombre} eliminada exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite eliminar marcas no eliminadas."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Marca: {self.object.nombre}'
+        context['marca'] = self.object
+
+        # Verificar si hay artículos asociados
+        context['tiene_articulos'] = self.object.articulos.filter(eliminado=False).exists()
+        context['count_articulos'] = self.object.articulos.filter(eliminado=False).count()
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        """Elimina usando soft delete."""
+        self.object = self.get_object()
+
+        # Verificar si tiene artículos asociados
+        if self.object.articulos.filter(eliminado=False).exists():
+            messages.error(
+                request,
+                f'No se puede eliminar la marca "{self.object.nombre}" porque tiene artículos asociados. '
+                'Desactívela en su lugar.'
+            )
+            return redirect('bodega:marca_lista')
+
+        # Soft delete
+        self.object.eliminado = True
+        self.object.activo = False
+        self.object.save()
+
+        messages.success(request, self.get_success_message(self.object))
+        self.log_action(self.object, request)
+
+        return redirect(self.success_url)
+
+
+# ==================== VISTAS MANTENEDORES: OPERACION ====================
+
+
+class OperacionListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """
+    Vista para listar operaciones de movimiento.
+
+    Permisos: bodega.view_operacion
+    Utiliza: OperacionRepository para acceso a datos optimizado
+    """
+    model = Operacion
+    template_name = 'bodega/mantenedores/operacion/lista.html'
+    context_object_name = 'operaciones'
+    permission_required = 'bodega.view_operacion'
+    paginate_by = 25
+
+    def get_queryset(self) -> QuerySet:
+        """Retorna operaciones usando repository."""
+        repo = OperacionRepository()
+
+        # Filtrar solo no eliminados
+        queryset = Operacion.objects.filter(eliminado=False).order_by('codigo')
+
+        # Búsqueda por query string
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query)
+            )
+
+        # Filtro por tipo (ENTRADA/SALIDA)
+        tipo_filtro = self.request.GET.get('tipo', '').strip()
+        if tipo_filtro in ['ENTRADA', 'SALIDA']:
+            queryset = queryset.filter(tipo=tipo_filtro)
+
+        return queryset
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Operaciones de Movimiento'
+        context['puede_crear'] = self.request.user.has_perm('bodega.add_operacion')
+        context['query'] = self.request.GET.get('q', '')
+        context['tipo_filtro'] = self.request.GET.get('tipo', '')
+        return context
+
+
+class OperacionCreateView(BaseAuditedViewMixin, CreateView):
+    """
+    Vista para crear una nueva operación.
+
+    Permisos: bodega.add_operacion
+    Auditoría: Registra acción CREAR automáticamente
+    """
+    model = Operacion
+    form_class = OperacionForm
+    template_name = 'bodega/mantenedores/operacion/form.html'
+    permission_required = 'bodega.add_operacion'
+    success_url = reverse_lazy('bodega:operacion_lista')
+
+    # Configuración de auditoría
+    audit_action = 'CREAR'
+    audit_description_template = 'Creó operación {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Operación {obj.nombre} creada exitosamente.'
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Operación'
+        context['action'] = 'Crear'
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class OperacionUpdateView(BaseAuditedViewMixin, UpdateView):
+    """
+    Vista para editar una operación existente.
+
+    Permisos: bodega.change_operacion
+    Auditoría: Registra acción EDITAR automáticamente
+    """
+    model = Operacion
+    form_class = OperacionForm
+    template_name = 'bodega/mantenedores/operacion/form.html'
+    permission_required = 'bodega.change_operacion'
+    success_url = reverse_lazy('bodega:operacion_lista')
+
+    # Configuración de auditoría
+    audit_action = 'EDITAR'
+    audit_description_template = 'Editó operación {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Operación {obj.nombre} actualizada exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite editar operaciones no eliminadas."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Operación: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        context['operacion'] = self.object
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class OperacionDeleteView(BaseAuditedViewMixin, DeleteView):
+    """
+    Vista para eliminar (soft delete) una operación.
+
+    Permisos: bodega.delete_operacion
+    Auditoría: Registra acción ELIMINAR automáticamente
+    """
+    model = Operacion
+    template_name = 'bodega/mantenedores/operacion/eliminar.html'
+    permission_required = 'bodega.delete_operacion'
+    success_url = reverse_lazy('bodega:operacion_lista')
+
+    # Configuración de auditoría
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Eliminó operación {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Operación {obj.nombre} eliminada exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite eliminar operaciones no eliminadas."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Operación: {self.object.nombre}'
+        context['operacion'] = self.object
+
+        # Verificar si hay movimientos asociados
+        context['tiene_movimientos'] = self.object.movimientos.filter(eliminado=False).exists()
+        context['count_movimientos'] = self.object.movimientos.filter(eliminado=False).count()
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        """Elimina usando soft delete."""
+        self.object = self.get_object()
+
+        # Verificar si tiene movimientos asociados
+        if self.object.movimientos.filter(eliminado=False).exists():
+            messages.error(
+                request,
+                f'No se puede eliminar la operación "{self.object.nombre}" porque tiene movimientos asociados. '
+                'Desactívela en su lugar.'
+            )
+            return redirect('bodega:operacion_lista')
+
+        # Soft delete
+        self.object.eliminado = True
+        self.object.activo = False
+        self.object.save()
+
+        messages.success(request, self.get_success_message(self.object))
+        self.log_action(self.object, request)
+
+        return redirect(self.success_url)
+
+
+# ==================== VISTAS MANTENEDORES: TIPOS DE MOVIMIENTO ====================
+
+
+class TipoMovimientoListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """
+    Vista para listar tipos de movimiento.
+
+    Permisos: bodega.view_tipomovimiento
+    Utiliza: TipoMovimientoRepository para acceso a datos optimizado
+    """
+    model = TipoMovimiento
+    template_name = 'bodega/mantenedores/tipo_movimiento/lista.html'
+    context_object_name = 'tipos'
+    permission_required = 'bodega.view_tipomovimiento'
+    paginate_by = 25
+
+    def get_queryset(self) -> QuerySet:
+        """Retorna tipos de movimiento usando repository."""
+        from .repositories import TipoMovimientoRepository
+        tipo_repo = TipoMovimientoRepository()
+
+        # Incluir inactivos y eliminados para administración
+        queryset = TipoMovimiento.objects.filter(eliminado=False).order_by('codigo')
+
+        # Búsqueda por query string
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query)
+            )
+
+        return queryset
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Tipos de Movimiento'
+        context['puede_crear'] = self.request.user.has_perm('bodega.add_tipomovimiento')
+        return context
+
+
+class TipoMovimientoCreateView(BaseAuditedViewMixin, CreateView):
+    """
+    Vista para crear un nuevo tipo de movimiento.
+
+    Permisos: bodega.add_tipomovimiento
+    Auditoría: Registra acción CREAR automáticamente
+    """
+    model = TipoMovimiento
+    form_class = TipoMovimientoForm
+    template_name = 'bodega/mantenedores/tipo_movimiento/form.html'
+    permission_required = 'bodega.add_tipomovimiento'
+    success_url = reverse_lazy('bodega:tipo_movimiento_lista')
+
+    # Configuración de auditoría
+    audit_action = 'CREAR'
+    audit_description_template = 'Creó tipo de movimiento {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Tipo de movimiento {obj.nombre} creado exitosamente.'
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Tipo de Movimiento'
+        context['action'] = 'Crear'
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class TipoMovimientoUpdateView(BaseAuditedViewMixin, UpdateView):
+    """
+    Vista para editar un tipo de movimiento existente.
+
+    Permisos: bodega.change_tipomovimiento
+    Auditoría: Registra acción EDITAR automáticamente
+    """
+    model = TipoMovimiento
+    form_class = TipoMovimientoForm
+    template_name = 'bodega/mantenedores/tipo_movimiento/form.html'
+    permission_required = 'bodega.change_tipomovimiento'
+    success_url = reverse_lazy('bodega:tipo_movimiento_lista')
+
+    # Configuración de auditoría
+    audit_action = 'EDITAR'
+    audit_description_template = 'Editó tipo de movimiento {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Tipo de movimiento {obj.nombre} actualizado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite editar tipos no eliminados."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Tipo de Movimiento: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        context['tipo'] = self.object
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class TipoMovimientoDeleteView(BaseAuditedViewMixin, DeleteView):
+    """
+    Vista para eliminar (soft delete) un tipo de movimiento.
+
+    Permisos: bodega.delete_tipomovimiento
+    Auditoría: Registra acción ELIMINAR automáticamente
+    """
+    model = TipoMovimiento
+    template_name = 'bodega/mantenedores/tipo_movimiento/eliminar.html'
+    permission_required = 'bodega.delete_tipomovimiento'
+    success_url = reverse_lazy('bodega:tipo_movimiento_lista')
+
+    # Configuración de auditoría
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Eliminó tipo de movimiento {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Tipo de movimiento {obj.nombre} eliminado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite eliminar tipos no eliminados."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Tipo de Movimiento: {self.object.nombre}'
+        context['tipo'] = self.object
+
+        # Verificar si hay movimientos asociados
+        context['tiene_movimientos'] = self.object.movimientos.filter(eliminado=False).exists()
+        context['count_movimientos'] = self.object.movimientos.filter(eliminado=False).count()
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        """Elimina usando soft delete."""
+        self.object = self.get_object()
+
+        # Verificar si tiene movimientos asociados
+        if self.object.movimientos.filter(eliminado=False).exists():
+            messages.error(
+                request,
+                f'No se puede eliminar el tipo "{self.object.nombre}" porque tiene movimientos asociados. '
+                'Desactívelo en su lugar.'
+            )
+            return redirect('bodega:tipo_movimiento_lista')
+
+        # Soft delete
+        self.object.eliminado = True
+        self.object.activo = False
+        self.object.save()
+
+        messages.success(request, self.get_success_message(self.object))
+        self.log_action(self.object, request)
+
+        return redirect(self.success_url)

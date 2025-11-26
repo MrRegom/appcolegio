@@ -8,15 +8,7 @@
                 <div class="page-title-box d-sm-flex align-items-center justify-content-between">
                     <h4 class="mb-sm-0">{{ titulo }}</h4>
                     <div class="btn-group">
-                        <a href="{% url 'compras:orden_compra_agregar_articulo' orden.pk %}" class="btn btn-success">
-                            <i class="ri-add-line"></i> Agregar Artículo
-                        </a>
-                        <a href="{% url 'compras:orden_compra_agregar_activo' orden.pk %}" class="btn btn-info">
-                            <i class="ri-add-circle-line"></i> Agregar Activo
-                        </a>
-                        <a href="{% url 'compras:orden_compra_editar' orden.pk %}" class="btn btn-warning">
-                            <i class="ri-edit-line"></i> Editar Orden
-                        </a>
+                        
                         <a href="{% url 'compras:orden_compra_lista' %}" class="btn btn-secondary">
                             <i class="ri-arrow-left-line"></i> Volver
                         </a>

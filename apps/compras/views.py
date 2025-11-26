@@ -31,11 +31,13 @@ from .forms import (
     ProveedorForm, OrdenCompraForm, DetalleOrdenCompraArticuloForm,
     DetalleOrdenCompraActivoForm, OrdenCompraFiltroForm,
     RecepcionArticuloForm, DetalleRecepcionArticuloForm, RecepcionArticuloFiltroForm,
-    RecepcionActivoForm, DetalleRecepcionActivoForm, RecepcionActivoFiltroForm
+    RecepcionActivoForm, DetalleRecepcionActivoForm, RecepcionActivoFiltroForm,
+    EstadoRecepcionForm, TipoRecepcionForm, EstadoOrdenCompraForm
 )
 from .repositories import (
     ProveedorRepository, OrdenCompraRepository, EstadoOrdenCompraRepository,
-    RecepcionArticuloRepository, RecepcionActivoRepository, EstadoRecepcionRepository
+    RecepcionArticuloRepository, RecepcionActivoRepository, EstadoRecepcionRepository,
+    TipoRecepcionRepository
 )
 from .services import (
     ProveedorService, OrdenCompraService,
@@ -616,16 +618,32 @@ class OrdenCompraCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Create
 
     def get_context_data(self, **kwargs) -> dict:
         """Agrega datos al contexto."""
+        from apps.bodega.models import Articulo
+        from apps.activos.models import Activo
+
         context = super().get_context_data(**kwargs)
         context['titulo'] = 'Nueva Orden de Compra'
         context['action'] = 'Crear'
+
+        # Pasar artículos y activos disponibles para los modales
+        context['articulos_disponibles'] = Articulo.objects.filter(
+            activo=True, eliminado=False
+        ).select_related('categoria', 'unidad_medida').order_by('nombre')
+
+        context['activos_disponibles'] = Activo.objects.filter(
+            activo=True, eliminado=False
+        ).select_related('categoria').order_by('nombre')
+
         return context
 
     def form_valid(self, form):
         """Procesa el formulario válido con log de auditoría y genera número automático."""
+        import json
         from decimal import Decimal
         from core.utils.business import generar_codigo_con_anio
         from apps.solicitudes.models import DetalleSolicitud
+        from apps.bodega.models import Articulo
+        from apps.activos.models import Activo
 
         # Asignar solicitante
         form.instance.solicitante = self.request.user
@@ -635,37 +653,58 @@ class OrdenCompraCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Create
 
         response = super().form_valid(form)
 
-        # Agregar automáticamente los detalles de las solicitudes asociadas
-        solicitudes = form.cleaned_data.get('solicitudes', [])
-        if solicitudes:
-            for solicitud in solicitudes:
-                # Obtener detalles aprobados de la solicitud
-                detalles = solicitud.detalles.filter(cantidad_aprobada__gt=0)
+        # NOTA: Ya NO creamos detalles automáticamente desde solicitudes
+        # porque el JavaScript ahora carga los items en tablas editables
+        # y los valores editados se envían vía JSON
 
-                for detalle in detalles:
-                    if detalle.articulo:
-                        # Crear detalle de orden para artículo
-                        # Los artículos no tienen precio_unitario, usar 0
-                        DetalleOrdenCompraArticulo.objects.create(
-                            orden_compra=self.object,
-                            articulo=detalle.articulo,
-                            cantidad=detalle.cantidad_aprobada,
-                            precio_unitario=Decimal('0'),
-                            descuento=Decimal('0')
-                        )
-                    elif detalle.activo:
-                        # Crear detalle de orden para activo
-                        # Obtener precio del activo o usar 0 si es None
-                        precio = getattr(detalle.activo, 'precio_unitario', None) or Decimal('0')
-                        DetalleOrdenCompra.objects.create(
-                            orden_compra=self.object,
-                            activo=detalle.activo,
-                            cantidad=detalle.cantidad_aprobada,
-                            precio_unitario=precio,
-                            descuento=Decimal('0')
-                        )
+        # Procesar artículos agregados (tanto manuales como de solicitudes)
+        articulos_json = self.request.POST.get('articulos_json', '')
+        print(f"DEBUG: articulos_json recibido: '{articulos_json}'")
+        if articulos_json:
+            try:
+                articulos_data = json.loads(articulos_json)
+                print(f"DEBUG: Artículos parseados: {articulos_data}")
+                for item in articulos_data:
+                    articulo = Articulo.objects.get(pk=item['articulo_id'])
+                    detalle = DetalleOrdenCompraArticulo.objects.create(
+                        orden_compra=self.object,
+                        articulo=articulo,
+                        cantidad=item['cantidad'],
+                        precio_unitario=Decimal(str(item.get('precio_unitario', 0))),
+                        descuento=Decimal(str(item.get('descuento', 0)))
+                    )
+                    print(f"DEBUG: Creado detalle artículo ID {detalle.id} para orden {self.object.numero}")
+            except (json.JSONDecodeError, Articulo.DoesNotExist, KeyError, ValueError) as e:
+                # Log error but continue
+                print(f"ERROR procesando artículos: {e}")
+                import traceback
+                traceback.print_exc()
 
-            # Recalcular totales de la orden
+        # Procesar bienes/activos agregados manualmente
+        bienes_json = self.request.POST.get('bienes_json', '')
+        print(f"DEBUG: bienes_json recibido: '{bienes_json}'")
+        if bienes_json:
+            try:
+                bienes_data = json.loads(bienes_json)
+                print(f"DEBUG: Bienes parseados: {bienes_data}")
+                for item in bienes_data:
+                    activo = Activo.objects.get(pk=item['activo_id'])
+                    detalle = DetalleOrdenCompra.objects.create(
+                        orden_compra=self.object,
+                        activo=activo,
+                        cantidad=item['cantidad'],
+                        precio_unitario=Decimal(str(item.get('precio_unitario', 0))),
+                        descuento=Decimal(str(item.get('descuento', 0)))
+                    )
+                    print(f"DEBUG: Creado detalle bien ID {detalle.id} para orden {self.object.numero}")
+            except (json.JSONDecodeError, Activo.DoesNotExist, KeyError, ValueError) as e:
+                # Log error but continue
+                print(f"ERROR procesando bienes: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # Recalcular totales de la orden (solo si hubo artículos/bienes)
+        if articulos_json or bienes_json:
             orden_service = OrdenCompraService()
             orden_service.recalcular_totales(self.object)
 
@@ -781,26 +820,33 @@ class ObtenerDetallesSolicitudesView(View):
         for solicitud_id in solicitud_ids:
             try:
                 solicitud = Solicitud.objects.get(id=solicitud_id, eliminado=False)
-                detalles = solicitud.detalles.filter(cantidad_aprobada__gt=0)
+                # Obtener detalles con cantidad aprobada o solicitada > 0
+                detalles = solicitud.detalles.filter(eliminado=False)
 
                 for detalle in detalles:
+                    # Usar cantidad aprobada si existe, sino usar cantidad solicitada
+                    cantidad = detalle.cantidad_aprobada if detalle.cantidad_aprobada > 0 else detalle.cantidad_solicitada
+
                     detalle_info = {
                         'solicitud_numero': solicitud.numero,
                         'tipo': 'articulo' if detalle.articulo else 'activo',
                         'codigo': detalle.producto_codigo,
                         'nombre': detalle.producto_nombre,
-                        'cantidad_aprobada': str(detalle.cantidad_aprobada),
+                        'cantidad_aprobada': str(cantidad),
                     }
 
                     if detalle.articulo:
-                        # Obtener unidades de medida concatenadas
-                        unidades = detalle.articulo.unidades_medida.all()
-                        detalle_info['unidad_medida'] = ', '.join([u.simbolo for u in unidades]) if unidades.exists() else 'unidad'
-                        detalle_info['precio_unitario'] = str(detalle.articulo.precio_unitario if hasattr(detalle.articulo, 'precio_unitario') else 0)
+                        # Obtener unidad de medida del artículo
+                        detalle_info['articulo_id'] = detalle.articulo.id
+                        detalle_info['unidad_medida'] = detalle.articulo.unidad_medida.simbolo if detalle.articulo.unidad_medida else 'unidad'
+                        detalle_info['precio_unitario'] = '0'
+                        detalle_info['categoria'] = detalle.articulo.categoria.nombre if detalle.articulo.categoria else 'Sin categoría'
                     else:
                         # Los activos son bienes únicos sin unidad de medida
+                        detalle_info['activo_id'] = detalle.activo.id
                         detalle_info['unidad_medida'] = 'unidad'
-                        detalle_info['precio_unitario'] = str(detalle.activo.precio_unitario if hasattr(detalle.activo, 'precio_unitario') else 0)
+                        detalle_info['precio_unitario'] = '0'
+                        detalle_info['categoria'] = detalle.activo.categoria.nombre if detalle.activo.categoria else 'Sin categoría'
 
                     detalles_data.append(detalle_info)
 
@@ -1539,3 +1585,446 @@ class RecepcionActivoConfirmarView(RecepcionConfirmarMixin, BaseAuditedViewMixin
     def get_success_url_after_confirm(self):
         """Redirige al detalle después de confirmar."""
         return 'compras:recepcion_activo_detalle'
+
+
+# ==================== VISTAS MANTENEDORES: ESTADO RECEPCION ====================
+
+
+class EstadoRecepcionListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """
+    Vista para listar estados de recepción.
+
+    Permisos: compras.view_estadorecepcion
+    Utiliza: EstadoRecepcionRepository para acceso a datos optimizado
+    """
+    model = EstadoRecepcion
+    template_name = 'compras/mantenedores/estado_recepcion/lista.html'
+    context_object_name = 'estados'
+    permission_required = 'compras.view_estadorecepcion'
+    paginate_by = 25
+
+    def get_queryset(self) -> QuerySet:
+        """Retorna estados de recepción filtrados."""
+        queryset = EstadoRecepcion.objects.filter(eliminado=False).order_by('codigo')
+
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query)
+            )
+
+        return queryset
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Estados de Recepción'
+        context['puede_crear'] = self.request.user.has_perm('compras.add_estadorecepcion')
+        context['query'] = self.request.GET.get('q', '')
+        return context
+
+
+class EstadoRecepcionCreateView(BaseAuditedViewMixin, CreateView):
+    """
+    Vista para crear un nuevo estado de recepción.
+
+    Permisos: compras.add_estadorecepcion
+    Auditoría: Registra acción CREAR automáticamente
+    """
+    model = EstadoRecepcion
+    form_class = EstadoRecepcionForm
+    template_name = 'compras/mantenedores/estado_recepcion/form.html'
+    permission_required = 'compras.add_estadorecepcion'
+    success_url = reverse_lazy('compras:estado_recepcion_lista')
+
+    # Configuración de auditoría
+    audit_action = 'CREAR'
+    audit_description_template = 'Creó estado de recepción {obj.codigo} - {obj.nombre}'
+    success_message = 'Estado de recepción {obj.nombre} creado exitosamente.'
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Estado de Recepción'
+        context['action'] = 'Crear'
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class EstadoRecepcionUpdateView(BaseAuditedViewMixin, UpdateView):
+    """
+    Vista para editar un estado de recepción existente.
+
+    Permisos: compras.change_estadorecepcion
+    Auditoría: Registra acción EDITAR automáticamente
+    """
+    model = EstadoRecepcion
+    form_class = EstadoRecepcionForm
+    template_name = 'compras/mantenedores/estado_recepcion/form.html'
+    permission_required = 'compras.change_estadorecepcion'
+    success_url = reverse_lazy('compras:estado_recepcion_lista')
+
+    # Configuración de auditoría
+    audit_action = 'EDITAR'
+    audit_description_template = 'Editó estado de recepción {obj.codigo} - {obj.nombre}'
+    success_message = 'Estado de recepción {obj.nombre} actualizado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite editar estados no eliminados."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Estado: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        context['estado'] = self.object
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class EstadoRecepcionDeleteView(BaseAuditedViewMixin, DeleteView):
+    """
+    Vista para eliminar (soft delete) un estado de recepción.
+
+    Permisos: compras.delete_estadorecepcion
+    Auditoría: Registra acción ELIMINAR automáticamente
+    """
+    model = EstadoRecepcion
+    template_name = 'compras/mantenedores/estado_recepcion/eliminar.html'
+    permission_required = 'compras.delete_estadorecepcion'
+    success_url = reverse_lazy('compras:estado_recepcion_lista')
+
+    # Configuración de auditoría
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Eliminó estado de recepción {obj.codigo} - {obj.nombre}'
+    success_message = 'Estado de recepción {obj.nombre} eliminado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite eliminar estados no eliminados."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Estado: {self.object.nombre}'
+        context['estado'] = self.object
+
+        # Verificar si hay recepciones asociadas
+        context['tiene_recepciones_articulos'] = self.object.recepcionarticulo_set.filter(eliminado=False).exists()
+        context['count_recepciones_articulos'] = self.object.recepcionarticulo_set.filter(eliminado=False).count()
+        context['tiene_recepciones_activos'] = self.object.recepcionactivo_set.filter(eliminado=False).exists()
+        context['count_recepciones_activos'] = self.object.recepcionactivo_set.filter(eliminado=False).count()
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        """Elimina usando soft delete."""
+        self.object = self.get_object()
+
+        # Verificar si tiene recepciones asociadas
+        if self.object.recepcionarticulo_set.filter(eliminado=False).exists() or \
+           self.object.recepcionactivo_set.filter(eliminado=False).exists():
+            messages.error(
+                request,
+                f'No se puede eliminar el estado "{self.object.nombre}" porque tiene recepciones asociadas. '
+                'Desactívelo en su lugar.'
+            )
+            return redirect('compras:estado_recepcion_lista')
+
+        # Soft delete
+        self.object.eliminado = True
+        self.object.activo = False
+        self.object.save()
+
+        messages.success(request, self.get_success_message(self.object))
+        self.log_action(self.object, request)
+
+        return redirect(self.success_url)
+
+
+# ==================== VISTAS MANTENEDORES: TIPO RECEPCION ====================
+
+
+class TipoRecepcionListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """
+    Vista para listar tipos de recepción.
+
+    Permisos: compras.view_tiporecepcion
+    """
+    model = TipoRecepcion
+    template_name = 'compras/mantenedores/tipo_recepcion/lista.html'
+    context_object_name = 'tipos'
+    permission_required = 'compras.view_tiporecepcion'
+    paginate_by = 25
+
+    def get_queryset(self) -> QuerySet:
+        """Retorna tipos de recepción filtrados."""
+        queryset = TipoRecepcion.objects.filter(eliminado=False).order_by('codigo')
+
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query)
+            )
+
+        return queryset
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Tipos de Recepción'
+        context['puede_crear'] = self.request.user.has_perm('compras.add_tiporecepcion')
+        context['query'] = self.request.GET.get('q', '')
+        return context
+
+
+class TipoRecepcionCreateView(BaseAuditedViewMixin, CreateView):
+    """Vista para crear un nuevo tipo de recepción."""
+    model = TipoRecepcion
+    form_class = TipoRecepcionForm
+    template_name = 'compras/mantenedores/tipo_recepcion/form.html'
+    permission_required = 'compras.add_tiporecepcion'
+    success_url = reverse_lazy('compras:tipo_recepcion_lista')
+
+    audit_action = 'CREAR'
+    audit_description_template = 'Creó tipo de recepción {obj.codigo} - {obj.nombre}'
+    success_message = 'Tipo de recepción {obj.nombre} creado exitosamente.'
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Tipo de Recepción'
+        context['action'] = 'Crear'
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class TipoRecepcionUpdateView(BaseAuditedViewMixin, UpdateView):
+    """Vista para editar un tipo de recepción."""
+    model = TipoRecepcion
+    form_class = TipoRecepcionForm
+    template_name = 'compras/mantenedores/tipo_recepcion/form.html'
+    permission_required = 'compras.change_tiporecepcion'
+    success_url = reverse_lazy('compras:tipo_recepcion_lista')
+
+    audit_action = 'EDITAR'
+    audit_description_template = 'Editó tipo de recepción {obj.codigo} - {obj.nombre}'
+    success_message = 'Tipo de recepción {obj.nombre} actualizado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Tipo: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        context['tipo'] = self.object
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class TipoRecepcionDeleteView(BaseAuditedViewMixin, DeleteView):
+    """Vista para eliminar (soft delete) un tipo de recepción."""
+    model = TipoRecepcion
+    template_name = 'compras/mantenedores/tipo_recepcion/eliminar.html'
+    permission_required = 'compras.delete_tiporecepcion'
+    success_url = reverse_lazy('compras:tipo_recepcion_lista')
+
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Eliminó tipo de recepción {obj.codigo} - {obj.nombre}'
+    success_message = 'Tipo de recepción {obj.nombre} eliminado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Tipo: {self.object.nombre}'
+        context['tipo'] = self.object
+
+        # Verificar recepciones asociadas
+        context['tiene_recepciones_articulos'] = self.object.recepcionarticulo_set.filter(eliminado=False).exists()
+        context['count_recepciones_articulos'] = self.object.recepcionarticulo_set.filter(eliminado=False).count()
+        context['tiene_recepciones_activos'] = self.object.recepcionactivo_set.filter(eliminado=False).exists()
+        context['count_recepciones_activos'] = self.object.recepcionactivo_set.filter(eliminado=False).count()
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        if self.object.recepcionarticulo_set.filter(eliminado=False).exists() or \
+           self.object.recepcionactivo_set.filter(eliminado=False).exists():
+            messages.error(
+                request,
+                f'No se puede eliminar el tipo "{self.object.nombre}" porque tiene recepciones asociadas. '
+                'Desactívelo en su lugar.'
+            )
+            return redirect('compras:tipo_recepcion_lista')
+
+        self.object.eliminado = True
+        self.object.activo = False
+        self.object.save()
+
+        messages.success(request, self.get_success_message(self.object))
+        self.log_action(self.object, request)
+
+        return redirect(self.success_url)
+
+
+# ==================== VISTAS MANTENEDORES: ESTADO ORDEN COMPRA ====================
+
+
+class EstadoOrdenCompraListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """Vista para listar estados de orden de compra."""
+    model = EstadoOrdenCompra
+    template_name = 'compras/mantenedores/estado_orden_compra/lista.html'
+    context_object_name = 'estados'
+    permission_required = 'compras.view_estadoordencompra'
+    paginate_by = 25
+
+    def get_queryset(self) -> QuerySet:
+        queryset = EstadoOrdenCompra.objects.filter(eliminado=False).order_by('codigo')
+
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query)
+            )
+
+        return queryset
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Estados de Orden de Compra'
+        context['puede_crear'] = self.request.user.has_perm('compras.add_estadoordencompra')
+        context['query'] = self.request.GET.get('q', '')
+        return context
+
+
+class EstadoOrdenCompraCreateView(BaseAuditedViewMixin, CreateView):
+    """Vista para crear un nuevo estado de orden de compra."""
+    model = EstadoOrdenCompra
+    form_class = EstadoOrdenCompraForm
+    template_name = 'compras/mantenedores/estado_orden_compra/form.html'
+    permission_required = 'compras.add_estadoordencompra'
+    success_url = reverse_lazy('compras:estado_orden_compra_lista')
+
+    audit_action = 'CREAR'
+    audit_description_template = 'Creó estado de orden de compra {obj.codigo} - {obj.nombre}'
+    success_message = 'Estado de orden de compra {obj.nombre} creado exitosamente.'
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Estado de Orden de Compra'
+        context['action'] = 'Crear'
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class EstadoOrdenCompraUpdateView(BaseAuditedViewMixin, UpdateView):
+    """Vista para editar un estado de orden de compra."""
+    model = EstadoOrdenCompra
+    form_class = EstadoOrdenCompraForm
+    template_name = 'compras/mantenedores/estado_orden_compra/form.html'
+    permission_required = 'compras.change_estadoordencompra'
+    success_url = reverse_lazy('compras:estado_orden_compra_lista')
+
+    audit_action = 'EDITAR'
+    audit_description_template = 'Editó estado de orden de compra {obj.codigo} - {obj.nombre}'
+    success_message = 'Estado de orden de compra {obj.nombre} actualizado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Estado: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        context['estado'] = self.object
+        return context
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class EstadoOrdenCompraDeleteView(BaseAuditedViewMixin, DeleteView):
+    """Vista para eliminar (soft delete) un estado de orden de compra."""
+    model = EstadoOrdenCompra
+    template_name = 'compras/mantenedores/estado_orden_compra/eliminar.html'
+    permission_required = 'compras.delete_estadoordencompra'
+    success_url = reverse_lazy('compras:estado_orden_compra_lista')
+
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Eliminó estado de orden de compra {obj.codigo} - {obj.nombre}'
+    success_message = 'Estado de orden de compra {obj.nombre} eliminado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Estado: {self.object.nombre}'
+        context['estado'] = self.object
+
+        # Verificar órdenes de compra asociadas
+        context['tiene_ordenes'] = self.object.ordenes_compra.filter(eliminado=False).exists()
+        context['count_ordenes'] = self.object.ordenes_compra.filter(eliminado=False).count()
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+
+        if self.object.ordenes_compra.filter(eliminado=False).exists():
+            messages.error(
+                request,
+                f'No se puede eliminar el estado "{self.object.nombre}" porque tiene órdenes de compra asociadas. '
+                'Desactívelo en su lugar.'
+            )
+            return redirect('compras:estado_orden_compra_lista')
+
+        self.object.eliminado = True
+        self.object.activo = False
+        self.object.save()
+
+        messages.success(request, self.get_success_message(self.object))
+        self.log_action(self.object, request)
+
+        return redirect(self.success_url)

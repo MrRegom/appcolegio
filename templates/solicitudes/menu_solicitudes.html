@@ -120,6 +120,55 @@
             </div>
         </div>
 
+        <!-- Sección de Configuración/Mantenedores -->
+        {% if permisos.puede_gestionar_mantenedores %}
+        <div class="row mt-4">
+            <div class="col-12">
+                <h5 class="mb-3 text-muted">Configuración:</h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Card: Tipos de Solicitud -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">TIPOS DE SOLICITUD</h5>
+                            <a href="{% url 'solicitudes:tipo_solicitud_lista' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'solicitudes:tipo_solicitud_lista' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="ri-settings-3-line align-bottom me-1"></i> Gestionar Tipos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Estados de Solicitud -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ESTADOS DE SOLICITUD</h5>
+                            <a href="{% url 'solicitudes:estado_solicitud_lista' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'solicitudes:estado_solicitud_lista' %}" class="btn btn-sm btn-outline-success">
+                                <i class="ri-list-settings-line align-bottom me-1"></i> Gestionar Estados
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Información adicional -->
         <div class="row mt-4">
             <div class="col-12">

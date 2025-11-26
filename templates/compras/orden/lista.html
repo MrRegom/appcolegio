@@ -67,8 +67,11 @@
                                         <td><span class="badge bg-primary">{{ orden.estado.nombre }}</span></td>
                                         <td>${{ orden.total|floatformat:0 }}</td>
                                         <td>
-                                            <a href="{% url 'compras:orden_compra_detalle' orden.pk %}" class="btn btn-sm btn-info">
+                                            <a href="{% url 'compras:orden_compra_detalle' orden.pk %}" class="btn btn-sm btn-info" title="Ver detalle">
                                                 <i class="ri-eye-line"></i> Ver
+                                            </a>
+                                            <a href="{% url 'compras:orden_compra_editar' orden.pk %}" class="btn btn-sm btn-warning" title="Editar orden">
+                                                <i class="ri-edit-line"></i> Editar
                                             </a>
                                         </td>
                                     </tr>

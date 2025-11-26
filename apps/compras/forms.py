@@ -71,21 +71,22 @@ class OrdenCompraForm(forms.ModelForm):
             'proveedor', 'bodega_destino', 'estado', 'solicitudes', 'observaciones'
         ]
         widgets = {
-            'fecha_orden': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'fecha_orden': forms.HiddenInput(),
             'fecha_entrega_esperada': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'proveedor': forms.Select(attrs={'class': 'form-select'}),
             'bodega_destino': forms.Select(attrs={'class': 'form-select'}),
-            'estado': forms.Select(attrs={'class': 'form-select'}),
-            'solicitudes': forms.SelectMultiple(attrs={
-                'class': 'form-select',
-                'size': '5',
-                'data-live-search': 'true'
-            }),
+            'estado': forms.HiddenInput(),
+            'solicitudes': forms.MultipleHiddenInput(),
             'observaciones': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Establecer fecha de orden automáticamente como hoy
+        if not self.instance.pk:
+            from django.utils import timezone
+            self.fields['fecha_orden'].initial = timezone.now().date()
 
         # Filtrar proveedores activos
         self.fields['proveedor'].queryset = Proveedor.objects.filter(
@@ -102,14 +103,14 @@ class OrdenCompraForm(forms.ModelForm):
             activo=True
         ).order_by('codigo')
 
-        # Filtrar solicitudes aprobadas (solo no eliminadas y con estado APROBADA)
+        # Filtrar solicitudes en aprobación y aprobadas
         from apps.solicitudes.models import Solicitud
         self.fields['solicitudes'].queryset = Solicitud.objects.filter(
-            estado__codigo='APROBADA',
+            estado__codigo__in=['EN_APROBACION', 'APROBADA'],
             eliminado=False
-        ).select_related('solicitante', 'estado').order_by('-numero')
+        ).select_related('solicitante', 'estado', 'tipo_solicitud').order_by('-numero')
         self.fields['solicitudes'].required = False
-        self.fields['solicitudes'].help_text = 'Seleccione las solicitudes aprobadas asociadas a esta orden (opcional)'
+        self.fields['solicitudes'].help_text = 'Seleccione las solicitudes en aprobación o aprobadas asociadas a esta orden (opcional)'
 
         # Establecer estado inicial por defecto (primer estado activo)
         if not self.instance.pk:
@@ -404,3 +405,169 @@ class RecepcionActivoFiltroForm(forms.Form):
         queryset=EstadoRecepcion.objects.filter(activo=True, eliminado=False).order_by('nombre'),
         widget=forms.Select(attrs={'class': 'form-select'})
     )
+
+
+# ==================== FORMULARIOS DE MANTENEDORES ====================
+
+
+class EstadoRecepcionForm(forms.ModelForm):
+    """
+    Formulario para crear/editar estados de recepción.
+
+    Incluye validación de código único y color en formato hexadecimal.
+    """
+
+    class Meta:
+        model = EstadoRecepcion
+        fields = ['codigo', 'nombre', 'descripcion', 'color', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Código único (ej: PEND, COMP)',
+                'maxlength': 20
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del estado'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Descripción opcional'
+            }),
+            'color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'type': 'color',
+                'value': '#6c757d'
+            }),
+            'activo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+
+    def clean_codigo(self) -> str:
+        """Validar que el código sea único (en mayúsculas)."""
+        codigo = self.cleaned_data.get('codigo', '').strip().upper()
+
+        queryset = EstadoRecepcion.objects.filter(codigo=codigo)
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise ValidationError(f'Ya existe un estado con el código "{codigo}".')
+
+        return codigo
+
+    def clean_color(self) -> str:
+        """Validar formato hexadecimal del color."""
+        color = self.cleaned_data.get('color', '').strip()
+
+        if not color.startswith('#') or len(color) != 7:
+            raise ValidationError('El color debe estar en formato hexadecimal (#RRGGBB).')
+
+        return color
+
+
+class TipoRecepcionForm(forms.ModelForm):
+    """
+    Formulario para crear/editar tipos de recepción.
+
+    Incluye validación de código único y configuración de requisitos.
+    """
+
+    class Meta:
+        model = TipoRecepcion
+        fields = ['codigo', 'nombre', 'descripcion', 'requiere_orden', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Código único (ej: CON_OC, SIN_OC)',
+                'maxlength': 20
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del tipo de recepción'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Descripción opcional'
+            }),
+            'requiere_orden': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'activo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+
+    def clean_codigo(self) -> str:
+        """Validar que el código sea único (en mayúsculas con guiones bajos)."""
+        codigo = self.cleaned_data.get('codigo', '').strip().upper().replace('-', '_')
+
+        queryset = TipoRecepcion.objects.filter(codigo=codigo)
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise ValidationError(f'Ya existe un tipo de recepción con el código "{codigo}".')
+
+        return codigo
+
+
+class EstadoOrdenCompraForm(forms.ModelForm):
+    """
+    Formulario para crear/editar estados de orden de compra.
+
+    Incluye validación de código único y color en formato hexadecimal.
+    """
+
+    class Meta:
+        model = EstadoOrdenCompra
+        fields = ['codigo', 'nombre', 'descripcion', 'color', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Código único (ej: PEND, APRO, REC)',
+                'maxlength': 20
+            }),
+            'nombre': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Nombre del estado'
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Descripción opcional'
+            }),
+            'color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'type': 'color',
+                'value': '#6c757d'
+            }),
+            'activo': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            })
+        }
+
+    def clean_codigo(self) -> str:
+        """Validar que el código sea único (en mayúsculas)."""
+        codigo = self.cleaned_data.get('codigo', '').strip().upper()
+
+        queryset = EstadoOrdenCompra.objects.filter(codigo=codigo)
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise ValidationError(f'Ya existe un estado de orden de compra con el código "{codigo}".')
+
+        return codigo
+
+    def clean_color(self) -> str:
+        """Validar formato hexadecimal del color."""
+        color = self.cleaned_data.get('color', '').strip()
+
+        if not color.startswith('#') or len(color) != 7:
+            raise ValidationError('El color debe estar en formato hexadecimal (#RRGGBB).')
+
+        return color

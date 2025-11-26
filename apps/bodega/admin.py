@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (
-    Bodega, UnidadMedida, Categoria, Articulo, TipoMovimiento, Movimiento,
+    Bodega, UnidadMedida, Categoria, Marca, Articulo, Operacion, TipoMovimiento, Movimiento,
     EstadoEntrega, TipoEntrega, EntregaArticulo, DetalleEntregaArticulo,
     EntregaBien, DetalleEntregaBien
 )
@@ -36,23 +36,33 @@ class CategoriaAdmin(admin.ModelAdmin):
     readonly_fields = ['fecha_creacion', 'fecha_actualizacion']
 
 
+@admin.register(Marca)
+class MarcaAdmin(admin.ModelAdmin):
+    """
+    Administración de Marcas en el panel de Django Admin.
+
+    Este modelo pertenece al módulo de BODEGA, no al módulo de activos.
+    """
+    list_display = ['codigo', 'nombre', 'activo', 'fecha_creacion']
+    list_filter = ['activo', 'fecha_creacion']
+    search_fields = ['codigo', 'nombre']
+    readonly_fields = ['fecha_creacion', 'fecha_actualizacion']
+    ordering = ['codigo']
+
+
 @admin.register(Articulo)
 class ArticuloAdmin(admin.ModelAdmin):
     """
     Administración de Artículos en el panel de Django Admin.
     """
-    list_display = ['codigo', 'nombre', 'categoria', 'stock_actual', 'stock_minimo', 'ubicacion_fisica', 'activo']
-    list_filter = ['categoria', 'ubicacion_fisica', 'activo', 'fecha_creacion']
+    list_display = ['codigo', 'nombre', 'categoria', 'marca', 'stock_actual', 'stock_minimo', 'ubicacion_fisica', 'activo']
+    list_filter = ['categoria', 'marca', 'ubicacion_fisica', 'activo', 'fecha_creacion']
     search_fields = ['codigo', 'nombre', 'descripcion', 'codigo_barras']
     readonly_fields = ['stock_actual', 'codigo_barras', 'fecha_creacion', 'fecha_actualizacion']
-    filter_horizontal = ['marcas']
 
     fieldsets = (
         ('Información General', {
-            'fields': ('codigo', 'nombre', 'descripcion', 'codigo_barras', 'categoria', 'unidad_medida')
-        }),
-        ('Marcas', {
-            'fields': ('marcas',)
+            'fields': ('codigo', 'nombre', 'descripcion', 'codigo_barras', 'categoria', 'marca', 'unidad_medida')
         }),
         ('Stock', {
             'fields': ('stock_actual', 'stock_minimo', 'stock_maximo', 'punto_reorden')
@@ -67,6 +77,18 @@ class ArticuloAdmin(admin.ModelAdmin):
             'fields': ('activo', 'eliminado', 'fecha_creacion', 'fecha_actualizacion')
         }),
     )
+
+
+@admin.register(Operacion)
+class OperacionAdmin(admin.ModelAdmin):
+    """
+    Administración de Operaciones de Movimiento en el panel de Django Admin.
+    """
+    list_display = ['codigo', 'nombre', 'tipo', 'activo', 'fecha_creacion']
+    list_filter = ['tipo', 'activo', 'fecha_creacion']
+    search_fields = ['codigo', 'nombre']
+    readonly_fields = ['fecha_creacion', 'fecha_actualizacion']
+    ordering = ['codigo']
 
 
 @admin.register(TipoMovimiento)

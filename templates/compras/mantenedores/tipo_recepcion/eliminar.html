@@ -1,0 +1,107 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box">
+                    <h4 class="mb-sm-0">{{ titulo }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="alert alert-warning" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="ri-alert-line"></i> Confirmar Eliminación
+                            </h5>
+                            <p class="mb-0">
+                                ¿Está seguro que desea eliminar el tipo <strong>{{ tipo.nombre }}</strong> ({{ tipo.codigo }})?
+                            </p>
+                        </div>
+
+                        {% if tiene_recepciones_articulos or tiene_recepciones_activos %}
+                        <div class="alert alert-danger" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="ri-error-warning-line"></i> No se puede eliminar
+                            </h5>
+                            <p class="mb-0">
+                                Este tipo tiene recepciones asociadas:
+                                {% if tiene_recepciones_articulos %}
+                                <br><strong>{{ count_recepciones_articulos }}</strong> recepción(es) de artículos
+                                {% endif %}
+                                {% if tiene_recepciones_activos %}
+                                <br><strong>{{ count_recepciones_activos }}</strong> recepción(es) de activos
+                                {% endif %}
+                                <br><br>Desactívelo en su lugar.
+                            </p>
+                        </div>
+                        {% endif %}
+
+                        <div class="card mt-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Información del Tipo</h6>
+                                <table class="table table-borderless mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row" style="width: 200px;">Código:</th>
+                                            <td>{{ tipo.codigo }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Nombre:</th>
+                                            <td>{{ tipo.nombre }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Requiere OC:</th>
+                                            <td>
+                                                {% if tipo.requiere_orden %}
+                                                    <span class="badge bg-info">Sí</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">No</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Descripción:</th>
+                                            <td>{{ tipo.descripcion|default:"-" }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Estado:</th>
+                                            <td>
+                                                {% if tipo.activo %}
+                                                    <span class="badge bg-success">Activo</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactivo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            {% if not tiene_recepciones_articulos and not tiene_recepciones_activos %}
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="ri-delete-bin-line"></i> Sí, Eliminar
+                                </button>
+                            </form>
+                            {% endif %}
+                            <a href="{% url 'compras:tipo_recepcion_lista' %}" class="btn btn-secondary">
+                                <i class="ri-arrow-left-line"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

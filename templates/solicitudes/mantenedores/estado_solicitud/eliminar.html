@@ -1,0 +1,90 @@
+{% extends "partials/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid" style="padding-top: 2rem;">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">{{ titulo|default:"Eliminar Estado de Solicitud" }}</h3>
+                    <a href="{% url 'solicitudes:estado_solicitud_lista' %}" class="btn btn-secondary">
+                        <i class="ri-arrow-left-line"></i> Volver
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if tiene_solicitudes %}
+                    <div class="alert alert-warning">
+                        <i class="ri-alert-line"></i>
+                        <strong>¡Atención!</strong> Este estado tiene <strong>{{ count_solicitudes }}</strong> solicitud(es) asociada(s).
+                        No se puede eliminar. Por favor, desactívelo en su lugar.
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'solicitudes:estado_solicitud_editar' estado.pk %}" class="btn btn-primary">
+                            <i class="ri-edit-line"></i> Editar y Desactivar
+                        </a>
+                        <a href="{% url 'solicitudes:estado_solicitud_lista' %}" class="btn btn-secondary">
+                            <i class="ri-arrow-left-line"></i> Volver
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-danger">
+                        <i class="ri-error-warning-line"></i>
+                        <strong>¿Está seguro que desea eliminar este estado de solicitud?</strong>
+                        <p class="mt-2 mb-0">Esta acción no se puede deshacer.</p>
+                    </div>
+
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-3">Código:</dt>
+                                <dd class="col-sm-9"><code>{{ estado.codigo }}</code></dd>
+
+                                <dt class="col-sm-3">Nombre:</dt>
+                                <dd class="col-sm-9">{{ estado.nombre }}</dd>
+
+                                <dt class="col-sm-3">Color:</dt>
+                                <dd class="col-sm-9">
+                                    <span class="badge" style="background-color: {{ estado.color }}; padding: 5px 15px;">{{ estado.color }}</span>
+                                </dd>
+
+                                {% if estado.descripcion %}
+                                <dt class="col-sm-3">Descripción:</dt>
+                                <dd class="col-sm-9">{{ estado.descripcion }}</dd>
+                                {% endif %}
+
+                                <dt class="col-sm-3">Tipo:</dt>
+                                <dd class="col-sm-9">
+                                    {% if estado.es_inicial %}
+                                        <span class="badge bg-info">Estado Inicial</span>
+                                    {% elif estado.es_final %}
+                                        <span class="badge bg-dark">Estado Final</span>
+                                    {% elif estado.requiere_accion %}
+                                        <span class="badge bg-warning">Requiere Acción</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Estado Intermedio</span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <form method="post" class="mt-3">
+                        {% csrf_token %}
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger">
+                                <i class="ri-delete-bin-line"></i> Sí, eliminar
+                            </button>
+                            <a href="{% url 'solicitudes:estado_solicitud_lista' %}" class="btn btn-secondary">
+                                <i class="ri-close-line"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

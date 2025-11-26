@@ -78,19 +78,43 @@ class Categoria(BaseModel):
         return f"{self.codigo} - {self.nombre}"
 
 
+class Marca(BaseModel):
+    """
+    Catálogo de marcas para artículos de bodega.
+
+    Este modelo pertenece al módulo de BODEGA (independiente de activos.Marca).
+    Se utiliza para gestionar marcas de artículos de inventario.
+
+    Hereda de BaseModel para soft delete y auditoría.
+    """
+    codigo = models.CharField(max_length=20, unique=True, verbose_name='Código')
+    nombre = models.CharField(max_length=100, verbose_name='Nombre')
+    descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
+
+    class Meta:
+        db_table = 'tba_bodega_marca'
+        verbose_name = 'Marca'
+        verbose_name_plural = 'Marcas'
+        ordering = ['codigo']
+
+    def __str__(self) -> str:
+        """Representación en cadena de la marca."""
+        return f"{self.codigo} - {self.nombre}"
+
+
 class Articulo(BaseModel):
     """
     Modelo para gestionar artículos en bodega.
 
     Este modelo representa los artículos almacenados en las bodegas del sistema.
-    Incluye control de stock, relaciones many-to-many con marcas y unidades de medida,
+    Incluye control de stock, relaciones con marca y unidad de medida,
     y generación automática de códigos de barras.
 
     Attributes:
         codigo: Código único del artículo.
         nombre: Nombre descriptivo del artículo.
         descripcion: Descripción detallada opcional.
-        marcas: Marcas asociadas al artículo (ManyToMany).
+        marca: Marca del artículo (ForeignKey).
         codigo_barras: Código de barras (auto-generado si no se proporciona).
         categoria: Categoría a la que pertenece el artículo.
         stock_actual: Stock actual en bodega.
@@ -104,12 +128,14 @@ class Articulo(BaseModel):
     codigo = models.CharField(max_length=50, unique=True, verbose_name='Código')
     nombre = models.CharField(max_length=200, verbose_name='Nombre')
     descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
-    marcas = models.ManyToManyField(
-        'activos.Marca',
+    marca = models.ForeignKey(
+        'Marca',
+        on_delete=models.PROTECT,
         related_name='articulos',
         blank=True,
-        verbose_name='Marcas',
-        help_text='Marcas asociadas al artículo'
+        null=True,
+        verbose_name='Marca',
+        help_text='Marca del artículo'
     )
     codigo_barras = models.CharField(
         max_length=100,
@@ -187,6 +213,39 @@ class Articulo(BaseModel):
         super().save(*args, **kwargs)
 
 
+class Operacion(BaseModel):
+    """
+    Catálogo de operaciones de movimiento (Entrada/Salida).
+
+    Reemplaza el CharField con choices por un modelo configurable.
+    Permite agregar nuevas operaciones sin modificar código.
+
+    Hereda de BaseModel para soft delete y auditoría.
+    """
+    codigo = models.CharField(max_length=20, unique=True, verbose_name='Código')
+    nombre = models.CharField(max_length=50, verbose_name='Nombre')
+    tipo = models.CharField(
+        max_length=20,
+        choices=[
+            ('ENTRADA', 'Entrada'),
+            ('SALIDA', 'Salida'),
+        ],
+        verbose_name='Tipo de Operación',
+        help_text='Define si la operación suma o resta del stock'
+    )
+    descripcion = models.TextField(blank=True, null=True, verbose_name='Descripción')
+
+    class Meta:
+        db_table = 'tba_bodega_operacion'
+        verbose_name = 'Operación'
+        verbose_name_plural = 'Operaciones'
+        ordering = ['codigo']
+
+    def __str__(self) -> str:
+        """Representación en cadena de la operación."""
+        return f"{self.codigo} - {self.nombre}"
+
+
 class TipoMovimiento(BaseModel):
     """Catálogo de tipos de movimiento de inventario"""
     codigo = models.CharField(max_length=20, unique=True, verbose_name='Código')
@@ -222,13 +281,12 @@ class Movimiento(BaseModel):
         validators=[MinValueValidator(1)],
         verbose_name='Cantidad'
     )
-    operacion = models.CharField(
-        max_length=20,
-        choices=[
-            ('ENTRADA', 'Entrada'),
-            ('SALIDA', 'Salida'),
-        ],
-        verbose_name='Operación'
+    operacion = models.ForeignKey(
+        Operacion,
+        on_delete=models.PROTECT,
+        related_name='movimientos',
+        verbose_name='Operación',
+        help_text='Operación que determina si es entrada o salida'
     )
     usuario = models.ForeignKey(
         User,

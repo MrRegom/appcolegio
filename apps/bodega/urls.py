@@ -44,4 +44,24 @@ urlpatterns = [
     # AJAX
     path('ajax/solicitud/<int:solicitud_id>/articulos/', views.obtener_articulos_solicitud, name='ajax_solicitud_articulos'),
     path('ajax/solicitud/<int:solicitud_id>/bienes/', views.obtener_bienes_solicitud, name='ajax_solicitud_bienes'),
+
+    # ==================== MANTENEDORES ====================
+
+    # Marcas
+    path('mantenedores/marcas/', views.MarcaListView.as_view(), name='marca_lista'),
+    path('mantenedores/marcas/crear/', views.MarcaCreateView.as_view(), name='marca_crear'),
+    path('mantenedores/marcas/<int:pk>/editar/', views.MarcaUpdateView.as_view(), name='marca_editar'),
+    path('mantenedores/marcas/<int:pk>/eliminar/', views.MarcaDeleteView.as_view(), name='marca_eliminar'),
+
+    # Operaciones
+    path('mantenedores/operaciones/', views.OperacionListView.as_view(), name='operacion_lista'),
+    path('mantenedores/operaciones/crear/', views.OperacionCreateView.as_view(), name='operacion_crear'),
+    path('mantenedores/operaciones/<int:pk>/editar/', views.OperacionUpdateView.as_view(), name='operacion_editar'),
+    path('mantenedores/operaciones/<int:pk>/eliminar/', views.OperacionDeleteView.as_view(), name='operacion_eliminar'),
+
+    # Tipos de Movimiento
+    path('mantenedores/tipos-movimiento/', views.TipoMovimientoListView.as_view(), name='tipo_movimiento_lista'),
+    path('mantenedores/tipos-movimiento/crear/', views.TipoMovimientoCreateView.as_view(), name='tipo_movimiento_crear'),
+    path('mantenedores/tipos-movimiento/<int:pk>/editar/', views.TipoMovimientoUpdateView.as_view(), name='tipo_movimiento_editar'),
+    path('mantenedores/tipos-movimiento/<int:pk>/eliminar/', views.TipoMovimientoDeleteView.as_view(), name='tipo_movimiento_eliminar'),
 ]
