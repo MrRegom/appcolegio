@@ -14,7 +14,6 @@ const EntregaBienes = {
     init(activos) {
         this.activosDisponibles = activos;
         this.setupEventListeners();
-        console.log('EntregaBienes inicializado correctamente');
     },
 
     /**
