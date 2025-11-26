@@ -33,4 +33,16 @@ urlpatterns = [
     path('articulos/', views.SolicitudArticuloListView.as_view(), name='lista_solicitudes_articulos'),
     path('articulos/crear/', views.SolicitudArticuloCreateView.as_view(), name='crear_solicitud_articulos'),
     path('articulos/<int:pk>/editar/', views.SolicitudArticuloUpdateView.as_view(), name='editar_solicitud_articulos'),
+
+    # ==================== MANTENEDORES: TIPOS DE SOLICITUD ====================
+    path('tipos/', views.TipoSolicitudListView.as_view(), name='tipo_solicitud_lista'),
+    path('tipos/crear/', views.TipoSolicitudCreateView.as_view(), name='tipo_solicitud_crear'),
+    path('tipos/<int:pk>/editar/', views.TipoSolicitudUpdateView.as_view(), name='tipo_solicitud_editar'),
+    path('tipos/<int:pk>/eliminar/', views.TipoSolicitudDeleteView.as_view(), name='tipo_solicitud_eliminar'),
+
+    # ==================== MANTENEDORES: ESTADOS DE SOLICITUD ====================
+    path('estados/', views.EstadoSolicitudListView.as_view(), name='estado_solicitud_lista'),
+    path('estados/crear/', views.EstadoSolicitudCreateView.as_view(), name='estado_solicitud_crear'),
+    path('estados/<int:pk>/editar/', views.EstadoSolicitudUpdateView.as_view(), name='estado_solicitud_editar'),
+    path('estados/<int:pk>/eliminar/', views.EstadoSolicitudDeleteView.as_view(), name='estado_solicitud_eliminar'),
 ]
