@@ -27,7 +27,7 @@ from .models import Solicitud, TipoSolicitud, EstadoSolicitud, DetalleSolicitud,
 from .forms import (
     SolicitudForm, DetalleSolicitudArticuloFormSet, DetalleSolicitudActivoFormSet,
     AprobarSolicitudForm, DespacharSolicitudForm, RechazarSolicitudForm,
-    FiltroSolicitudesForm
+    FiltroSolicitudesForm, TipoSolicitudForm, EstadoSolicitudForm
 )
 from .repositories import (
     TipoSolicitudRepository, EstadoSolicitudRepository, SolicitudRepository,
@@ -58,6 +58,7 @@ class MenuSolicitudesView(BaseAuditedViewMixin, TemplateView):
         # Inicializar repositories
         solicitud_repo = SolicitudRepository()
         estado_repo = EstadoSolicitudRepository()
+        tipo_repo = TipoSolicitudRepository()
 
         # Estadísticas del módulo usando repositories
         estado_pendiente = estado_repo.get_by_codigo('PENDIENTE')
@@ -71,6 +72,9 @@ class MenuSolicitudesView(BaseAuditedViewMixin, TemplateView):
             'solicitudes_activos': solicitud_repo.filter_by_tipo_choice('ACTIVO').count(),
             'solicitudes_articulos': solicitud_repo.filter_by_tipo_choice('ARTICULO').count(),
             'pendientes': pendientes_count,
+            # Estadísticas de mantenedores
+            'total_tipos_solicitud': tipo_repo.get_all().count(),
+            'total_estados_solicitud': estado_repo.get_all().count(),
         }
 
         # Permisos del usuario
@@ -78,6 +82,13 @@ class MenuSolicitudesView(BaseAuditedViewMixin, TemplateView):
             'puede_crear': user.has_perm('solicitudes.add_solicitud'),
             'puede_aprobar': user.has_perm('solicitudes.aprobar_solicitud'),
             'puede_gestionar': user.has_perm('solicitudes.change_solicitud'),
+            # Permisos para mantenedores (mostrar si tiene permisos de ver o cambiar)
+            'puede_gestionar_mantenedores': (
+                user.has_perm('solicitudes.view_tiposolicitud') or
+                user.has_perm('solicitudes.change_tiposolicitud') or
+                user.has_perm('solicitudes.view_estadosolicitud') or
+                user.has_perm('solicitudes.change_estadosolicitud')
+            ),
         }
 
         context['titulo'] = 'Módulo de Solicitudes'
@@ -1027,3 +1038,357 @@ class SolicitudArticuloUpdateView(SolicitudUpdateView):
             context['formset'] = DetalleSolicitudArticuloFormSet(instance=self.object)
 
         return context
+
+
+# ==================== VISTAS MANTENEDORES: TIPOS DE SOLICITUD ====================
+
+
+class TipoSolicitudListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """
+    Vista para listar tipos de solicitud.
+
+    Permisos: solicitudes.view_tiposolicitud
+    Utiliza: TipoSolicitudRepository para acceso a datos optimizado
+    """
+    model = TipoSolicitud
+    template_name = 'solicitudes/mantenedores/tipo_solicitud/lista.html'
+    context_object_name = 'tipos'
+    permission_required = 'solicitudes.view_tiposolicitud'
+    paginate_by = 25
+
+    def get_queryset(self) -> QuerySet:
+        """Retorna tipos de solicitud usando repository."""
+        from .repositories import TipoSolicitudRepository
+        tipo_repo = TipoSolicitudRepository()
+
+        # Incluir inactivos y eliminados para administración
+        queryset = TipoSolicitud.objects.filter(eliminado=False).order_by('codigo')
+
+        # Búsqueda por query string
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query)
+            )
+
+        return queryset
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Tipos de Solicitud'
+        context['puede_crear'] = self.request.user.has_perm('solicitudes.add_tiposolicitud')
+        return context
+
+
+class TipoSolicitudCreateView(BaseAuditedViewMixin, CreateView):
+    """
+    Vista para crear un nuevo tipo de solicitud.
+
+    Permisos: solicitudes.add_tiposolicitud
+    Auditoría: Registra acción CREAR automáticamente
+    """
+    model = TipoSolicitud
+    form_class = TipoSolicitudForm
+    template_name = 'solicitudes/mantenedores/tipo_solicitud/form.html'
+    permission_required = 'solicitudes.add_tiposolicitud'
+    success_url = reverse_lazy('solicitudes:tipo_solicitud_lista')
+
+    # Configuración de auditoría
+    audit_action = 'CREAR'
+    audit_description_template = 'Creó tipo de solicitud {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Tipo de solicitud {obj.nombre} creado exitosamente.'
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Tipo de Solicitud'
+        context['action'] = 'Crear'
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class TipoSolicitudUpdateView(BaseAuditedViewMixin, UpdateView):
+    """
+    Vista para editar un tipo de solicitud existente.
+
+    Permisos: solicitudes.change_tiposolicitud
+    Auditoría: Registra acción EDITAR automáticamente
+    """
+    model = TipoSolicitud
+    form_class = TipoSolicitudForm
+    template_name = 'solicitudes/mantenedores/tipo_solicitud/form.html'
+    permission_required = 'solicitudes.change_tiposolicitud'
+    success_url = reverse_lazy('solicitudes:tipo_solicitud_lista')
+
+    # Configuración de auditoría
+    audit_action = 'EDITAR'
+    audit_description_template = 'Editó tipo de solicitud {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Tipo de solicitud {obj.nombre} actualizado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite editar tipos no eliminados."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Tipo de Solicitud: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        context['tipo'] = self.object
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class TipoSolicitudDeleteView(BaseAuditedViewMixin, DeleteView):
+    """
+    Vista para eliminar (soft delete) un tipo de solicitud.
+
+    Permisos: solicitudes.delete_tiposolicitud
+    Auditoría: Registra acción ELIMINAR automáticamente
+    """
+    model = TipoSolicitud
+    template_name = 'solicitudes/mantenedores/tipo_solicitud/eliminar.html'
+    permission_required = 'solicitudes.delete_tiposolicitud'
+    success_url = reverse_lazy('solicitudes:tipo_solicitud_lista')
+
+    # Configuración de auditoría
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Eliminó tipo de solicitud {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Tipo de solicitud {obj.nombre} eliminado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite eliminar tipos no eliminados."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Tipo de Solicitud: {self.object.nombre}'
+        context['tipo'] = self.object
+
+        # Verificar si hay solicitudes asociadas
+        context['tiene_solicitudes'] = self.object.solicitudes.filter(eliminado=False).exists()
+        context['count_solicitudes'] = self.object.solicitudes.filter(eliminado=False).count()
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        """Elimina usando soft delete."""
+        self.object = self.get_object()
+
+        # Verificar si tiene solicitudes asociadas
+        if self.object.solicitudes.filter(eliminado=False).exists():
+            messages.error(
+                request,
+                f'No se puede eliminar el tipo "{self.object.nombre}" porque tiene solicitudes asociadas. '
+                'Desactívelo en su lugar.'
+            )
+            return redirect('solicitudes:tipo_solicitud_lista')
+
+        # Soft delete
+        self.object.eliminado = True
+        self.object.activo = False
+        self.object.save()
+
+        messages.success(request, self.get_success_message(self.object))
+        self.log_action(self.object, request)
+
+        return redirect(self.success_url)
+
+
+# ==================== VISTAS MANTENEDORES: ESTADOS DE SOLICITUD ====================
+
+
+class EstadoSolicitudListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """
+    Vista para listar estados de solicitud.
+
+    Permisos: solicitudes.view_estadosolicitud
+    Utiliza: EstadoSolicitudRepository para acceso a datos optimizado
+    """
+    model = EstadoSolicitud
+    template_name = 'solicitudes/mantenedores/estado_solicitud/lista.html'
+    context_object_name = 'estados'
+    permission_required = 'solicitudes.view_estadosolicitud'
+    paginate_by = 25
+
+    def get_queryset(self) -> QuerySet:
+        """Retorna estados de solicitud usando repository."""
+        from .repositories import EstadoSolicitudRepository
+        estado_repo = EstadoSolicitudRepository()
+
+        # Incluir inactivos y eliminados para administración
+        queryset = EstadoSolicitud.objects.filter(eliminado=False).order_by('codigo')
+
+        # Búsqueda por query string
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query)
+            )
+
+        return queryset
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Estados de Solicitud'
+        context['puede_crear'] = self.request.user.has_perm('solicitudes.add_estadosolicitud')
+        return context
+
+
+class EstadoSolicitudCreateView(BaseAuditedViewMixin, CreateView):
+    """
+    Vista para crear un nuevo estado de solicitud.
+
+    Permisos: solicitudes.add_estadosolicitud
+    Auditoría: Registra acción CREAR automáticamente
+    """
+    model = EstadoSolicitud
+    form_class = EstadoSolicitudForm
+    template_name = 'solicitudes/mantenedores/estado_solicitud/form.html'
+    permission_required = 'solicitudes.add_estadosolicitud'
+    success_url = reverse_lazy('solicitudes:estado_solicitud_lista')
+
+    # Configuración de auditoría
+    audit_action = 'CREAR'
+    audit_description_template = 'Creó estado de solicitud {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Estado de solicitud {obj.nombre} creado exitosamente.'
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Estado de Solicitud'
+        context['action'] = 'Crear'
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class EstadoSolicitudUpdateView(BaseAuditedViewMixin, UpdateView):
+    """
+    Vista para editar un estado de solicitud existente.
+
+    Permisos: solicitudes.change_estadosolicitud
+    Auditoría: Registra acción EDITAR automáticamente
+    """
+    model = EstadoSolicitud
+    form_class = EstadoSolicitudForm
+    template_name = 'solicitudes/mantenedores/estado_solicitud/form.html'
+    permission_required = 'solicitudes.change_estadosolicitud'
+    success_url = reverse_lazy('solicitudes:estado_solicitud_lista')
+
+    # Configuración de auditoría
+    audit_action = 'EDITAR'
+    audit_description_template = 'Editó estado de solicitud {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Estado de solicitud {obj.nombre} actualizado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite editar estados no eliminados."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Estado de Solicitud: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        context['estado'] = self.object
+        return context
+
+    def form_valid(self, form):
+        """Procesa el formulario válido con log de auditoría."""
+        response = super().form_valid(form)
+        messages.success(self.request, self.get_success_message(self.object))
+        self.log_action(self.object, self.request)
+        return response
+
+
+class EstadoSolicitudDeleteView(BaseAuditedViewMixin, DeleteView):
+    """
+    Vista para eliminar (soft delete) un estado de solicitud.
+
+    Permisos: solicitudes.delete_estadosolicitud
+    Auditoría: Registra acción ELIMINAR automáticamente
+    """
+    model = EstadoSolicitud
+    template_name = 'solicitudes/mantenedores/estado_solicitud/eliminar.html'
+    permission_required = 'solicitudes.delete_estadosolicitud'
+    success_url = reverse_lazy('solicitudes:estado_solicitud_lista')
+
+    # Configuración de auditoría
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Eliminó estado de solicitud {obj.codigo} - {obj.nombre}'
+
+    # Mensaje de éxito
+    success_message = 'Estado de solicitud {obj.nombre} eliminado exitosamente.'
+
+    def get_queryset(self) -> QuerySet:
+        """Solo permite eliminar estados no eliminados."""
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs) -> dict:
+        """Agrega datos al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Estado de Solicitud: {self.object.nombre}'
+        context['estado'] = self.object
+
+        # Verificar si hay solicitudes asociadas
+        context['tiene_solicitudes'] = self.object.solicitudes.filter(eliminado=False).exists()
+        context['count_solicitudes'] = self.object.solicitudes.filter(eliminado=False).count()
+
+        return context
+
+    def delete(self, request, *args, **kwargs):
+        """Elimina usando soft delete."""
+        self.object = self.get_object()
+
+        # Verificar si tiene solicitudes asociadas
+        if self.object.solicitudes.filter(eliminado=False).exists():
+            messages.error(
+                request,
+                f'No se puede eliminar el estado "{self.object.nombre}" porque tiene solicitudes asociadas. '
+                'Desactívelo en su lugar.'
+            )
+            return redirect('solicitudes:estado_solicitud_lista')
+
+        # Soft delete
+        self.object.eliminado = True
+        self.object.activo = False
+        self.object.save()
+
+        messages.success(request, self.get_success_message(self.object))
+        self.log_action(self.object, request)
+
+        return redirect(self.success_url)

@@ -358,3 +358,109 @@ class FiltroSolicitudesForm(forms.Form):
             }
         )
     )
+
+
+# ==================== FORMULARIOS DE MANTENEDORES ====================
+
+
+class TipoSolicitudForm(forms.ModelForm):
+    """Formulario para crear y editar tipos de solicitud."""
+
+    class Meta:
+        model = TipoSolicitud
+        fields = ['codigo', 'nombre', 'descripcion', 'requiere_aprobacion', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Ej: REQ-MAT',
+                    'maxlength': '20'
+                }
+            ),
+            'nombre': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Ej: Requisición de Materiales',
+                    'maxlength': '100'
+                }
+            ),
+            'descripcion': forms.Textarea(
+                attrs={
+                    'class': 'form-control',
+                    'rows': 3,
+                    'placeholder': 'Descripción detallada del tipo de solicitud (opcional)...'
+                }
+            ),
+            'requiere_aprobacion': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+            'activo': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+        }
+        help_texts = {
+            'codigo': 'Código único identificador del tipo de solicitud',
+            'requiere_aprobacion': 'Indica si las solicitudes de este tipo requieren aprobación antes de ser despachadas',
+            'activo': 'Solo los tipos activos estarán disponibles para crear nuevas solicitudes'
+        }
+
+
+class EstadoSolicitudForm(forms.ModelForm):
+    """Formulario para crear y editar estados de solicitud."""
+
+    class Meta:
+        model = EstadoSolicitud
+        fields = [
+            'codigo', 'nombre', 'descripcion', 'color',
+            'es_inicial', 'es_final', 'requiere_accion', 'activo'
+        ]
+        widgets = {
+            'codigo': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Ej: PENDIENTE',
+                    'maxlength': '20'
+                }
+            ),
+            'nombre': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Ej: Pendiente de Aprobación',
+                    'maxlength': '100'
+                }
+            ),
+            'descripcion': forms.Textarea(
+                attrs={
+                    'class': 'form-control',
+                    'rows': 3,
+                    'placeholder': 'Descripción detallada del estado (opcional)...'
+                }
+            ),
+            'color': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'type': 'color',
+                    'maxlength': '7'
+                }
+            ),
+            'es_inicial': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+            'es_final': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+            'requiere_accion': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+            'activo': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+        }
+        help_texts = {
+            'codigo': 'Código único identificador del estado',
+            'color': 'Color hexadecimal para representación visual (Ej: #28a745 para verde)',
+            'es_inicial': 'Indica si es el estado inicial al crear una solicitud',
+            'es_final': 'Indica si es un estado final del proceso',
+            'requiere_accion': 'Indica si el estado requiere acción del usuario',
+            'activo': 'Solo los estados activos estarán disponibles en el sistema'
+        }
