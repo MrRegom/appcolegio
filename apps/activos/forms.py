@@ -384,3 +384,69 @@ class ProvenienciaForm(forms.ModelForm):
                 attrs={'class': 'form-check-input'}
             ),
         }
+
+
+# ==================== FORMULARIOS DE MANTENEDORES ====================
+
+
+class MarcaForm(forms.ModelForm):
+    """Formulario para crear y editar marcas de activos y artículos."""
+
+    class Meta:
+        model = Marca
+        fields = ['codigo', 'nombre', 'descripcion', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Ej: DELL',
+                    'maxlength': '20'
+                }
+            ),
+            'nombre': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Ej: Dell Technologies',
+                    'maxlength': '100'
+                }
+            ),
+            'descripcion': forms.Textarea(
+                attrs={
+                    'class': 'form-control',
+                    'rows': 3,
+                    'placeholder': 'Descripción detallada de la marca (opcional)...'
+                }
+            ),
+            'activo': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+        }
+        help_texts = {
+            'codigo': 'Código único identificador de la marca',
+            'activo': 'Solo las marcas activas estarán disponibles en el sistema'
+        }
+
+    def clean_codigo(self):
+        """Validar que el código sea único (en mayúsculas)."""
+        from django.core.exceptions import ValidationError
+        codigo = self.cleaned_data.get('codigo', '').strip().upper()
+
+        # Si estamos editando, excluir la instancia actual
+        queryset = Marca.objects.filter(codigo=codigo)
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        if queryset.exists():
+            raise ValidationError(
+                f'Ya existe una marca con el código "{codigo}".'
+            )
+
+        return codigo
+
+    def clean_nombre(self):
+        """Limpiar y validar el nombre."""
+        from django.core.exceptions import ValidationError
+        nombre = self.cleaned_data.get('nombre', '').strip()
+        if not nombre:
+            raise ValidationError('El nombre es obligatorio.')
+        return nombre
