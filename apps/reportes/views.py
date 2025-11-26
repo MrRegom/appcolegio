@@ -3,8 +3,18 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
 from django.utils import timezone
 from datetime import timedelta
+from datetime import datetime
+from django.http import HttpRequest, HttpResponse
 from .models import TipoReporte, ReporteGenerado, MovimientoInventario
 from apps.activos.models import MovimientoActivo, Activo, Ubicacion
+from apps.bodega.models import Bodega, Categoria
+from apps.compras.models import Proveedor
+
+# Servicios y exportadores
+from apps.reportes.services.bodega import ArticulosSinMovimientoService
+from apps.reportes.services.compras import OcAtrasadasPorProveedorService
+from apps.reportes.exporters.pdf import export_pdf
+from apps.reportes.exporters.xlsx import export_xlsx
 
 
 @login_required
@@ -156,3 +166,76 @@ def dashboard_reportes(request, app=None):
         }
     
     return render(request, 'reportes/dashboard.html', context)
+
+
+# ==================== NUEVOS REPORTES ====================
+
+
+@login_required
+def articulos_sin_movimiento(request: HttpRequest) -> HttpResponse:
+    """
+    En pantalla/PDF/XLSX de artículos sin movimiento.
+    Filtros: desde, hasta, bodega_id, categoria_id
+    """
+    fmt = request.GET.get("format", "html")
+    desde_str = request.GET.get("desde")
+    hasta_str = request.GET.get("hasta")
+    bodega_id = request.GET.get("bodega_id")
+    categoria_id = request.GET.get("categoria_id")
+
+    # Defaults: últimos 30 días
+    hoy = timezone.now().date()
+    desde = datetime.strptime(desde_str, "%Y-%m-%d").date() if desde_str else (hoy - timedelta(days=30))
+    hasta = datetime.strptime(hasta_str, "%Y-%m-%d").date() if hasta_str else hoy
+
+    service = ArticulosSinMovimientoService()
+    report = service.run(desde, hasta, bodega_id=bodega_id, categoria_id=categoria_id)
+
+    if fmt == "pdf":
+        return export_pdf(report)
+    if fmt == "xlsx":
+        return export_xlsx(report)
+
+    # HTML con filtros
+    bodegas = Bodega.objects.filter(eliminado=False, activo=True).order_by("codigo")
+    categorias = Categoria.objects.filter(eliminado=False).order_by("codigo")
+    context = {
+        "report": report,
+        "bodegas": bodegas,
+        "categorias": categorias,
+        "desde": desde,
+        "hasta": hasta,
+        "bodega_id": bodega_id,
+        "categoria_id": categoria_id,
+    }
+    return render(request, "reportes/articulos_sin_movimiento.html", context)
+
+
+@login_required
+def oc_atrasadas_por_proveedor(request: HttpRequest) -> HttpResponse:
+    """
+    En pantalla/PDF/XLSX de OC atrasadas por proveedor.
+    Filtros: proveedor_id, bodega_id
+    """
+    fmt = request.GET.get("format", "html")
+    proveedor_id = request.GET.get("proveedor_id")
+    bodega_id = request.GET.get("bodega_id")
+
+    service = OcAtrasadasPorProveedorService()
+    report = service.run(proveedor_id=proveedor_id, bodega_id=bodega_id)
+
+    if fmt == "pdf":
+        return export_pdf(report)
+    if fmt == "xlsx":
+        return export_xlsx(report)
+
+    proveedores = Proveedor.objects.filter(eliminado=False, activo=True).order_by("razon_social")
+    bodegas = Bodega.objects.filter(eliminado=False, activo=True).order_by("codigo")
+    context = {
+        "report": report,
+        "proveedores": proveedores,
+        "bodegas": bodegas,
+        "proveedor_id": proveedor_id,
+        "bodega_id": bodega_id,
+    }
+    return render(request, "reportes/oc_atrasadas_por_proveedor.html", context)
