@@ -66,16 +66,6 @@
             <div class="page-content">
                 <div class="container-fluid">
 
-                <!-- Mensajes de Django -->
-                {% if messages %}
-                    {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        <i class="ri-checkbox-circle-line me-2"></i> {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    {% endfor %}
-                {% endif %}
-
                 {% block main_title %}
 
                 {% endblock main_title %}
@@ -100,6 +90,43 @@
     </div>
     <!-- END layout-wrapper -->
 
+    <!-- Modal para Mensajes de Django -->
+    {% if messages %}
+    <div class="modal fade" id="mensajesModal" tabindex="-1" aria-labelledby="mensajesModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header {% for message in messages %}{% if message.tags == 'success' %}bg-success{% elif message.tags == 'error' or message.tags == 'danger' %}bg-danger{% elif message.tags == 'warning' %}bg-warning{% elif message.tags == 'info' %}bg-info{% else %}bg-primary{% endif %}{% endfor %} text-white">
+                    <h5 class="modal-title" id="mensajesModalLabel">
+                        {% for message in messages %}
+                            {% if message.tags == 'success' %}
+                                <i class="ri-checkbox-circle-line me-2"></i>Éxito
+                            {% elif message.tags == 'error' or message.tags == 'danger' %}
+                                <i class="ri-error-warning-line me-2"></i>Error
+                            {% elif message.tags == 'warning' %}
+                                <i class="ri-alert-line me-2"></i>Advertencia
+                            {% elif message.tags == 'info' %}
+                                <i class="ri-information-line me-2"></i>Información
+                            {% else %}
+                                <i class="ri-notification-line me-2"></i>Mensaje
+                            {% endif %}
+                        {% endfor %}
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    {% for message in messages %}
+                    <div class="mb-2 {% if not forloop.last %}border-bottom pb-2{% endif %}">
+                        <p class="mb-0">{{ message }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     {% block extra_content %}
     {% endblock extra_content %}
@@ -130,6 +157,14 @@
         <script>
         // Forzar recalculo de layout al cargar
         window.dispatchEvent(new Event('resize'));
+
+        // Mostrar modal de mensajes automáticamente si existen mensajes
+        {% if messages %}
+        document.addEventListener('DOMContentLoaded', function() {
+            var mensajesModal = new bootstrap.Modal(document.getElementById('mensajesModal'));
+            mensajesModal.show();
+        });
+        {% endif %}
         </script>
 </body>
 
