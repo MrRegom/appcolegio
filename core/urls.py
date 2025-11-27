@@ -7,9 +7,11 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import render
-from .views import MyPasswordChangeView, MyPasswordSetView
 
-from core.views import (
+# Importar vistas desde apps.pages (buenas prácticas de Django)
+from apps.pages.views import (
+    MyPasswordChangeView,
+    MyPasswordSetView,
     dashboard_view,
     dashboard_analytics_view,
     dashboard_crypto_view,
