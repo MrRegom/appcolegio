@@ -845,6 +845,18 @@ class EntregaArticuloCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Cr
 
             self.object = entrega
 
+            # Actualizar estado de solicitud asociada a "Despachada"
+            if self.object.solicitud:
+                from apps.solicitudes.models import EstadoSolicitud
+                try:
+                    estado_despachada = EstadoSolicitud.objects.get(codigo='DESPACHADA', activo=True)
+                    if self.object.solicitud.estado.codigo != 'DESPACHADA':
+                        self.object.solicitud.estado = estado_despachada
+                        self.object.solicitud.save()
+                        print(f"DEBUG: Solicitud {self.object.solicitud.numero} actualizada a estado 'Despachada'")
+                except EstadoSolicitud.DoesNotExist:
+                    print("ERROR: No se encontró el estado 'DESPACHADA' para solicitudes")
+
             # Continuar con el flujo normal (mensaje y redirección)
             response = super().form_valid(form)
             self.log_action(self.object, self.request)
@@ -990,10 +1002,23 @@ class EntregaBienCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Create
                 motivo=form.cleaned_data['motivo'],
                 detalles=detalles,
                 departamento_destino=form.cleaned_data.get('departamento_destino'),
-                observaciones=form.cleaned_data.get('observaciones')
+                observaciones=form.cleaned_data.get('observaciones'),
+                solicitud=form.cleaned_data.get('solicitud')
             )
 
             self.object = entrega
+
+            # Actualizar estado de solicitud asociada a "Despachada"
+            if self.object.solicitud:
+                from apps.solicitudes.models import EstadoSolicitud
+                try:
+                    estado_despachada = EstadoSolicitud.objects.get(codigo='DESPACHADA', activo=True)
+                    if self.object.solicitud.estado.codigo != 'DESPACHADA':
+                        self.object.solicitud.estado = estado_despachada
+                        self.object.solicitud.save()
+                        print(f"DEBUG: Solicitud {self.object.solicitud.numero} actualizada a estado 'Despachada'")
+                except EstadoSolicitud.DoesNotExist:
+                    print("ERROR: No se encontró el estado 'DESPACHADA' para solicitudes")
 
             # Continuar con el flujo normal (mensaje y redirección)
             response = super().form_valid(form)

@@ -775,7 +775,8 @@ class EntregaBienService:
         motivo: str,
         detalles: list[Dict[str, Any]],
         departamento_destino = None,
-        observaciones: Optional[str] = None
+        observaciones: Optional[str] = None,
+        solicitud = None
     ) -> EntregaBien:
         """
         Crea una nueva entrega de bienes con sus detalles.
@@ -821,7 +822,8 @@ class EntregaBienService:
             recibido_por=recibido_por,
             departamento_destino=departamento_destino,
             motivo=motivo,
-            observaciones=observaciones
+            observaciones=observaciones,
+            solicitud=solicitud
         )
 
         # Procesar detalles
