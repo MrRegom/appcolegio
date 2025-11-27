@@ -31,15 +31,17 @@
             {% endfor %}
         {% endif %}
 
-        <!-- Menú principal con Cards -->
+        <!-- Sección: Gestión Principal -->
         <div class="row">
             <div class="col-12">
-                <h5 class="mb-3 text-muted">Seleccione una opción:</h5>
+                <h5 class="mb-3 text-muted">
+                    <i class="ri-function-line me-2"></i>Gestión Principal
+                </h5>
             </div>
         </div>
 
         <div class="row">
-            <!-- Card 1: Gestión de Bajas -->
+            <!-- Card: Gestión de Bajas -->
             {% if permisos.puede_gestionar %}
             <div class="col-lg-3 col-sm-6">
                 <div class="card">
@@ -60,7 +62,7 @@
             </div>
             {% endif %}
 
-            <!-- Card 2: Nueva Baja -->
+            <!-- Card: Nueva Baja -->
             {% if permisos.puede_crear %}
             <div class="col-lg-3 col-sm-6">
                 <div class="card">
@@ -81,7 +83,7 @@
             </div>
             {% endif %}
 
-            <!-- Card 3: Mis Bajas -->
+            <!-- Card: Mis Bajas -->
             <div class="col-lg-3 col-sm-6">
                 <div class="card">
                     <div class="card-body">
@@ -99,31 +101,117 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Card 4: Por Autorizar -->
-            {% if permisos.puede_autorizar %}
+        <!-- Sección: Mantenedores -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h5 class="mb-3 text-muted">
+                    <i class="ri-settings-3-line me-2"></i>Mantenedores
+                </h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Card: Motivos de Baja -->
             <div class="col-lg-3 col-sm-6">
                 <div class="card">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">POR AUTORIZAR</h5>
-                            <a href="{% url 'bajas_inventario:bajas_por_autorizar' %}" class="text-muted">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">MOTIVOS</h5>
+                            <a href="{% url 'bajas_inventario:lista_motivos' %}" class="text-muted">
                                 <i class="ri-arrow-right-up-line fs-sm"></i>
                             </a>
                         </div>
                         <div class="d-grid gap-2">
-                            <a href="{% url 'bajas_inventario:bajas_por_autorizar' %}" class="btn btn-sm btn-primary">
-                                <i class="ri-checkbox-circle-line align-bottom me-1"></i> Autorizar Bajas
+                            <a href="{% url 'bajas_inventario:lista_motivos' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="ri-file-list-3-line align-bottom me-1"></i> Ver Motivos
                             </a>
                         </div>
                     </div>
                 </div>
             </div>
-            {% endif %}
+        </div>
+
+        <!-- Estadísticas del Módulo -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h5 class="mb-3 text-muted">
+                    <i class="ri-bar-chart-line me-2"></i>Estadísticas del Módulo
+                </h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xl-4 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Total Bajas</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-end justify-content-between mt-4">
+                            <div>
+                                <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ stats.total_bajas }}">{{ stats.total_bajas }}</span></h4>
+                            </div>
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-danger-subtle rounded fs-3">
+                                    <i class="ri-delete-bin-line text-danger"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Mis Bajas</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-end justify-content-between mt-4">
+                            <div>
+                                <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ stats.mis_bajas }}">{{ stats.mis_bajas }}</span></h4>
+                            </div>
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-info-subtle rounded fs-3">
+                                    <i class="ri-file-user-line text-info"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Motivos Registrados</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-end justify-content-between mt-4">
+                            <div>
+                                <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ stats.total_motivos }}">{{ stats.total_motivos }}</span></h4>
+                            </div>
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-primary-subtle rounded fs-3">
+                                    <i class="ri-file-list-3-line text-primary"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Información adicional -->
-        <div class="row mt-4">
+        <div class="row mt-2">
             <div class="col-12">
                 <div class="card border-0 shadow-none">
                     <div class="card-body">
@@ -136,9 +224,8 @@
                                     <h6 class="alert-heading">Información del Módulo</h6>
                                     <p class="mb-0">
                                         Gestione las bajas de inventario por pérdida, obsolescencia, daño u otros motivos.
-                                        Actualmente hay <strong>{{ stats.total_bajas }} bajas registradas</strong>, de las cuales
-                                        <strong>{{ stats.pendientes_autorizacion }} están pendientes de autorización</strong>.
-                                        Las bajas autorizadas suman <strong>{{ stats.autorizadas }}</strong>.
+                                        Actualmente hay <strong>{{ stats.total_bajas }} bajas registradas</strong> en el sistema.
+                                        Se han definido <strong>{{ stats.total_motivos }} motivos de baja</strong> para clasificar las bajas.
                                     </p>
                                 </div>
                             </div>
