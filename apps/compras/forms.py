@@ -106,7 +106,7 @@ class OrdenCompraForm(forms.ModelForm):
         # Filtrar solicitudes en aprobación y aprobadas
         from apps.solicitudes.models import Solicitud
         self.fields['solicitudes'].queryset = Solicitud.objects.filter(
-            estado__codigo__in=['EN_APROBACION', 'APROBADA'],
+            estado__codigo__in=['PENDIENTE', 'APROBADA'],
             eliminado=False
         ).select_related('solicitante', 'estado', 'tipo_solicitud').order_by('-numero')
         self.fields['solicitudes'].required = False

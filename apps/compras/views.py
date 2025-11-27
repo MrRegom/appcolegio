@@ -653,6 +653,24 @@ class OrdenCompraCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Create
 
         response = super().form_valid(form)
 
+        # Actualizar estado de solicitudes asociadas a "En Proceso"
+        solicitudes_asociadas = self.object.solicitudes.all()
+        if solicitudes_asociadas.exists():
+            from apps.solicitudes.models import EstadoSolicitud
+            try:
+                estado_proceso = EstadoSolicitud.objects.get(codigo='PROCESO', activo=True)
+                solicitudes_actualizadas = 0
+                for solicitud in solicitudes_asociadas:
+                    if solicitud.estado.codigo != 'PROCESO':
+                        solicitud.estado = estado_proceso
+                        solicitud.save()
+                        solicitudes_actualizadas += 1
+                        print(f"DEBUG: Solicitud {solicitud.numero} actualizada a estado 'En Proceso'")
+                if solicitudes_actualizadas > 0:
+                    print(f"DEBUG: {solicitudes_actualizadas} solicitud(es) actualizada(s) a 'En Proceso'")
+            except EstadoSolicitud.DoesNotExist:
+                print("ERROR: No se encontró el estado 'PROCESO' para solicitudes")
+
         # NOTA: Ya NO creamos detalles automáticamente desde solicitudes
         # porque el JavaScript ahora carga los items en tablas editables
         # y los valores editados se envían vía JSON
@@ -828,6 +846,7 @@ class ObtenerDetallesSolicitudesView(View):
                     cantidad = detalle.cantidad_aprobada if detalle.cantidad_aprobada > 0 else detalle.cantidad_solicitada
 
                     detalle_info = {
+                        'solicitud_id': solicitud.id,
                         'solicitud_numero': solicitud.numero,
                         'tipo': 'articulo' if detalle.articulo else 'activo',
                         'codigo': detalle.producto_codigo,
@@ -1300,13 +1319,17 @@ class RecepcionArticuloConfirmarView(RecepcionConfirmarMixin, BaseAuditedViewMix
 
     def _post_confirmar_acciones(self, request):
         """Actualiza stock de artículos y crea movimientos."""
-        from apps.bodega.repositories import TipoMovimientoRepository
+        from apps.bodega.repositories import TipoMovimientoRepository, OperacionRepository
         from apps.bodega.models import Movimiento
 
         tipo_mov_repo = TipoMovimientoRepository()
         tipo_movimiento = tipo_mov_repo.get_by_codigo('RECEPCION')
         if not tipo_movimiento:
             tipo_movimiento = TipoMovimiento.objects.filter(activo=True).first()
+
+        # Obtener operación de tipo ENTRADA
+        operacion_repo = OperacionRepository()
+        operacion_entrada = operacion_repo.get_by_tipo('ENTRADA').first()
 
         for detalle in self.object.detalles.filter(eliminado=False):
             articulo = detalle.articulo
@@ -1317,12 +1340,12 @@ class RecepcionArticuloConfirmarView(RecepcionConfirmarMixin, BaseAuditedViewMix
             articulo.save()
 
             # Registrar movimiento
-            if tipo_movimiento:
+            if tipo_movimiento and operacion_entrada:
                 Movimiento.objects.create(
                     articulo=articulo,
                     tipo=tipo_movimiento,
                     cantidad=detalle.cantidad,
-                    operacion='ENTRADA',
+                    operacion=operacion_entrada,
                     usuario=request.user,
                     motivo=f'Recepción {self.object.numero}',
                     stock_antes=stock_anterior,
