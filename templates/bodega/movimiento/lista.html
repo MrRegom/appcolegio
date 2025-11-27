@@ -65,9 +65,15 @@
                                         <td>{{ mov.fecha_creacion|date:"d/m/Y H:i" }}</td>
                                         <td><strong>{{ mov.articulo.codigo }}</strong><br>{{ mov.articulo.nombre|truncatewords:5 }}</td>
                                         <td>
-                                            <span class="badge {% if mov.operacion == 'ENTRADA' %}bg-success{% else %}bg-danger{% endif %}">
-                                                {{ mov.get_operacion_display }}
-                                            </span>
+                                            {% if mov.operacion.tipo == 'ENTRADA' %}
+                                                <span class="badge bg-success">
+                                                    <i class="ri-arrow-down-line"></i> {{ mov.operacion.nombre }}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-danger">
+                                                    <i class="ri-arrow-up-line"></i> {{ mov.operacion.nombre }}
+                                                </span>
+                                            {% endif %}
                                         </td>
                                         <td>{{ mov.tipo.nombre }}</td>
                                         <td>{{ mov.cantidad }}</td>
