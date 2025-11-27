@@ -31,15 +31,17 @@
             {% endfor %}
         {% endif %}
 
-        <!-- Menú principal con Cards -->
+        <!-- Sección: Gestión Principal -->
         <div class="row">
             <div class="col-12">
-                <h5 class="mb-3 text-muted">Seleccione una opción:</h5>
+                <h5 class="mb-3 text-muted">
+                    <i class="ri-function-line me-2"></i>Gestión Principal
+                </h5>
             </div>
         </div>
 
         <div class="row">
-            <!-- Card 1: Activos -->
+            <!-- Card: Activos -->
             <div class="col-lg-3 col-sm-6">
                 <div class="card">
                     <div class="card-body">
@@ -63,26 +65,7 @@
                 </div>
             </div>
 
-            <!-- Card 2: Ubicación -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">UBICACIONES</h5>
-                            <a href="{% url 'activos:lista_ubicaciones' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'activos:lista_ubicaciones' %}" class="btn btn-sm btn-info">
-                                <i class="ri-map-pin-line align-bottom me-1"></i> Ver Ubicaciones
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card 3: Movimientos -->
+            <!-- Card: Movimientos -->
             {% if permisos.puede_movimientos %}
             <div class="col-lg-3 col-sm-6">
                 <div class="card">
@@ -105,8 +88,19 @@
                 </div>
             </div>
             {% endif %}
+        </div>
 
-            <!-- Card 4: Categorías -->
+        <!-- Sección: Mantenedores/Catálogos -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h5 class="mb-3 text-muted">
+                    <i class="ri-settings-3-line me-2"></i>Mantenedores y Catálogos
+                </h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Card: Categorías -->
             {% if permisos.puede_categorias %}
             <div class="col-lg-3 col-sm-6">
                 <div class="card">
@@ -118,21 +112,231 @@
                             </a>
                         </div>
                         <div class="d-grid gap-2">
-                            <a href="{% url 'activos:crear_categoria' %}" class="btn btn-sm btn-success">
-                                <i class="ri-add-line align-bottom me-1"></i> Nueva Categoría
-                            </a>
                             <a href="{% url 'activos:lista_categorias' %}" class="btn btn-sm btn-outline-success">
-                                <i class="ri-list-check align-bottom me-1"></i> Ver Categorías
+                                <i class="ri-folder-line align-bottom me-1"></i> Ver Categorías
                             </a>
                         </div>
                     </div>
                 </div>
             </div>
             {% endif %}
+
+            <!-- Card: Estados -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ESTADOS</h5>
+                            <a href="{% url 'activos:lista_estados' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'activos:lista_estados' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="ri-flag-line align-bottom me-1"></i> Ver Estados
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Ubicaciones -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">UBICACIONES</h5>
+                            <a href="{% url 'activos:lista_ubicaciones' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'activos:lista_ubicaciones' %}" class="btn btn-sm btn-outline-info">
+                                <i class="ri-map-pin-line align-bottom me-1"></i> Ver Ubicaciones
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Talleres -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">TALLERES</h5>
+                            <a href="{% url 'activos:lista_talleres' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'activos:lista_talleres' %}" class="btn btn-sm btn-outline-warning">
+                                <i class="ri-tools-line align-bottom me-1"></i> Ver Talleres
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Proveniencias -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">PROVENIENCIAS</h5>
+                            <a href="{% url 'activos:lista_proveniencias' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'activos:lista_proveniencias' %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="ri-inbox-line align-bottom me-1"></i> Ver Proveniencias
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Marcas -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">MARCAS</h5>
+                            <a href="{% url 'activos:lista_marcas' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'activos:lista_marcas' %}" class="btn btn-sm btn-outline-dark">
+                                <i class="ri-price-tag-3-line align-bottom me-1"></i> Ver Marcas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card: Tipos de Movimiento -->
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">TIPOS MOVIMIENTO</h5>
+                            <a href="{% url 'activos:lista_tipos_movimiento' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'activos:lista_tipos_movimiento' %}" class="btn btn-sm btn-outline-danger">
+                                <i class="ri-exchange-line align-bottom me-1"></i> Ver Tipos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas del Módulo -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h5 class="mb-3 text-muted">
+                    <i class="ri-bar-chart-line me-2"></i>Estadísticas del Módulo
+                </h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Total Activos</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-end justify-content-between mt-4">
+                            <div>
+                                <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ stats.total_activos }}">{{ stats.total_activos }}</span></h4>
+                            </div>
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-warning-subtle rounded fs-3">
+                                    <i class="ri-box-3-line text-warning"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Categorías</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-end justify-content-between mt-4">
+                            <div>
+                                <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ stats.total_categorias }}">{{ stats.total_categorias }}</span></h4>
+                            </div>
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-success-subtle rounded fs-3">
+                                    <i class="ri-folder-line text-success"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Ubicaciones</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-end justify-content-between mt-4">
+                            <div>
+                                <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ stats.total_ubicaciones }}">{{ stats.total_ubicaciones }}</span></h4>
+                            </div>
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-info-subtle rounded fs-3">
+                                    <i class="ri-map-pin-line text-info"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6">
+                <div class="card card-animate">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="flex-grow-1 overflow-hidden">
+                                <p class="text-uppercase fw-medium text-muted text-truncate mb-0">Movimientos</p>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-end justify-content-between mt-4">
+                            <div>
+                                <h4 class="fs-22 fw-semibold ff-secondary mb-4"><span class="counter-value" data-target="{{ stats.total_movimientos }}">{{ stats.total_movimientos }}</span></h4>
+                            </div>
+                            <div class="avatar-sm flex-shrink-0">
+                                <span class="avatar-title bg-secondary-subtle rounded fs-3">
+                                    <i class="ri-exchange-line text-secondary"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Información adicional -->
-        <div class="row mt-4">
+        <div class="row mt-2">
             <div class="col-12">
                 <div class="card border-0 shadow-none">
                     <div class="card-body">
@@ -145,9 +349,10 @@
                                     <h6 class="alert-heading">Información del Módulo</h6>
                                     <p class="mb-0">
                                         Gestione el inventario completo de activos fijos y bienes de la organización.
-                                        Actualmente hay <strong>{{ stats.total_activos }} activos registrados</strong>,
-                                        de los cuales <strong>{{ stats.activos_en_uso }} están en uso</strong>,
+                                        Actualmente hay <strong>{{ stats.total_activos }} activos registrados</strong>
+                                        en <strong>{{ stats.total_categorias }} categorías</strong>,
                                         distribuidos en <strong>{{ stats.total_ubicaciones }} ubicaciones</strong>.
+                                        Se han registrado <strong>{{ stats.total_movimientos }} movimientos</strong> en total.
                                     </p>
                                 </div>
                             </div>

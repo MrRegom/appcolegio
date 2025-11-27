@@ -139,7 +139,8 @@ class SolicitudListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
                 queryset = queryset.filter(
                     Q(numero__icontains=q) |
                     Q(solicitante__username__icontains=q) |
-                    Q(area_solicitante__icontains=q)
+                    Q(area__nombre__icontains=q) |
+                    Q(departamento__nombre__icontains=q)
                 )
 
         return queryset.order_by('-fecha_solicitud')
@@ -273,7 +274,6 @@ class SolicitudCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, CreateVi
                     solicitante=self.request.user,
                     fecha_requerida=form.cleaned_data['fecha_requerida'],
                     motivo=form.cleaned_data['motivo'],
-                    area_solicitante=form.cleaned_data['area_solicitante'],
                     titulo_actividad=form.cleaned_data.get('titulo_actividad', ''),
                     objetivo_actividad=form.cleaned_data.get('objetivo_actividad', ''),
                     tipo_choice=form.cleaned_data.get('tipo', 'ARTICULO'),
@@ -501,14 +501,14 @@ class SolicitudAprobarView(BaseAuditedViewMixin, AtomicTransactionMixin, DetailV
         """Verifica que la solicitud pueda ser aprobada."""
         self.object = self.get_object()
 
-        # Verificar si la solicitud requiere aprobación
-        if not self.object.tipo_solicitud.requiere_aprobacion:
-            messages.warning(request, 'Esta solicitud no requiere aprobación.')
-            return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
-
         # Verificar que no esté ya aprobada
         if self.object.aprobador:
             messages.warning(request, 'Esta solicitud ya fue aprobada.')
+            return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
+
+        # Verificar que esté en estado PENDIENTE
+        if self.object.estado.codigo != 'PENDIENTE':
+            messages.warning(request, f'Esta solicitud está en estado {self.object.estado.nombre} y no puede ser aprobada.')
             return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
 
         return super().get(request, *args, **kwargs)
@@ -764,7 +764,6 @@ class SolicitudActivoCreateView(SolicitudCreateView):
                     solicitante=self.request.user,
                     fecha_requerida=form.cleaned_data['fecha_requerida'],
                     motivo=form.cleaned_data['motivo'],
-                    area_solicitante=form.cleaned_data['area_solicitante'],
                     titulo_actividad=form.cleaned_data.get('titulo_actividad', ''),
                     objetivo_actividad=form.cleaned_data.get('objetivo_actividad', ''),
                     tipo_choice='ACTIVO',  # FORZAR TIPO ACTIVO
@@ -930,7 +929,6 @@ class SolicitudArticuloCreateView(SolicitudCreateView):
                     solicitante=self.request.user,
                     fecha_requerida=form.cleaned_data['fecha_requerida'],
                     motivo=form.cleaned_data['motivo'],
-                    area_solicitante=form.cleaned_data['area_solicitante'],
                     titulo_actividad=form.cleaned_data.get('titulo_actividad', ''),
                     objetivo_actividad=form.cleaned_data.get('objetivo_actividad', ''),
                     tipo_choice='ARTICULO',  # FORZAR TIPO ARTICULO

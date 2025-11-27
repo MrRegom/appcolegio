@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.db import transaction
 from decimal import Decimal
 from apps.solicitudes.models import (
-    Departamento, Area, Equipo, TipoSolicitud, EstadoSolicitud
+    Departamento, Area, TipoSolicitud, EstadoSolicitud
 )
 from apps.activos.models import (
     Activo, CategoriaActivo, UnidadMedida, EstadoActivo
@@ -29,7 +29,6 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         if options['clear']:
             self.stdout.write(self.style.WARNING('Eliminando datos existentes...'))
-            Equipo.objects.all().delete()
             Area.objects.all().delete()
             Departamento.objects.all().delete()
             self.stdout.write(self.style.SUCCESS('Datos eliminados.'))
@@ -133,34 +132,8 @@ class Command(BaseCommand):
             status = 'Creada' if created else 'Ya existe'
             self.stdout.write(f'  - {status}: {area.nombre} ({area.departamento.nombre})')
 
-        # ====================== EQUIPOS ======================
-        self.stdout.write(self.style.MIGRATE_HEADING('\n3. Creando Equipos...'))
-        equipos_data = [
-            {'codigo': 'TI-DEV-WEB', 'nombre': 'Equipo Web', 'departamento': 'TI'},
-            {'codigo': 'TI-DEV-MOV', 'nombre': 'Equipo Movil', 'departamento': 'TI'},
-            {'codigo': 'TI-INFRA-RED', 'nombre': 'Equipo de Redes', 'departamento': 'TI'},
-            {'codigo': 'ACAD-PRIM-1', 'nombre': 'Equipo 1 a 3 Primaria', 'departamento': 'ACAD'},
-            {'codigo': 'ACAD-PRIM-2', 'nombre': 'Equipo 4 a 6 Primaria', 'departamento': 'ACAD'},
-            {'codigo': 'ACAD-SEC-1', 'nombre': 'Equipo 7 a 9 Secundaria', 'departamento': 'ACAD'},
-            {'codigo': 'MANT-EDIF-1', 'nombre': 'Equipo Edificio Principal', 'departamento': 'MANT'},
-            {'codigo': 'MANT-EDIF-2', 'nombre': 'Equipo Edificio Deportivo', 'departamento': 'MANT'},
-        ]
-
-        for data in equipos_data:
-            equipo, created = Equipo.objects.get_or_create(
-                codigo=data['codigo'],
-                defaults={
-                    'nombre': data['nombre'],
-                    'departamento': departamentos[data['departamento']],
-                    'lider': user,
-                    'activo': True
-                }
-            )
-            status = 'Creado' if created else 'Ya existe'
-            self.stdout.write(f'  - {status}: {equipo.nombre} ({equipo.departamento.nombre})')
-
         # ====================== UNIDADES DE MEDIDA ======================
-        self.stdout.write(self.style.MIGRATE_HEADING('\n4. Creando Unidades de Medida...'))
+        self.stdout.write(self.style.MIGRATE_HEADING('\n3. Creando Unidades de Medida...'))
         unidades_data = [
             {'codigo': 'UND', 'nombre': 'Unidad', 'simbolo': 'und'},
             {'codigo': 'KG', 'nombre': 'Kilogramo', 'simbolo': 'kg'},
@@ -305,7 +278,6 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS('='*60))
         self.stdout.write(f'  Departamentos: {Departamento.objects.count()}')
         self.stdout.write(f'  Areas: {Area.objects.count()}')
-        self.stdout.write(f'  Equipos: {Equipo.objects.count()}')
         self.stdout.write(f'  Unidades de Medida: {UnidadMedida.objects.count()}')
         self.stdout.write(f'  Estados de Activos: {EstadoActivo.objects.count()}')
         self.stdout.write(f'  Categorias: {CategoriaActivo.objects.count()}')

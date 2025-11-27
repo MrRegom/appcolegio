@@ -98,10 +98,17 @@ class EstadoOrdenCompraRepository:
 
     @staticmethod
     def get_inicial() -> Optional[EstadoOrdenCompra]:
-        """Obtiene el estado inicial del sistema (primer estado activo)."""
-        return EstadoOrdenCompra.objects.filter(
-            activo=True
-        ).order_by('codigo').first()
+        """Obtiene el estado inicial para nuevas órdenes de compra (PENDIENTE)."""
+        try:
+            return EstadoOrdenCompra.objects.get(
+                codigo='PENDIENTE',
+                activo=True
+            )
+        except EstadoOrdenCompra.DoesNotExist:
+            # Fallback: retornar el primer estado activo si no existe PENDIENTE
+            return EstadoOrdenCompra.objects.filter(
+                activo=True
+            ).order_by('codigo').first()
 
 
 # ==================== ORDEN COMPRA REPOSITORY ====================
@@ -252,10 +259,18 @@ class EstadoRecepcionRepository:
 
     @staticmethod
     def get_inicial() -> Optional[EstadoRecepcion]:
-        """Obtiene el estado inicial (primer estado activo)."""
-        return EstadoRecepcion.objects.filter(
-            eliminado=False, activo=True
-        ).order_by('codigo').first()
+        """Obtiene el estado inicial para nuevas recepciones (PENDIENTE)."""
+        try:
+            return EstadoRecepcion.objects.get(
+                codigo='PENDIENTE',
+                eliminado=False,
+                activo=True
+            )
+        except EstadoRecepcion.DoesNotExist:
+            # Fallback: retornar el primer estado activo si no existe PENDIENTE
+            return EstadoRecepcion.objects.filter(
+                eliminado=False, activo=True
+            ).order_by('codigo').first()
 
 
 class TipoRecepcionRepository:

@@ -42,7 +42,9 @@
                                 <div class="col-md-6">
                                     <p><strong>Número:</strong> {{ solicitud.numero }}</p>
                                     <p><strong>Solicitante:</strong> {{ solicitud.solicitante.username }}</p>
-                                    <p><strong>Área:</strong> {{ solicitud.area_solicitante }}</p>
+                                    {% if solicitud.area %}
+                                    <p><strong>Área:</strong> {{ solicitud.area.nombre }}</p>
+                                    {% endif %}
                                 </div>
                                 <div class="col-md-6">
                                     <p><strong>Tipo:</strong> {{ solicitud.tipo_solicitud.nombre }}</p>
