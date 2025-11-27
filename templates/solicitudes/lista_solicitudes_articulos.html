@@ -97,7 +97,7 @@
                                         <td>{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
                                         <td>{{ solicitud.tipo_solicitud.nombre }}</td>
                                         <td>{{ solicitud.solicitante.username }}</td>
-                                        <td>{{ solicitud.area_solicitante }}</td>
+                                        <td>{{ solicitud.area.nombre|default:solicitud.departamento.nombre|default:"-" }}</td>
                                         <td>{{ solicitud.bodega_origen.nombre|default:"-" }}</td>
                                         <td>
                                             <span class="badge" style="background-color: {{ solicitud.estado.color }}">

@@ -71,17 +71,6 @@
                                     {% endif %}
                                     <small class="text-muted">Solo requerido para solicitudes de artículos</small>
                                 </div>
-                                <div class="col-md-12">
-                                    <label for="{{ form.area_solicitante.id_for_label }}" class="form-label">
-                                        {{ form.area_solicitante.label }} <span class="text-danger">*</span>
-                                    </label>
-                                    {{ form.area_solicitante }}
-                                    {% if form.area_solicitante.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.area_solicitante.errors }}
-                                        </div>
-                                    {% endif %}
-                                </div>
                             </div>
                         </div>
                     </div>
