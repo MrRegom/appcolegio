@@ -134,72 +134,6 @@ class Area(BaseModel):
         return f"{self.codigo} - {self.nombre}"
 
 
-class Equipo(BaseModel):
-    """
-    Catálogo de equipos de trabajo.
-
-    Representa grupos de trabajo dentro de un departamento.
-    Cada equipo tiene un líder asignado y pertenece a un departamento específico.
-
-    Attributes:
-        codigo: Código único identificador del equipo.
-        nombre: Nombre descriptivo del equipo.
-        descripcion: Descripción detallada opcional del equipo.
-        departamento: Departamento al que pertenece el equipo.
-        lider: Usuario líder del equipo (opcional).
-        activo: Indica si el equipo está activo (heredado de BaseModel).
-    """
-
-    codigo = models.CharField(
-        max_length=20,
-        unique=True,
-        verbose_name='Código',
-        help_text='Código único del equipo'
-    )
-    nombre = models.CharField(
-        max_length=100,
-        verbose_name='Nombre',
-        help_text='Nombre descriptivo del equipo'
-    )
-    descripcion = models.TextField(
-        blank=True,
-        null=True,
-        verbose_name='Descripción',
-        help_text='Descripción detallada del equipo'
-    )
-    departamento = models.ForeignKey(
-        Departamento,
-        on_delete=models.CASCADE,
-        related_name='equipos',
-        verbose_name='Departamento',
-        help_text='Departamento al que pertenece el equipo'
-    )
-    lider = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        related_name='equipos_lider',
-        verbose_name='Líder',
-        blank=True,
-        null=True,
-        help_text='Usuario líder del equipo'
-    )
-
-    class Meta:
-        db_table = 'tba_solicitudes_conf_equipo'
-        verbose_name = 'Equipo'
-        verbose_name_plural = 'Equipos'
-        ordering = ['codigo']
-        indexes = [
-            models.Index(fields=['codigo']),
-            models.Index(fields=['departamento']),
-            models.Index(fields=['activo', 'eliminado']),
-        ]
-
-    def __str__(self) -> str:
-        """Representación en cadena del equipo."""
-        return f"{self.codigo} - {self.nombre}"
-
-
 class TipoSolicitud(BaseModel):
     """
     Catálogo de tipos de solicitud.
@@ -345,10 +279,8 @@ class Solicitud(BaseModel):
         titulo_actividad: Título de la actividad asociada (opcional).
         objetivo_actividad: Objetivo de la actividad (opcional).
         solicitante: Usuario que realiza la solicitud.
-        area_solicitante: Nombre del área que solicita.
         departamento: Departamento asociado (opcional).
         area: Área asociada (opcional).
-        equipo: Equipo asociado (opcional).
         aprobador: Usuario que aprueba la solicitud (opcional).
         fecha_aprobacion: Fecha de aprobación (opcional).
         despachador: Usuario que despacha la solicitud (opcional).
@@ -426,11 +358,6 @@ class Solicitud(BaseModel):
         verbose_name='Solicitante',
         help_text='Usuario que realiza la solicitud'
     )
-    area_solicitante = models.CharField(
-        max_length=100,
-        verbose_name='Área Solicitante',
-        help_text='Nombre del área que solicita'
-    )
 
     # Referencias a las estructuras organizacionales
     departamento = models.ForeignKey(
@@ -450,15 +377,6 @@ class Solicitud(BaseModel):
         blank=True,
         null=True,
         help_text='Área asociada a la solicitud'
-    )
-    equipo = models.ForeignKey(
-        Equipo,
-        on_delete=models.PROTECT,
-        related_name='solicitudes',
-        verbose_name='Equipo',
-        blank=True,
-        null=True,
-        help_text='Equipo asociado a la solicitud'
     )
 
     aprobador = models.ForeignKey(
@@ -605,24 +523,18 @@ class DetalleSolicitud(BaseModel):
         null=True,
         help_text='Bien o activo solicitado (solo para solicitudes de activos)'
     )
-    cantidad_solicitada = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        validators=[MinValueValidator(0.01)],
+    cantidad_solicitada = models.IntegerField(
+        validators=[MinValueValidator(1)],
         verbose_name='Cantidad Solicitada',
         help_text='Cantidad solicitada del artículo o activo'
     )
-    cantidad_aprobada = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    cantidad_aprobada = models.IntegerField(
         default=0,
         validators=[MinValueValidator(0)],
         verbose_name='Cantidad Aprobada',
         help_text='Cantidad aprobada por el aprobador'
     )
-    cantidad_despachada = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
+    cantidad_despachada = models.IntegerField(
         default=0,
         validators=[MinValueValidator(0)],
         verbose_name='Cantidad Despachada',

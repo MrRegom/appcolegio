@@ -4,7 +4,6 @@ from .models import (
     Area,
     Departamento,
     DetalleSolicitud,
-    Equipo,
     EstadoSolicitud,
     HistorialSolicitud,
     Solicitud,
@@ -52,32 +51,6 @@ class AreaAdmin(admin.ModelAdmin):
         }),
         ('Responsable', {
             'fields': ('responsable',)
-        }),
-        ('Estado', {
-            'fields': ('activo', 'eliminado')
-        }),
-        ('Auditoría', {
-            'fields': ('fecha_creacion', 'fecha_actualizacion'),
-            'classes': ('collapse',)
-        }),
-    )
-
-
-@admin.register(Equipo)
-class EquipoAdmin(admin.ModelAdmin):
-    """Administración de equipos."""
-
-    list_display = ['codigo', 'nombre', 'departamento', 'lider', 'activo', 'fecha_creacion']
-    list_filter = ['departamento', 'activo', 'eliminado', 'fecha_creacion']
-    search_fields = ['codigo', 'nombre', 'descripcion']
-    readonly_fields = ['fecha_creacion', 'fecha_actualizacion']
-    autocomplete_fields = ['departamento']
-    fieldsets = (
-        ('Información General', {
-            'fields': ('codigo', 'nombre', 'descripcion', 'departamento')
-        }),
-        ('Líder', {
-            'fields': ('lider',)
         }),
         ('Estado', {
             'fields': ('activo', 'eliminado')
@@ -183,10 +156,10 @@ class SolicitudAdmin(admin.ModelAdmin):
     ]
     search_fields = [
         'numero', 'solicitante__email', 'solicitante__username',
-        'area_solicitante', 'titulo_actividad', 'motivo'
+        'titulo_actividad', 'motivo'
     ]
     readonly_fields = ['fecha_solicitud', 'fecha_creacion', 'fecha_actualizacion']
-    autocomplete_fields = ['tipo_solicitud', 'estado', 'departamento', 'area', 'equipo']
+    autocomplete_fields = ['tipo_solicitud', 'estado', 'departamento', 'area']
     inlines = [DetalleSolicitudInline, HistorialSolicitudInline]
     date_hierarchy = 'fecha_solicitud'
 
@@ -202,10 +175,10 @@ class SolicitudAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
         ('Solicitante', {
-            'fields': ('solicitante', 'area_solicitante', 'motivo')
+            'fields': ('solicitante', 'motivo')
         }),
         ('Estructura Organizacional', {
-            'fields': ('departamento', 'area', 'equipo'),
+            'fields': ('departamento', 'area'),
             'classes': ('collapse',)
         }),
         ('Aprobación', {
@@ -232,13 +205,13 @@ class SolicitudAdmin(admin.ModelAdmin):
 
         # Si la solicitud ya fue aprobada, no se puede editar ciertos campos
         if obj and obj.aprobador:
-            readonly.extend(['tipo', 'tipo_solicitud', 'solicitante', 'departamento', 'area', 'equipo'])
+            readonly.extend(['tipo', 'tipo_solicitud', 'solicitante', 'departamento', 'area'])
 
         # Si ya fue despachada, es casi todo readonly
         if obj and obj.despachador:
             readonly.extend([
                 'motivo', 'observaciones', 'titulo_actividad',
-                'objetivo_actividad', 'area_solicitante', 'bodega_origen'
+                'objetivo_actividad', 'bodega_origen'
             ])
 
         return readonly

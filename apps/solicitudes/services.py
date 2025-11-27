@@ -14,12 +14,12 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from core.utils import generar_codigo_unico
 from .models import (
-    Departamento, Area, Equipo,
+    Departamento, Area,
     TipoSolicitud, EstadoSolicitud, Solicitud,
     DetalleSolicitud, HistorialSolicitud
 )
 from .repositories import (
-    DepartamentoRepository, AreaRepository, EquipoRepository,
+    DepartamentoRepository, AreaRepository,
     TipoSolicitudRepository, EstadoSolicitudRepository, SolicitudRepository,
     DetalleSolicitudRepository, HistorialSolicitudRepository
 )
@@ -46,14 +46,12 @@ class SolicitudService:
         solicitante: User,
         fecha_requerida: date,
         motivo: str,
-        area_solicitante: str,
         titulo_actividad: str,
         objetivo_actividad: str,
         tipo_choice: str = 'ARTICULO',
         bodega_origen: Optional[Bodega] = None,
         departamento: Optional[Departamento] = None,
         area: Optional[Area] = None,
-        equipo: Optional[Equipo] = None,
         numero: Optional[str] = None,
         **kwargs: Any
     ) -> Solicitud:
@@ -65,14 +63,12 @@ class SolicitudService:
             solicitante: Usuario solicitante
             fecha_requerida: Fecha en que se requiere
             motivo: Motivo de la solicitud
-            area_solicitante: Área del solicitante
             titulo_actividad: Título de la actividad
             objetivo_actividad: Objetivo de la actividad
             tipo_choice: 'ACTIVO' o 'ARTICULO'
             bodega_origen: Bodega origen (solo para artículos)
             departamento: Departamento (opcional)
             area: Área (opcional)
-            equipo: Equipo (opcional)
             numero: Número de solicitud (opcional, se genera automático)
             **kwargs: Campos opcionales
 
@@ -106,12 +102,12 @@ class SolicitudService:
             if self.solicitud_repo.exists_by_numero(numero):
                 raise ValidationError({'numero': 'Ya existe una solicitud con este número'})
 
-        # Obtener estado inicial
+        # Obtener estado inicial (PENDIENTE)
         estado_inicial = self.estado_repo.get_inicial()
         if not estado_inicial:
             raise ValidationError('No se ha configurado un estado inicial para solicitudes')
 
-        # Crear solicitud
+        # Crear solicitud - siempre en estado PENDIENTE
         solicitud = Solicitud.objects.create(
             tipo=tipo_choice,
             numero=numero,
@@ -119,12 +115,10 @@ class SolicitudService:
             tipo_solicitud=tipo_solicitud,
             estado=estado_inicial,
             solicitante=solicitante,
-            area_solicitante=area_solicitante,
             titulo_actividad=titulo_actividad,
             objetivo_actividad=objetivo_actividad,
             departamento=departamento,
             area=area,
-            equipo=equipo,
             bodega_origen=bodega_origen,
             motivo=motivo,
             observaciones=kwargs.get('observaciones', '')

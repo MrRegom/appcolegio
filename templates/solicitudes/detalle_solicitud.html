@@ -100,10 +100,18 @@
                                             <th class="ps-0" scope="row">Solicitante:</th>
                                             <td class="text-muted">{{ solicitud.solicitante.username }}</td>
                                         </tr>
+                                        {% if solicitud.area %}
                                         <tr>
                                             <th class="ps-0" scope="row">Área:</th>
-                                            <td class="text-muted">{{ solicitud.area_solicitante }}</td>
+                                            <td class="text-muted">{{ solicitud.area.nombre }}</td>
                                         </tr>
+                                        {% endif %}
+                                        {% if solicitud.departamento %}
+                                        <tr>
+                                            <th class="ps-0" scope="row">Departamento:</th>
+                                            <td class="text-muted">{{ solicitud.departamento.nombre }}</td>
+                                        </tr>
+                                        {% endif %}
                                         {% if solicitud.bodega_origen %}
                                         <tr>
                                             <th class="ps-0" scope="row">Bodega Origen:</th>
@@ -145,25 +153,20 @@
                         {% endif %}
 
                         <!-- Estructura Organizacional -->
-                        {% if solicitud.departamento or solicitud.area or solicitud.equipo %}
+                        {% if solicitud.departamento or solicitud.area %}
                         <div class="row mt-3">
                             <div class="col-12">
                                 <div class="alert alert-secondary border-0 mb-0">
                                     <h6 class="alert-heading"><i class="ri-building-line me-2"></i>Estructura Organizacional</h6>
                                     <div class="row">
                                         {% if solicitud.departamento %}
-                                        <div class="col-md-4">
+                                        <div class="col-md-6">
                                             <p class="mb-0"><strong>Departamento:</strong> {{ solicitud.departamento.nombre }}</p>
                                         </div>
                                         {% endif %}
                                         {% if solicitud.area %}
-                                        <div class="col-md-4">
+                                        <div class="col-md-6">
                                             <p class="mb-0"><strong>Área:</strong> {{ solicitud.area.nombre }}</p>
-                                        </div>
-                                        {% endif %}
-                                        {% if solicitud.equipo %}
-                                        <div class="col-md-4">
-                                            <p class="mb-0"><strong>Equipo:</strong> {{ solicitud.equipo.nombre }}</p>
                                         </div>
                                         {% endif %}
                                     </div>

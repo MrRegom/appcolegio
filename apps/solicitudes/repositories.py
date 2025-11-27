@@ -8,7 +8,7 @@ from typing import Optional
 from django.db.models import QuerySet
 from django.contrib.auth.models import User
 from .models import (
-    Departamento, Area, Equipo,
+    Departamento, Area,
     TipoSolicitud, EstadoSolicitud, Solicitud,
     DetalleSolicitud, HistorialSolicitud
 )
@@ -80,48 +80,6 @@ class AreaRepository:
     def filter_by_departamento(departamento: Departamento) -> QuerySet[Area]:
         """Retorna áreas de un departamento específico."""
         return Area.objects.filter(
-            departamento=departamento,
-            activo=True,
-            eliminado=False
-        ).order_by('codigo')
-
-
-# ==================== EQUIPO REPOSITORY ====================
-
-class EquipoRepository:
-    """Repository para gestionar equipos."""
-
-    @staticmethod
-    def get_all() -> QuerySet[Equipo]:
-        """Retorna todos los equipos activos y no eliminados."""
-        return Equipo.objects.filter(
-            activo=True, eliminado=False
-        ).select_related('departamento').order_by('codigo')
-
-    @staticmethod
-    def get_by_id(equipo_id: int) -> Optional[Equipo]:
-        """Obtiene un equipo por su ID."""
-        try:
-            return Equipo.objects.select_related('departamento').get(
-                id=equipo_id, eliminado=False, activo=True
-            )
-        except Equipo.DoesNotExist:
-            return None
-
-    @staticmethod
-    def get_by_codigo(codigo: str) -> Optional[Equipo]:
-        """Obtiene un equipo por su código."""
-        try:
-            return Equipo.objects.select_related('departamento').get(
-                codigo=codigo, eliminado=False, activo=True
-            )
-        except Equipo.DoesNotExist:
-            return None
-
-    @staticmethod
-    def filter_by_departamento(departamento: Departamento) -> QuerySet[Equipo]:
-        """Retorna equipos de un departamento específico."""
-        return Equipo.objects.filter(
             departamento=departamento,
             activo=True,
             eliminado=False

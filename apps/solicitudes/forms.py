@@ -2,7 +2,7 @@ from django import forms
 from django.forms import inlineformset_factory
 from .models import (
     Solicitud, DetalleSolicitud, TipoSolicitud, EstadoSolicitud,
-    Departamento, Area, Equipo
+    Departamento, Area
 )
 from apps.activos.models import Activo
 from apps.bodega.models import Bodega, Articulo
@@ -20,9 +20,7 @@ class SolicitudForm(forms.ModelForm):
             'objetivo_actividad',
             'departamento',
             'area',
-            'equipo',
             'bodega_origen',
-            'area_solicitante',
             'motivo',
             'observaciones'
         ]
@@ -55,14 +53,8 @@ class SolicitudForm(forms.ModelForm):
             'area': forms.Select(
                 attrs={'class': 'form-select'}
             ),
-            'equipo': forms.Select(
-                attrs={'class': 'form-select'}
-            ),
             'bodega_origen': forms.Select(
                 attrs={'class': 'form-select'}
-            ),
-            'area_solicitante': forms.TextInput(
-                attrs={'class': 'form-control', 'placeholder': 'Ej: Departamento de TI'}
             ),
             'motivo': forms.Textarea(
                 attrs={
@@ -90,14 +82,11 @@ class SolicitudForm(forms.ModelForm):
         self.fields['departamento'].queryset = Departamento.objects.filter(activo=True, eliminado=False)
         # Filtrar solo áreas activas
         self.fields['area'].queryset = Area.objects.filter(activo=True, eliminado=False).select_related('departamento')
-        # Filtrar solo equipos activos
-        self.fields['equipo'].queryset = Equipo.objects.filter(activo=True, eliminado=False).select_related('departamento')
 
         # Hacer campos opcionales
         self.fields['bodega_origen'].required = False
         self.fields['departamento'].required = False
         self.fields['area'].required = False
-        self.fields['equipo'].required = False
         self.fields['titulo_actividad'].required = False
         self.fields['objetivo_actividad'].required = False
 
@@ -115,9 +104,9 @@ class DetalleSolicitudArticuloForm(forms.ModelForm):
             'cantidad_solicitada': forms.NumberInput(
                 attrs={
                     'class': 'form-control',
-                    'min': '0.01',
-                    'step': '0.01',
-                    'placeholder': '0.00'
+                    'min': '1',
+                    'step': '1',
+                    'placeholder': '0'
                 }
             ),
             'observaciones': forms.Textarea(
@@ -150,9 +139,9 @@ class DetalleSolicitudActivoForm(forms.ModelForm):
             'cantidad_solicitada': forms.NumberInput(
                 attrs={
                     'class': 'form-control',
-                    'min': '0.01',
-                    'step': '0.01',
-                    'placeholder': '0.00'
+                    'min': '1',
+                    'step': '1',
+                    'placeholder': '0'
                 }
             ),
             'observaciones': forms.Textarea(
@@ -233,7 +222,6 @@ class AprobarSolicitudForm(forms.Form):
                 self.fields[field_name] = forms.DecimalField(
                     label=f'Cantidad Aprobada - {detalle.producto_nombre}',
                     max_digits=10,
-                    decimal_places=2,
                     min_value=0,
                     max_value=detalle.cantidad_solicitada,
                     initial=detalle.cantidad_solicitada,
@@ -287,7 +275,6 @@ class DespacharSolicitudForm(forms.Form):
                 self.fields[field_name] = forms.DecimalField(
                     label=f'Cantidad Despachada - {detalle.producto_nombre}',
                     max_digits=10,
-                    decimal_places=2,
                     min_value=0,
                     max_value=max_cantidad,
                     initial=max_cantidad,
