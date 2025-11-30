@@ -817,6 +817,11 @@ class EntregaArticuloCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Cr
         - Actualización de cantidades despachadas en solicitudes
         """
         try:
+            # Validar que el usuario esté autenticado
+            if not self.request.user or not self.request.user.is_authenticated:
+                messages.error(self.request, 'Debe estar autenticado para registrar una entrega.')
+                return self.form_invalid(form)
+
             # Obtener detalles del request (deben ser enviados vía POST)
             import json
             detalles_json = self.request.POST.get('detalles', '[]')
@@ -829,12 +834,22 @@ class EntregaArticuloCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Cr
                 )
                 return self.form_invalid(form)
 
+            # Obtener usuario actual (puede ser de request o de middleware)
+            from apps.accounts.middleware import get_current_user
+            usuario_actual = self.request.user
+            if not usuario_actual or not usuario_actual.is_authenticated:
+                usuario_actual = get_current_user()
+
+            if not usuario_actual or not usuario_actual.is_authenticated:
+                messages.error(self.request, 'No se pudo identificar el usuario actual.')
+                return self.form_invalid(form)
+
             # Delegar a EntregaArticuloService
             service = EntregaArticuloService()
             entrega = service.crear_entrega(
                 bodega_origen=form.cleaned_data['bodega_origen'],
                 tipo=form.cleaned_data['tipo'],
-                entregado_por=self.request.user,
+                entregado_por=usuario_actual,
                 recibido_por=form.cleaned_data['recibido_por'],
                 motivo=form.cleaned_data['motivo'],
                 detalles=detalles,
@@ -870,12 +885,11 @@ class EntregaArticuloCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Cr
         """Agrega datos al contexto."""
         context = super().get_context_data(**kwargs)
         context['titulo'] = 'Registrar Entrega de Artículos'
-        # Artículos disponibles para entrega (con stock > 0)
+        # Artículos disponibles para entrega
         context['articulos'] = Articulo.objects.filter(
             activo=True,
-            eliminado=False,
-            stock_actual__gt=0
-        ).select_related('categoria').order_by('codigo')
+            eliminado=False
+        ).select_related('categoria', 'unidad_medida').order_by('codigo')
         return context
 
 
@@ -981,6 +995,11 @@ class EntregaBienCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Create
         - Creación atómica de entrega con detalles
         """
         try:
+            # Validar que el usuario esté autenticado
+            if not self.request.user or not self.request.user.is_authenticated:
+                messages.error(self.request, 'Debe estar autenticado para registrar una entrega.')
+                return self.form_invalid(form)
+
             # Obtener detalles del request (deben ser enviados vía POST)
             import json
             detalles_json = self.request.POST.get('detalles', '[]')
@@ -993,11 +1012,21 @@ class EntregaBienCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Create
                 )
                 return self.form_invalid(form)
 
+            # Obtener usuario actual (puede ser de request o de middleware)
+            from apps.accounts.middleware import get_current_user
+            usuario_actual = self.request.user
+            if not usuario_actual or not usuario_actual.is_authenticated:
+                usuario_actual = get_current_user()
+
+            if not usuario_actual or not usuario_actual.is_authenticated:
+                messages.error(self.request, 'No se pudo identificar el usuario actual.')
+                return self.form_invalid(form)
+
             # Delegar a EntregaBienService
             service = EntregaBienService()
             entrega = service.crear_entrega(
                 tipo=form.cleaned_data['tipo'],
-                entregado_por=self.request.user,
+                entregado_por=usuario_actual,
                 recibido_por=form.cleaned_data['recibido_por'],
                 motivo=form.cleaned_data['motivo'],
                 detalles=detalles,

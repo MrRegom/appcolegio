@@ -19,6 +19,7 @@ from .repositories import (
     ArticuloRepository,
     TipoMovimientoRepository,
     MovimientoRepository,
+    OperacionRepository,
     BodegaRepository,
     EstadoEntregaRepository,
     TipoEntregaRepository,
@@ -369,12 +370,17 @@ class MovimientoService:
                 f'intentando agregar: {cantidad}.'
             )
 
+        # Obtener operación de entrada
+        operacion_entrada = self.operacion_repo.get_entrada()
+        if not operacion_entrada:
+            raise ValidationError('No se encontró una operación de tipo ENTRADA activa.')
+
         # Crear movimiento
         movimiento = self.movimiento_repo.create(
             articulo=articulo,
             tipo=tipo,
             cantidad=cantidad,
-            operacion='ENTRADA',
+            operacion=operacion_entrada,
             usuario=usuario,
             motivo=motivo,
             stock_antes=stock_anterior,
@@ -428,12 +434,17 @@ class MovimientoService:
                 f'intentando sacar: {cantidad}.'
             )
 
+        # Obtener operación de salida
+        operacion_salida = self.operacion_repo.get_salida()
+        if not operacion_salida:
+            raise ValidationError('No se encontró una operación de tipo SALIDA activa.')
+
         # Crear movimiento
         movimiento = self.movimiento_repo.create(
             articulo=articulo,
             tipo=tipo,
             cantidad=cantidad,
-            operacion='SALIDA',
+            operacion=operacion_salida,
             usuario=usuario,
             motivo=motivo,
             stock_antes=stock_anterior,
@@ -518,6 +529,7 @@ class EntregaArticuloService:
         self.estado_repo = EstadoEntregaRepository()
         self.tipo_repo = TipoEntregaRepository()
         self.movimiento_repo = MovimientoRepository()
+        self.operacion_repo = OperacionRepository()
 
     def generar_numero_entrega(self) -> str:
         """
@@ -583,9 +595,9 @@ class EntregaArticuloService:
         if not detalles or len(detalles) == 0:
             raise ValidationError('Debe agregar al menos un artículo a la entrega.')
 
-        # Obtener estado inicial
-        estado = self.estado_repo.get_inicial()
-        if not estado:
+        # Obtener estado inicial (temporal, se actualizará después)
+        estado_inicial = self.estado_repo.get_inicial()
+        if not estado_inicial:
             raise ValidationError(
                 'No se encontró un estado inicial para las entregas. '
                 'Configure los estados en el sistema.'
@@ -594,12 +606,12 @@ class EntregaArticuloService:
         # Generar número de entrega
         numero = self.generar_numero_entrega()
 
-        # Crear entrega
+        # Crear entrega con estado inicial temporal
         entrega = EntregaArticulo.objects.create(
             numero=numero,
             bodega_origen=bodega_origen,
             tipo=tipo,
-            estado=estado,
+            estado=estado_inicial,
             entregado_por=entregado_por,
             recibido_por=recibido_por,
             departamento_destino=departamento_destino,
@@ -682,22 +694,87 @@ class EntregaArticuloService:
                 ).first()
 
             if tipo_mov_entrega:
-                self.movimiento_repo.create(
-                    articulo=articulo,
-                    tipo=tipo_mov_entrega,
-                    cantidad=cantidad,
-                    operacion='SALIDA',
-                    usuario=entregado_por,
-                    motivo=f'Entrega {numero} - {motivo}',
-                    stock_antes=stock_anterior,
-                    stock_despues=stock_nuevo
-                )
+                # Obtener operación de salida
+                operacion_salida = self.operacion_repo.get_salida()
+                if operacion_salida:
+                    self.movimiento_repo.create(
+                        articulo=articulo,
+                        tipo=tipo_mov_entrega,
+                        cantidad=cantidad,
+                        operacion=operacion_salida,
+                        usuario=entregado_por,
+                        motivo=f'Entrega {numero} - {motivo}',
+                        stock_antes=stock_anterior,
+                        stock_despues=stock_nuevo
+                    )
+
+        # Determinar y actualizar el estado correcto de la entrega
+        estado_correcto = self._determinar_estado_entrega(entrega, solicitud)
+        if estado_correcto:
+            entrega.estado = estado_correcto
+            entrega.save()
 
         # Si hay solicitud asociada, verificar si está completamente despachada
         if solicitud:
             self._verificar_y_actualizar_estado_solicitud(solicitud)
 
         return entrega
+
+    def _determinar_estado_entrega(self, entrega, solicitud):
+        """
+        Determina el estado correcto de la entrega según la lógica de negocio:
+        - Sin solicitud → DESPACHADO
+        - Con solicitud y entrega completa → DESPACHADO
+        - Con solicitud y entrega parcial → DESPACHO_PARCIAL
+
+        Args:
+            entrega: Entrega de artículos creada
+            solicitud: Solicitud asociada (opcional)
+
+        Returns:
+            EstadoEntrega correcto o None si no se puede determinar
+        """
+        # Si no hay solicitud asociada → DESPACHADO
+        if not solicitud:
+            estado_despachado = self.estado_repo.get_despachado()
+            if not estado_despachado:
+                print("ADVERTENCIA: No se encontró el estado 'DESPACHADO'")
+            return estado_despachado
+
+        # Si hay solicitud, verificar si la entrega es completa o parcial
+        from apps.solicitudes.models import DetalleSolicitud
+
+        detalles_solicitud = solicitud.detalles.filter(
+            eliminado=False,
+            articulo__isnull=False  # Solo artículos
+        )
+
+        # Verificar si todos los artículos están completamente despachados
+        todos_completos = True
+        alguno_parcial = False
+
+        for detalle_sol in detalles_solicitud:
+            cantidad_pendiente = detalle_sol.cantidad_aprobada - detalle_sol.cantidad_despachada
+
+            if cantidad_pendiente > 0:
+                todos_completos = False
+
+            if detalle_sol.cantidad_despachada > 0 and cantidad_pendiente > 0:
+                alguno_parcial = True
+
+        # Determinar estado según las cantidades
+        if todos_completos:
+            # Todos los artículos fueron despachados completamente → DESPACHADO
+            estado = self.estado_repo.get_despachado()
+            if not estado:
+                print("ADVERTENCIA: No se encontró el estado 'DESPACHADO'")
+            return estado
+        else:
+            # Hay artículos con despacho parcial → DESPACHO_PARCIAL
+            estado = self.estado_repo.get_despacho_parcial()
+            if not estado:
+                print("ADVERTENCIA: No se encontró el estado 'DESPACHO_PARCIAL'")
+            return estado
 
     def _verificar_y_actualizar_estado_solicitud(self, solicitud):
         """
@@ -802,9 +879,9 @@ class EntregaBienService:
         if not detalles or len(detalles) == 0:
             raise ValidationError('Debe agregar al menos un bien a la entrega.')
 
-        # Obtener estado inicial
-        estado = self.estado_repo.get_inicial()
-        if not estado:
+        # Obtener estado inicial (temporal, se actualizará después)
+        estado_inicial = self.estado_repo.get_inicial()
+        if not estado_inicial:
             raise ValidationError(
                 'No se encontró un estado inicial para las entregas. '
                 'Configure los estados en el sistema.'
@@ -813,11 +890,11 @@ class EntregaBienService:
         # Generar número de entrega
         numero = self.generar_numero_entrega()
 
-        # Crear entrega
+        # Crear entrega con estado inicial temporal
         entrega = EntregaBien.objects.create(
             numero=numero,
             tipo=tipo,
-            estado=estado,
+            estado=estado_inicial,
             entregado_por=entregado_por,
             recibido_por=recibido_por,
             departamento_destino=departamento_destino,
@@ -851,4 +928,63 @@ class EntregaBienService:
                 observaciones=obs_detalle
             )
 
+        # Determinar y actualizar el estado correcto de la entrega
+        estado_correcto = self._determinar_estado_entrega(entrega, solicitud)
+        if estado_correcto:
+            entrega.estado = estado_correcto
+            entrega.save()
+
         return entrega
+
+    def _determinar_estado_entrega(self, entrega, solicitud):
+        """
+        Determina el estado correcto de la entrega según la lógica de negocio:
+        - Sin solicitud → DESPACHADO
+        - Con solicitud y entrega completa → DESPACHADO
+        - Con solicitud y entrega parcial → DESPACHO_PARCIAL
+
+        Args:
+            entrega: Entrega de bienes creada
+            solicitud: Solicitud asociada (opcional)
+
+        Returns:
+            EstadoEntrega correcto o None si no se puede determinar
+        """
+        # Si no hay solicitud asociada → DESPACHADO
+        if not solicitud:
+            estado_despachado = self.estado_repo.get_despachado()
+            if not estado_despachado:
+                print("ADVERTENCIA: No se encontró el estado 'DESPACHADO'")
+            return estado_despachado
+
+        # Si hay solicitud, verificar si la entrega es completa o parcial
+        from apps.solicitudes.models import DetalleSolicitud
+
+        detalles_solicitud = solicitud.detalles.filter(
+            eliminado=False,
+            activo__isnull=False  # Solo activos/bienes
+        )
+
+        # Verificar si todos los bienes están completamente despachados
+        todos_completos = True
+
+        for detalle_sol in detalles_solicitud:
+            cantidad_pendiente = detalle_sol.cantidad_aprobada - detalle_sol.cantidad_despachada
+
+            if cantidad_pendiente > 0:
+                todos_completos = False
+                break
+
+        # Determinar estado según las cantidades
+        if todos_completos:
+            # Todos los bienes fueron despachados completamente → DESPACHADO
+            estado = self.estado_repo.get_despachado()
+            if not estado:
+                print("ADVERTENCIA: No se encontró el estado 'DESPACHADO'")
+            return estado
+        else:
+            # Hay bienes con despacho parcial → DESPACHO_PARCIAL
+            estado = self.estado_repo.get_despacho_parcial()
+            if not estado:
+                print("ADVERTENCIA: No se encontró el estado 'DESPACHO_PARCIAL'")
+            return estado

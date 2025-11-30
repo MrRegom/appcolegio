@@ -1,73 +1,108 @@
 /**
- * JavaScript para gestión de entregas de artículos
- * Siguiendo buenas prácticas de JavaScript moderno y Django
+ * Funcionalidad para crear entregas de artículos
+ * @module bodega/entrega-articulos
+ * @description Maneja la selección dinámica de artículos, cantidades, validaciones de stock y carga desde solicitudes
  */
 
-// Configuración global
-const EntregaArticulos = {
-    articulosDisponibles: [],
-    detallesArticulos: [],
-    contadorFilas: 0,
-    esSolicitud: false,
+(function() {
+    'use strict';
+
+    // Variables globales
+    let articulosSeleccionados = [];
+    let articulosDisponibles = [];
+    let modalArticulo;
+    let contadorFilas = 0;
+    let solicitudCargada = false;
 
     /**
-     * Inicializa el módulo
+     * Inicializa la funcionalidad del formulario de entrega
      */
-    init(articulos) {
-        this.articulosDisponibles = articulos;
-        this.setupEventListeners();
-        console.log('EntregaArticulos inicializado correctamente');
-    },
+    function inicializar() {
+        // Cargar artículos disponibles desde la variable global
+        if (typeof ARTICULOS_DISPONIBLES !== 'undefined') {
+            articulosDisponibles = ARTICULOS_DISPONIBLES;
+        }
+
+        // Inicializar modal de Bootstrap
+        const modalElement = document.getElementById('modalArticulo');
+        if (modalElement) {
+            modalArticulo = new bootstrap.Modal(modalElement);
+        }
+
+        // Event listeners
+        setupEventListeners();
+
+        // Actualizar visualización inicial
+        actualizarVisualizacionArticulos();
+    }
 
     /**
-     * Configura event listeners
+     * Configura todos los event listeners
      */
-    setupEventListeners() {
-        // Event listener para el selector de solicitud
-        const selectSolicitud = document.getElementById('id_solicitud');
-        if (selectSolicitud) {
-            selectSolicitud.addEventListener('change', (e) => {
-                const solicitudId = e.target.value;
-                if (solicitudId) {
-                    this.cargarArticulosSolicitud(solicitudId);
-                } else {
-                    this.limpiarArticulosSolicitud();
+    function setupEventListeners() {
+        // Botón para abrir modal de agregar artículo
+        const btnAgregar = document.getElementById('btn-agregar-articulo');
+        if (btnAgregar) {
+            btnAgregar.addEventListener('click', () => {
+                if (solicitudCargada) {
+                    mostrarAlerta('No puede agregar artículos manualmente cuando hay una solicitud cargada', 'warning');
+                    return;
                 }
+                modalArticulo.show();
             });
         }
 
-        // Event listener para el botón de agregar artículo
-        const btnAgregar = document.getElementById('btnAgregarArticulo');
-        if (btnAgregar) {
-            btnAgregar.addEventListener('click', () => this.agregarArticulo());
+        // Buscador de artículos en el modal
+        const inputBuscar = document.getElementById('buscar-articulo');
+        if (inputBuscar) {
+            inputBuscar.addEventListener('input', filtrarArticulos);
         }
 
-        // Event listener para el submit del formulario
+        // Botones de selección de artículos en el modal
+        document.querySelectorAll('.btn-seleccionar-articulo').forEach(btn => {
+            btn.addEventListener('click', seleccionarArticulo);
+        });
+
+        // Selector de solicitud
+        const selectSolicitud = document.getElementById('id_solicitud');
+        if (selectSolicitud) {
+            selectSolicitud.addEventListener('change', handleSolicitudChange);
+        }
+
+        // Submit del formulario
         const form = document.getElementById('formEntregaArticulo');
         if (form) {
-            form.addEventListener('submit', (e) => this.validarYEnviarFormulario(e));
+            form.addEventListener('submit', validarYEnviarFormulario);
         }
-    },
+    }
+
+    /**
+     * Maneja el cambio en el selector de solicitud
+     * @param {Event} e - Evento change
+     */
+    async function handleSolicitudChange(e) {
+        const solicitudId = e.target.value;
+
+        if (solicitudId) {
+            await cargarArticulosSolicitud(solicitudId);
+        } else {
+            limpiarArticulosSolicitud();
+        }
+    }
 
     /**
      * Carga artículos de una solicitud via AJAX
+     * @param {number} solicitudId - ID de la solicitud
      */
-    async cargarArticulosSolicitud(solicitudId) {
+    async function cargarArticulosSolicitud(solicitudId) {
         try {
             const response = await fetch(`/bodega/ajax/solicitud/${solicitudId}/articulos/`);
             const data = await response.json();
 
             if (data.success) {
-                this.esSolicitud = true;
-                this.mostrarInfoSolicitud(data.solicitud);
-                this.mostrarColumnasSolicitud();
-                this.cargarArticulosEnTabla(data.articulos);
-
-                // Deshabilitar botón de agregar artículo manual
-                const btnAgregar = document.getElementById('btnAgregarArticulo');
-                if (btnAgregar) {
-                    btnAgregar.disabled = true;
-                }
+                mostrarInfoSolicitud(data.solicitud);
+                cargarArticulosEnTabla(data.articulos, data.solicitud);
+                solicitudCargada = true;
 
                 // Auto-seleccionar bodega origen si está disponible
                 if (data.solicitud.bodega_origen_id) {
@@ -76,37 +111,22 @@ const EntregaArticulos = {
                         selectBodega.value = data.solicitud.bodega_origen_id;
                     }
                 }
+
+                mostrarAlerta('Artículos cargados desde la solicitud correctamente', 'success');
             } else {
-                alert('Error al cargar artículos de la solicitud: ' + (data.error || data.message));
+                mostrarAlerta('Error al cargar artículos de la solicitud: ' + (data.error || data.message), 'danger');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Error al cargar artículos de la solicitud.');
+            mostrarAlerta('Error al cargar artículos de la solicitud', 'danger');
         }
-    },
-
-    /**
-     * Limpia datos de solicitud
-     */
-    limpiarArticulosSolicitud() {
-        this.esSolicitud = false;
-        const infoDiv = document.getElementById('infoSolicitud');
-        if (infoDiv) {
-            infoDiv.classList.add('d-none');
-        }
-        this.ocultarColumnasSolicitud();
-        this.limpiarTabla();
-
-        const btnAgregar = document.getElementById('btnAgregarArticulo');
-        if (btnAgregar) {
-            btnAgregar.disabled = false;
-        }
-    },
+    }
 
     /**
      * Muestra información de la solicitud
+     * @param {Object} solicitud - Datos de la solicitud
      */
-    mostrarInfoSolicitud(solicitud) {
+    function mostrarInfoSolicitud(solicitud) {
         const infoDiv = document.getElementById('infoSolicitud');
         const datosDiv = document.getElementById('datosSolicitud');
 
@@ -115,327 +135,346 @@ const EntregaArticulos = {
         datosDiv.innerHTML = `
             <p class="mb-1"><strong>Número:</strong> ${solicitud.numero}</p>
             <p class="mb-1"><strong>Solicitante:</strong> ${solicitud.solicitante}</p>
-            <p class="mb-1"><strong>Departamento:</strong> ${solicitud.departamento}</p>
+            <p class="mb-1"><strong>Departamento:</strong> ${solicitud.departamento || 'N/A'}</p>
             <p class="mb-0"><strong>Motivo:</strong> ${solicitud.motivo || 'N/A'}</p>
         `;
 
         infoDiv.classList.remove('d-none');
-    },
+    }
 
     /**
-     * Muestra columnas adicionales para solicitud (sin columnas extra)
+     * Carga artículos en la tabla desde solicitud
+     * @param {Array} articulos - Array de artículos de la solicitud
+     * @param {Object} solicitud - Datos de la solicitud
      */
-    mostrarColumnasSolicitud() {
-        // Ya no hay columnas adicionales, solo mantener para compatibilidad
-    },
-
-    /**
-     * Oculta columnas adicionales de solicitud (sin columnas extra)
-     */
-    ocultarColumnasSolicitud() {
-        // Ya no hay columnas adicionales, solo mantener para compatibilidad
-    },
-
-    /**
-     * Carga artículos en la tabla
-     */
-    cargarArticulosEnTabla(articulos) {
-        const tbody = document.getElementById('articulosBody');
-        if (!tbody) return;
-
+    function cargarArticulosEnTabla(articulos, solicitud) {
+        // Limpiar artículos existentes
+        articulosSeleccionados = [];
+        const tbody = document.getElementById('tbody-articulos');
         tbody.innerHTML = '';
 
-        if (articulos.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="text-center text-muted">
-                        No hay artículos en esta solicitud.
-                    </td>
-                </tr>
-            `;
+        // Agregar cada artículo de la solicitud
+        articulos.forEach(art => {
+            const articuloData = {
+                id: art.articulo_id,
+                codigo: art.articulo_codigo || art.codigo,
+                nombre: art.articulo_nombre || art.nombre,
+                stock: parseFloat(art.stock_actual || 0),
+                unidad: art.unidad_medida || art.unidad || 'unidad',
+                cantidadSolicitada: parseFloat(art.cantidad_solicitada || art.cantidad_aprobada || 0),
+                cantidadPendiente: parseFloat(art.cantidad_pendiente || 0)
+            };
+
+            articulosSeleccionados.push(articuloData);
+            agregarFilaArticulo(articuloData, true, art.cantidad_pendiente);
+        });
+
+        actualizarVisualizacionArticulos();
+    }
+
+    /**
+     * Limpia datos de solicitud
+     */
+    function limpiarArticulosSolicitud() {
+        const infoDiv = document.getElementById('infoSolicitud');
+        if (infoDiv) {
+            infoDiv.classList.add('d-none');
+        }
+
+        // Limpiar artículos
+        articulosSeleccionados = [];
+        const tbody = document.getElementById('tbody-articulos');
+        tbody.innerHTML = '';
+
+        solicitudCargada = false;
+        actualizarVisualizacionArticulos();
+    }
+
+    /**
+     * Filtra la lista de artículos en el modal según el término de búsqueda
+     * @param {Event} e - Evento input
+     */
+    function filtrarArticulos(e) {
+        const termino = e.target.value.toLowerCase();
+        const filas = document.querySelectorAll('#tbody-lista-articulos tr');
+
+        filas.forEach(fila => {
+            const codigo = fila.dataset.articuloCodigo.toLowerCase();
+            const nombre = fila.dataset.articuloNombre.toLowerCase();
+
+            if (codigo.includes(termino) || nombre.includes(termino)) {
+                fila.style.display = '';
+            } else {
+                fila.style.display = 'none';
+            }
+        });
+    }
+
+    /**
+     * Selecciona un artículo y lo agrega a la tabla
+     * @param {Event} e - Evento click
+     */
+    function seleccionarArticulo(e) {
+        const fila = e.target.closest('tr');
+        const articuloId = parseInt(fila.dataset.articuloId);
+
+        // Verificar si el artículo ya está seleccionado
+        if (articulosSeleccionados.some(a => a.id === articuloId)) {
+            mostrarAlerta('Este artículo ya ha sido agregado', 'warning');
             return;
         }
 
-        articulos.forEach(art => this.agregarFilaSolicitud(art));
-    },
+        // Agregar artículo a la lista
+        const articulo = {
+            id: articuloId,
+            codigo: fila.dataset.articuloCodigo,
+            nombre: fila.dataset.articuloNombre,
+            stock: parseFloat(fila.dataset.articuloStock),
+            unidad: fila.dataset.articuloUnidad
+        };
 
-    /**
-     * Agrega una fila desde solicitud
-     */
-    agregarFilaSolicitud(articulo) {
-        const tbody = document.getElementById('articulosBody');
-        if (!tbody) return;
+        articulosSeleccionados.push(articulo);
+        agregarFilaArticulo(articulo, false);
 
-        const fila = tbody.insertRow();
-        fila.id = `fila_${this.contadorFilas}`;
+        // Cerrar modal
+        modalArticulo.hide();
 
-        // Celda de artículo (solo lectura)
-        const celdaArticulo = fila.insertCell(0);
-        celdaArticulo.innerHTML = `
-            <strong>${this.escapeHtml(articulo.articulo_codigo)}</strong><br>
-            <small>${this.escapeHtml(articulo.articulo_nombre)}</small><br>
-            <small class="text-muted">Pendiente: ${articulo.cantidad_pendiente} ${this.escapeHtml(articulo.unidad_medida)}</small>
-            <input type="hidden" id="articulo_${this.contadorFilas}" value="${articulo.articulo_id}">
-            <input type="hidden" id="detalle_solicitud_${this.contadorFilas}" value="${articulo.detalle_solicitud_id}">
-        `;
-
-        // Celda de stock disponible
-        const celdaStock = fila.insertCell(1);
-        const colorStock = articulo.stock_actual > 0 ? 'text-success' : 'text-danger';
-        celdaStock.innerHTML = `<strong class="${colorStock}">${articulo.stock_actual} ${this.escapeHtml(articulo.unidad_medida)}</strong>`;
-
-        // Celda de cantidad a entregar
-        const celdaCantidad = fila.insertCell(2);
-        const inputCantidad = this.crearInputCantidad(this.contadorFilas, articulo);
-        celdaCantidad.appendChild(inputCantidad);
-
-        // Celda de lote
-        const celdaLote = fila.insertCell(3);
-        const inputLote = this.crearInputLote(this.contadorFilas);
-        celdaLote.appendChild(inputLote);
-
-        // Celda de acciones (sin botón eliminar para solicitud)
-        fila.insertCell(4).innerHTML = '<span class="text-muted">-</span>';
-
-        this.contadorFilas++;
-    },
-
-    /**
-     * Agrega una fila manual
-     */
-    agregarArticulo() {
-        const tbody = document.getElementById('articulosBody');
-        if (!tbody) return;
-
-        // Limpiar fila vacía si existe
-        if (tbody.children.length === 1 && tbody.children[0].cells.length === 1) {
-            tbody.innerHTML = '';
-        }
-
-        const fila = tbody.insertRow();
-        fila.id = `fila_${this.contadorFilas}`;
-        const idFila = this.contadorFilas;
-
-        // Celda de selección de artículo
-        const celdaArticulo = fila.insertCell(0);
-        const selectArticulo = this.crearSelectArticulo(idFila);
-        celdaArticulo.appendChild(selectArticulo);
-
-        // Celda de stock disponible
-        const celdaStock = fila.insertCell(1);
-        celdaStock.innerHTML = `<span id="stock_${idFila}" class="text-muted">-</span>`;
-
-        // Celda de cantidad
-        const celdaCantidad = fila.insertCell(2);
-        const inputCantidad = this.crearInputCantidad(idFila);
-        celdaCantidad.appendChild(inputCantidad);
-
-        // Celda de lote
-        const celdaLote = fila.insertCell(3);
-        const inputLote = this.crearInputLote(idFila);
-        celdaLote.appendChild(inputLote);
-
-        // Celda de acciones
-        const celdaAcciones = fila.insertCell(4);
-        const btnEliminar = this.crearBotonEliminar(idFila);
-        celdaAcciones.appendChild(btnEliminar);
-
-        this.contadorFilas++;
-    },
-
-    /**
-     * Crea select de artículos
-     */
-    crearSelectArticulo(idFila) {
-        const select = document.createElement('select');
-        select.className = 'form-select form-select-sm';
-        select.id = `articulo_${idFila}`;
-        select.innerHTML = '<option value="">Seleccione...</option>';
-
-        this.articulosDisponibles.forEach(art => {
-            select.innerHTML += `<option value="${art.id}" data-stock="${art.stock}" data-unidad="${this.escapeHtml(art.unidad)}">
-                ${this.escapeHtml(art.codigo)} - ${this.escapeHtml(art.nombre)}
-            </option>`;
+        // Limpiar búsqueda
+        document.getElementById('buscar-articulo').value = '';
+        document.querySelectorAll('#tbody-lista-articulos tr').forEach(tr => {
+            tr.style.display = '';
         });
 
-        select.addEventListener('change', () => this.actualizarStock(idFila));
-
-        return select;
-    },
+        // Actualizar visualización
+        actualizarVisualizacionArticulos();
+    }
 
     /**
-     * Crea input de cantidad
+     * Agrega una fila de artículo a la tabla
+     * @param {Object} articulo - Datos del artículo
+     * @param {boolean} desdeSolicitud - Si viene de una solicitud
+     * @param {number} cantidadSugerida - Cantidad sugerida (desde solicitud)
      */
-    crearInputCantidad(idFila, articulo = null) {
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.className = 'form-control form-control-sm';
-        input.id = `cantidad_${idFila}`;
-        input.step = '0.01';
-        input.min = '0.01';
-        input.required = true;
+    function agregarFilaArticulo(articulo, desdeSolicitud = false, cantidadSugerida = null) {
+        const tbody = document.getElementById('tbody-articulos');
+        const fila = document.createElement('tr');
+        fila.dataset.articuloId = articulo.id;
+        fila.dataset.filaId = contadorFilas;
 
-        if (articulo) {
-            input.max = articulo.cantidad_pendiente;
-            input.value = articulo.cantidad_pendiente;
-            input.setAttribute('data-pendiente', articulo.cantidad_pendiente);
-            input.setAttribute('data-stock', articulo.stock_actual);
+        // Determinar clase de badge según stock
+        let badgeClass = 'bg-success';
+        if (articulo.stock === 0) {
+            badgeClass = 'bg-danger';
+        } else if (articulo.stock < 10) {
+            badgeClass = 'bg-warning';
         }
 
-        return input;
-    },
-
-    /**
-     * Crea input de lote
-     */
-    crearInputLote(idFila) {
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.className = 'form-control form-control-sm';
-        input.id = `lote_${idFila}`;
-        input.placeholder = 'Lote (opcional)';
-        return input;
-    },
-
-    /**
-     * Crea botón de eliminar
-     */
-    crearBotonEliminar(idFila) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn btn-sm btn-danger';
-        btn.innerHTML = '<i class="ri-delete-bin-line"></i>';
-        btn.addEventListener('click', () => this.eliminarFila(idFila));
-        return btn;
-    },
-
-    /**
-     * Actualiza el stock mostrado
-     */
-    actualizarStock(idFila) {
-        const select = document.getElementById(`articulo_${idFila}`);
-        const spanStock = document.getElementById(`stock_${idFila}`);
-
-        if (!select || !spanStock) return;
-
-        if (select.value) {
-            const opcion = select.options[select.selectedIndex];
-            const stock = opcion.getAttribute('data-stock');
-            const unidad = opcion.getAttribute('data-unidad');
-            spanStock.innerHTML = `<strong>${stock} ${unidad}</strong>`;
-            spanStock.className = parseFloat(stock) > 0 ? 'text-success' : 'text-danger';
-        } else {
-            spanStock.innerHTML = '<span class="text-muted">-</span>';
-        }
-    },
-
-    /**
-     * Elimina una fila de la tabla
-     */
-    eliminarFila(idFila) {
-        const fila = document.getElementById(`fila_${idFila}`);
-        if (fila) {
-            fila.remove();
-        }
-
-        // Si no quedan filas, mostrar mensaje
-        const tbody = document.getElementById('articulosBody');
-        if (tbody && tbody.children.length === 0) {
-            this.limpiarTabla();
-        }
-    },
-
-    /**
-     * Limpia la tabla
-     */
-    limpiarTabla() {
-        const tbody = document.getElementById('articulosBody');
-        if (!tbody) return;
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5" class="text-center text-muted">
-                    No hay artículos agregados. Seleccione una solicitud o haga clic en "Agregar Artículo" para comenzar.
-                </td>
-            </tr>
+        fila.innerHTML = `
+            <td>
+                <strong>${articulo.nombre}</strong><br>
+                <small class="text-muted">Código: ${articulo.codigo}</small>
+            </td>
+            <td>
+                <span class="badge ${badgeClass}">${articulo.stock} ${articulo.unidad}</span>
+            </td>
+            <td>
+                ${articulo.cantidadSolicitada ? `<span class="badge bg-info">${articulo.cantidadSolicitada} ${articulo.unidad}</span>` : '<span class="text-muted">-</span>'}
+            </td>
+            <td>
+                <input type="number"
+                       class="form-control form-control-sm input-cantidad"
+                       data-stock="${articulo.stock}"
+                       data-pendiente="${articulo.cantidadPendiente || 0}"
+                       min="0.01"
+                       step="0.01"
+                       max="${articulo.cantidadPendiente || articulo.stock}"
+                       value="${cantidadSugerida || ''}"
+                       required
+                       placeholder="0.00">
+                <small class="text-muted">${articulo.unidad}</small>
+            </td>
+            <td>
+                <input type="text"
+                       class="form-control form-control-sm input-lote"
+                       placeholder="Opcional">
+            </td>
+            <td>
+                <input type="text"
+                       class="form-control form-control-sm input-observaciones"
+                       placeholder="Opcional">
+            </td>
+            <td class="text-center">
+                <button type="button"
+                        class="btn btn-sm btn-danger btn-eliminar-fila"
+                        data-fila-id="${contadorFilas}"
+                        ${desdeSolicitud ? 'disabled title="No puede eliminar artículos de una solicitud"' : ''}>
+                    <i class="ri-delete-bin-line"></i>
+                </button>
+            </td>
         `;
-        this.contadorFilas = 0;
-    },
+
+        tbody.appendChild(fila);
+
+        // Event listener para validar cantidad en tiempo real
+        const inputCantidad = fila.querySelector('.input-cantidad');
+        inputCantidad.addEventListener('input', validarCantidadEnTiempoReal);
+
+        // Event listener para eliminar fila (solo si no viene de solicitud)
+        if (!desdeSolicitud) {
+            fila.querySelector('.btn-eliminar-fila').addEventListener('click', eliminarFilaArticulo);
+        }
+
+        contadorFilas++;
+    }
+
+    /**
+     * Valida la cantidad en tiempo real
+     * @param {Event} e - Evento input
+     */
+    function validarCantidadEnTiempoReal(e) {
+        const input = e.target;
+        const cantidad = parseFloat(input.value) || 0;
+        const stock = parseFloat(input.dataset.stock) || 0;
+        const pendiente = parseFloat(input.dataset.pendiente) || 0;
+
+        // Validar contra stock
+        if (cantidad > stock) {
+            input.classList.add('is-invalid');
+            input.setCustomValidity('La cantidad excede el stock disponible');
+        }
+        // Validar contra cantidad pendiente si existe
+        else if (pendiente > 0 && cantidad > pendiente) {
+            input.classList.add('is-invalid');
+            input.setCustomValidity('La cantidad excede la cantidad pendiente');
+        }
+        else {
+            input.classList.remove('is-invalid');
+            input.setCustomValidity('');
+        }
+    }
+
+    /**
+     * Elimina una fila de artículo
+     * @param {Event} e - Evento click
+     */
+    function eliminarFilaArticulo(e) {
+        const filaId = e.target.closest('button').dataset.filaId;
+        const fila = document.querySelector(`tr[data-fila-id="${filaId}"]`);
+        const articuloId = parseInt(fila.dataset.articuloId);
+
+        // Remover de la lista de seleccionados
+        articulosSeleccionados = articulosSeleccionados.filter(a => a.id !== articuloId);
+
+        // Remover del DOM
+        fila.remove();
+
+        // Actualizar visualización
+        actualizarVisualizacionArticulos();
+    }
+
+    /**
+     * Actualiza la visualización de artículos (muestra/oculta mensaje de vacío)
+     */
+    function actualizarVisualizacionArticulos() {
+        const sinArticulos = document.getElementById('sin-articulos');
+        const tbody = document.getElementById('tbody-articulos');
+
+        if (!sinArticulos || !tbody) {
+            console.warn('Elementos de visualización no encontrados');
+            return;
+        }
+
+        // Contar filas reales en tbody
+        const numFilas = tbody.querySelectorAll('tr').length;
+
+        console.log('Actualizando visualización. Filas en tabla:', numFilas, 'Artículos seleccionados:', articulosSeleccionados.length);
+
+        // Buscar el contenedor de la tabla
+        const tabla = document.getElementById('tabla-articulos');
+        const tablaContainer = tabla ? tabla.parentElement : null;
+
+        if (numFilas === 0) {
+            // No hay artículos: ocultar tabla, mostrar mensaje
+            if (tablaContainer) tablaContainer.style.display = 'none';
+            sinArticulos.style.display = 'block';
+        } else {
+            // Hay artículos: mostrar tabla, ocultar mensaje
+            if (tablaContainer) tablaContainer.style.display = 'block';
+            sinArticulos.style.display = 'none';
+        }
+    }
 
     /**
      * Valida y envía el formulario
+     * @param {Event} e - Evento submit
      */
-    validarYEnviarFormulario(e) {
+    function validarYEnviarFormulario(e) {
         e.preventDefault();
 
-        const detalles = [];
-        const tbody = document.getElementById('articulosBody');
-
-        // Validar que haya artículos
-        if (!tbody || tbody.children.length === 0 || tbody.children[0].cells.length === 1) {
-            alert('Debe agregar al menos un artículo a la entrega.');
+        // Validar que haya al menos un artículo
+        if (articulosSeleccionados.length === 0) {
+            mostrarAlerta('Debe agregar al menos un artículo a la entrega', 'warning');
             return false;
         }
 
-        // Recorrer filas y construir array de detalles
-        for (let i = 0; i < this.contadorFilas; i++) {
-            const fila = document.getElementById(`fila_${i}`);
-            if (!fila) continue;
+        const detalles = [];
+        const tbody = document.getElementById('tbody-articulos');
+        const filas = tbody.querySelectorAll('tr');
 
-            const inputCantidad = document.getElementById(`cantidad_${i}`);
-            const inputLote = document.getElementById(`lote_${i}`);
+        let todasValidas = true;
 
-            if (!inputCantidad) continue;
+        filas.forEach((fila, index) => {
+            const articuloId = parseInt(fila.dataset.articuloId);
+            const inputCantidad = fila.querySelector('.input-cantidad');
+            const inputLote = fila.querySelector('.input-lote');
+            const inputObservaciones = fila.querySelector('.input-observaciones');
 
-            let articuloId, detalleSolicitudId = null;
+            if (!inputCantidad) return;
 
-            if (this.esSolicitud) {
-                // Modo solicitud
-                const inputArticulo = document.getElementById(`articulo_${i}`);
-                const inputDetalleSolicitud = document.getElementById(`detalle_solicitud_${i}`);
+            const cantidad = parseFloat(inputCantidad.value);
+            const stock = parseFloat(inputCantidad.dataset.stock);
+            const pendiente = parseFloat(inputCantidad.dataset.pendiente) || 0;
 
-                if (!inputArticulo || !inputDetalleSolicitud) continue;
-
-                articuloId = parseInt(inputArticulo.value);
-                detalleSolicitudId = parseInt(inputDetalleSolicitud.value);
-
-                // Validaciones
-                if (!this.validarCantidadSolicitud(inputCantidad)) {
-                    return false;
-                }
-            } else {
-                // Modo manual
-                const selectArticulo = document.getElementById(`articulo_${i}`);
-
-                if (!selectArticulo || !selectArticulo.value) {
-                    alert('Seleccione un artículo en todas las filas.');
-                    return false;
-                }
-
-                articuloId = parseInt(selectArticulo.value);
-
-                // Validar stock disponible
-                if (!this.validarStockDisponible(selectArticulo, inputCantidad)) {
-                    return false;
-                }
+            // Validaciones
+            if (!cantidad || cantidad <= 0) {
+                todasValidas = false;
+                inputCantidad.classList.add('is-invalid');
+                return;
             }
 
-            if (!inputCantidad.value || parseFloat(inputCantidad.value) <= 0) {
-                alert('Ingrese una cantidad válida en todas las filas.');
-                return false;
+            if (cantidad > stock) {
+                todasValidas = false;
+                inputCantidad.classList.add('is-invalid');
+                mostrarAlerta(`La cantidad (${cantidad}) excede el stock disponible (${stock})`, 'danger');
+                return;
             }
 
-            const detalle = {
+            if (pendiente > 0 && cantidad > pendiente) {
+                todasValidas = false;
+                inputCantidad.classList.add('is-invalid');
+                mostrarAlerta(`La cantidad (${cantidad}) excede la cantidad pendiente (${pendiente})`, 'danger');
+                return;
+            }
+
+            inputCantidad.classList.remove('is-invalid');
+
+            // Agregar a detalles
+            detalles.push({
                 articulo_id: articuloId,
-                cantidad: parseFloat(inputCantidad.value),
-                lote: inputLote ? (inputLote.value || null) : null
-            };
+                cantidad: cantidad,
+                lote: inputLote.value || null,
+                observaciones: inputObservaciones.value || null
+            });
+        });
 
-            if (detalleSolicitudId) {
-                detalle.detalle_solicitud_id = detalleSolicitudId;
-            }
+        if (!todasValidas) {
+            mostrarAlerta('Por favor corrija los errores en el formulario', 'warning');
+            return false;
+        }
 
-            detalles.push(detalle);
+        if (detalles.length === 0) {
+            mostrarAlerta('Debe agregar al menos un artículo a la entrega', 'warning');
+            return false;
         }
 
         // Guardar JSON en campo oculto
@@ -447,59 +486,35 @@ const EntregaArticulos = {
         // Enviar formulario
         e.target.submit();
         return true;
-    },
-
-    /**
-     * Valida cantidad en modo solicitud
-     */
-    validarCantidadSolicitud(inputCantidad) {
-        const cantidadPendiente = parseFloat(inputCantidad.getAttribute('data-pendiente'));
-        const cantidadAEntregar = parseFloat(inputCantidad.value);
-        const stockDisponible = parseFloat(inputCantidad.getAttribute('data-stock'));
-
-        if (cantidadAEntregar > cantidadPendiente) {
-            alert(`La cantidad a entregar (${cantidadAEntregar}) excede la cantidad pendiente (${cantidadPendiente}).`);
-            return false;
-        }
-
-        if (cantidadAEntregar > stockDisponible) {
-            alert(`La cantidad a entregar (${cantidadAEntregar}) excede el stock disponible (${stockDisponible}).`);
-            return false;
-        }
-
-        return true;
-    },
-
-    /**
-     * Valida stock disponible en modo manual
-     */
-    validarStockDisponible(selectArticulo, inputCantidad) {
-        const opcion = selectArticulo.options[selectArticulo.selectedIndex];
-        const stockDisponible = parseFloat(opcion.getAttribute('data-stock'));
-        const cantidadSolicitada = parseFloat(inputCantidad.value);
-
-        if (cantidadSolicitada > stockDisponible) {
-            alert(`La cantidad solicitada (${cantidadSolicitada}) excede el stock disponible (${stockDisponible}).`);
-            return false;
-        }
-
-        return true;
-    },
-
-    /**
-     * Escapa HTML para prevenir XSS
-     */
-    escapeHtml(unsafe) {
-        if (!unsafe) return '';
-        return unsafe
-            .toString()
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
     }
-};
 
-// Exportar para uso global
-window.EntregaArticulos = EntregaArticulos;
+    /**
+     * Muestra una alerta temporal
+     * @param {string} mensaje - Mensaje a mostrar
+     * @param {string} tipo - Tipo de alerta (success, warning, danger, info)
+     */
+    function mostrarAlerta(mensaje, tipo = 'info') {
+        const alerta = document.createElement('div');
+        alerta.className = `alert alert-${tipo} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alerta.style.zIndex = '9999';
+        alerta.innerHTML = `
+            ${mensaje}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
+        document.body.appendChild(alerta);
+
+        // Auto-cerrar después de 5 segundos
+        setTimeout(() => {
+            alerta.remove();
+        }, 5000);
+    }
+
+    // Inicializar cuando el DOM esté listo
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', inicializar);
+    } else {
+        inicializar();
+    }
+
+})();
