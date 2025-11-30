@@ -71,47 +71,11 @@
                                 </a>
                             </li>
 
-                            <!-- Menú de Reportes - Con desplegable por app -->
+                            <!-- Menú de Reportes - Navegación directa a vista de selección -->
                             <li class="nav-item">
-                                <a class="nav-link menu-link collapsed" href="{% url 'reportes:seleccionar_reporte' %}"
-                                    data-bs-toggle="collapse" role="button" aria-expanded="false"
-                                    aria-controls="sidebarReportes">
+                                <a class="nav-link menu-link" href="{% url 'reportes:seleccionar_reporte' %}">
                                     <i class="ri-file-chart-line"></i> <span data-key="t-reportes">Reportes</span>
                                 </a>
-                                <div class="collapse menu-dropdown" id="sidebarReportes">
-                                    <ul class="nav nav-sm flex-column">
-                                        <li class="nav-item">
-                                            <a href="{% url 'reportes:auditoria_actividades' %}" class="nav-link">
-                                                <i class="ri-time-line"></i> Auditoría de Actividades
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="{% url 'reportes:dashboard_app' 'bodega' %}" class="nav-link">
-                                                <i class="ri-archive-line"></i> Bodega
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="{% url 'reportes:dashboard_app' 'compras' %}" class="nav-link">
-                                                <i class="ri-shopping-cart-line"></i> Compras
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="{% url 'reportes:dashboard_app' 'solicitudes' %}" class="nav-link">
-                                                <i class="ri-file-text-line"></i> Solicitudes
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="{% url 'reportes:dashboard_app' 'activos' %}" class="nav-link">
-                                                <i class="ri-box-3-line"></i> Activos
-                                            </a>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a href="{% url 'reportes:dashboard_app' 'bajas' %}" class="nav-link">
-                                                <i class="ri-delete-bin-line"></i> Bajas
-                                            </a>
-                                        </li>
-                                    </ul>
-                                </div>
                             </li>
 
                             <!-- Menú de Bodega - Enlace directo al menú con Cards -->
