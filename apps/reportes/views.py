@@ -13,6 +13,7 @@ from apps.compras.models import Proveedor
 # Servicios y exportadores
 from apps.reportes.services.bodega import ArticulosSinMovimientoService
 from apps.reportes.services.compras import OcAtrasadasPorProveedorService
+from apps.reportes.services.reporte import ReporteService
 from apps.reportes.exporters.pdf import export_pdf
 from apps.reportes.exporters.xlsx import export_xlsx
 
@@ -166,6 +167,107 @@ def dashboard_reportes(request, app=None):
         }
     
     return render(request, 'reportes/dashboard.html', context)
+
+
+# ==================== NUEVOS REPORTES DINAMICOS ====================
+
+
+@login_required
+def seleccionar_reporte(request, modulo=None):
+    """
+    Vista unificada para seleccionar y generar reportes de forma dinamica.
+    
+    Flujo:
+    1. Estado inicial: Solo muestra nombres de reportes
+    2. Al seleccionar reporte: Muestra filtros especificos
+    3. Al hacer clic en "Crear Informe": Muestra tabla con datos
+    
+    SOLO ORQUESTA - Toda la logica de negocio esta en ReporteService.
+    """
+    # Obtener reporte seleccionado desde GET
+    reporte_codigo = request.GET.get('reporte', '').strip()
+    crear_informe = request.GET.get('crear_informe', '').strip() == '1'
+    
+    # Obtener reportes disponibles desde Service Layer
+    reportes_disponibles = ReporteService.obtener_reportes_por_modulo(modulo)
+    
+    # Si hay un reporte seleccionado, obtener su configuracion
+    reporte_seleccionado = None
+    filtros_config = {}
+    opciones_filtros = {}
+    
+    if reporte_codigo:
+        reporte_seleccionado = ReporteService.obtener_reporte_por_codigo(reporte_codigo)
+        if reporte_seleccionado:
+            filtros_config = ReporteService.obtener_filtros_para_reporte(reporte_codigo)
+            
+            # Obtener opciones para cada filtro
+            for filtro_key, filtro_config in filtros_config.items():
+                if filtro_config.get('tipo') == 'select' and filtro_config.get('opciones'):
+                    opciones_filtros[filtro_key] = ReporteService.obtener_opciones_para_filtro(
+                        filtro_config['opciones']
+                    )
+    
+    # Si se solicito crear el informe, procesar y mostrar resultados
+    report_data = None
+    if crear_informe and reporte_seleccionado:
+        # Obtener valores de filtros desde GET
+        filtros_valores = {}
+        for filtro_key in filtros_config.keys():
+            valor = request.GET.get(filtro_key, '').strip()
+            if valor:
+                filtros_valores[filtro_key] = valor
+        
+        # Llamar al service correspondiente segun el tipo de reporte
+        if reporte_codigo == 'articulos_sin_movimiento':
+            desde_str = filtros_valores.get('desde')
+            hasta_str = filtros_valores.get('hasta')
+            bodega_id = filtros_valores.get('bodega_id')
+            categoria_id = filtros_valores.get('categoria_id')
+            
+            hoy = timezone.now().date()
+            desde = datetime.strptime(desde_str, "%Y-%m-%d").date() if desde_str else (hoy - timedelta(days=30))
+            hasta = datetime.strptime(hasta_str, "%Y-%m-%d").date() if hasta_str else hoy
+            
+            service = ArticulosSinMovimientoService()
+            report_data = service.run(desde, hasta, bodega_id=bodega_id, categoria_id=categoria_id)
+            
+        elif reporte_codigo == 'oc_atrasadas_por_proveedor':
+            proveedor_id = filtros_valores.get('proveedor_id')
+            bodega_id = filtros_valores.get('bodega_id')
+            
+            service = OcAtrasadasPorProveedorService()
+            report_data = service.run(proveedor_id=proveedor_id, bodega_id=bodega_id)
+    
+    # Obtener opciones para filtros de tipo select
+    bodegas = Bodega.objects.filter(eliminado=False, activo=True).order_by("codigo")
+    categorias = Categoria.objects.filter(eliminado=False).order_by("codigo")
+    proveedores = Proveedor.objects.filter(eliminado=False, activo=True).order_by("razon_social")
+    
+    context = {
+        'titulo': 'Generar Reporte',
+        'modulo': modulo,
+        'reportes_disponibles': reportes_disponibles,
+        'reporte_seleccionado': reporte_seleccionado,
+        'reporte_codigo': reporte_codigo,
+        'filtros_config': filtros_config,
+        'opciones_filtros': opciones_filtros,
+        'bodegas': bodegas,
+        'categorias': categorias,
+        'proveedores': proveedores,
+        'report': report_data,
+        'crear_informe': crear_informe,
+        # Valores actuales de filtros para mantener en el formulario
+        'filtros_actuales': {
+            'desde': request.GET.get('desde', ''),
+            'hasta': request.GET.get('hasta', ''),
+            'bodega_id': request.GET.get('bodega_id', ''),
+            'categoria_id': request.GET.get('categoria_id', ''),
+            'proveedor_id': request.GET.get('proveedor_id', ''),
+        }
+    }
+    
+    return render(request, 'reportes/seleccionar_reporte.html', context)
 
 
 # ==================== NUEVOS REPORTES ====================

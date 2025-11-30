@@ -9,7 +9,7 @@
           <input type="date" name="desde" value="{{ desde|date:'Y-m-d' }}" class="form-control">
         </div>
         <div class="col-md-3">
-          <label class="form-label">Fecha de Término</label>
+          <label class="form-label">Fecha de Termino</label>
           <input type="date" name="hasta" value="{{ hasta|date:'Y-m-d' }}" class="form-control">
         </div>
         <div class="col-md-3">
@@ -22,20 +22,12 @@
           </select>
         </div>
         <div class="col-md-3">
-          <label class="form-label">Categoría</label>
+          <label class="form-label">Categoria</label>
           <select name="categoria_id" class="form-select">
             <option value="">(Todas)</option>
             {% for c in categorias %}
               <option value="{{ c.id }}" {% if categoria_id|stringformat:'s' == c.id|stringformat:'s' %}selected{% endif %}>{{ c.codigo }} - {{ c.nombre }}</option>
             {% endfor %}
-          </select>
-        </div>
-        <div class="col-md-3">
-          <label class="form-label">Visualizar</label>
-          <select name="format" class="form-select">
-            <option value="html" selected>En Pantalla</option>
-            <option value="pdf">PDF</option>
-            <option value="xlsx">Excel</option>
           </select>
         </div>
         <div class="col-md-3">
@@ -45,7 +37,8 @@
     </div>
   </div>
 
-  {% include "reportes/_tabla_report.html" %}
+  {% if report %}
+    {% include "reportes/_tabla_report.html" %}
+  {% endif %}
+
 {% endblock %}
-
-

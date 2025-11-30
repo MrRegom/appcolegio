@@ -1,0 +1,152 @@
+{% extends "index.html" %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock title %}
+
+{% block extra_css %}
+<link href="{% static 'css/reportes-dinamicos.css' %}" rel="stylesheet" type="text/css">
+{% endblock extra_css %}
+
+{% block content %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+            <h4 class="mb-sm-0">{{ titulo }}</h4>
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard_analytics' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'reportes:dashboard' %}">Reportes</a></li>
+                    <li class="breadcrumb-item active">Generar Reporte</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seleccion de Reporte -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ri-file-list-3-line me-2"></i>Seleccionar Reporte
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3" id="reportes-lista">
+                    {% for reporte in reportes_disponibles %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="reporte-card" 
+                             data-reporte-codigo="{{ reporte.codigo }}"
+                             onclick="seleccionarReporte('{{ reporte.codigo }}')">
+                            <div class="reporte-card-icon">
+                                <i class="ri-bar-chart-2-line"></i>
+                            </div>
+                            <div class="reporte-card-content">
+                                <h6 class="reporte-card-title">{{ reporte.nombre }}</h6>
+                                <p class="reporte-card-desc">{{ reporte.descripcion }}</p>
+                                <span class="badge bg-primary-subtle text-primary">{{ reporte.modulo|capfirst }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="ri-information-line me-2"></i>No hay reportes disponibles para este modulo.
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtros (se muestran dinamicamente al seleccionar reporte) -->
+{% if reporte_seleccionado %}
+<div class="row mb-4" id="filtros-container">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ri-filter-line me-2"></i>Filtros - {{ reporte_seleccionado.nombre }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'reportes:seleccionar_reporte' %}" id="filtros-form">
+                    <input type="hidden" name="reporte" value="{{ reporte_codigo }}">
+                    <input type="hidden" name="crear_informe" value="1" id="crear-informe-flag">
+                    
+                    <div class="row g-3">
+                        {% for filtro_key, filtro_config in filtros_config.items %}
+                        <div class="col-md-6 col-lg-4">
+                            <label class="form-label">{{ filtro_config.label }}</label>
+                            
+                            {% if filtro_config.tipo == 'date' %}
+                            <input type="date" 
+                                   name="{{ filtro_key }}" 
+                                   class="form-control"
+                                   {% if filtro_key == 'desde' %}value="{{ filtros_actuales.desde }}"{% elif filtro_key == 'hasta' %}value="{{ filtros_actuales.hasta }}"{% endif %}
+                                   {% if filtro_config.requerido %}required{% endif %}>
+                            
+                            {% elif filtro_config.tipo == 'select' %}
+                            <select name="{{ filtro_key }}" class="form-select">
+                                <option value="">(Todos)</option>
+                                {% if filtro_key == 'bodega_id' %}
+                                    {% for b in bodegas %}
+                                    <option value="{{ b.id }}" {% if filtros_actuales.bodega_id|stringformat:'s' == b.id|stringformat:'s' %}selected{% endif %}>
+                                        {{ b.codigo }} - {{ b.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                {% elif filtro_key == 'categoria_id' %}
+                                    {% for c in categorias %}
+                                    <option value="{{ c.id }}" {% if filtros_actuales.categoria_id|stringformat:'s' == c.id|stringformat:'s' %}selected{% endif %}>
+                                        {{ c.codigo }} - {{ c.nombre }}
+                                    </option>
+                                    {% endfor %}
+                                {% elif filtro_key == 'proveedor_id' %}
+                                    {% for p in proveedores %}
+                                    <option value="{{ p.id }}" {% if filtros_actuales.proveedor_id|stringformat:'s' == p.id|stringformat:'s' %}selected{% endif %}>
+                                        {{ p.rut }} - {{ p.razon_social }}
+                                    </option>
+                                    {% endfor %}
+                                {% endif %}
+                            </select>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="ri-bar-chart-2-line me-1"></i> Crear Informe
+                            </button>
+                            <a href="{% url 'reportes:seleccionar_reporte' %}" class="btn btn-secondary">
+                                <i class="ri-arrow-left-line me-1"></i> Volver
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Tabla de Resultados (se muestra solo despues de crear informe) -->
+{% if crear_informe and report %}
+<div class="row">
+    <div class="col-12">
+        {% include "reportes/_tabla_report.html" %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock content %}
+
+{% block extra_js %}
+<script src="{% static 'js/pages/reportes-dinamicos.init.js' %}"></script>
+{% endblock extra_js %}
+

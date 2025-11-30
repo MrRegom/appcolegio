@@ -22,22 +22,15 @@
             {% endfor %}
           </select>
         </div>
-        <div class="col-md-2">
-          <label class="form-label">Visualizar</label>
-          <select name="format" class="form-select">
-            <option value="html" selected>En Pantalla</option>
-            <option value="pdf">PDF</option>
-            <option value="xlsx">Excel</option>
-          </select>
-        </div>
-        <div class="col-md-2">
+        <div class="col-md-4">
           <button type="submit" class="btn btn-success"><i class="ri-bar-chart-2-line me-1"></i> Crear Informe...</button>
         </div>
       </form>
     </div>
   </div>
 
-  {% include "reportes/_tabla_report.html" %}
+  {% if report %}
+    {% include "reportes/_tabla_report.html" %}
+  {% endif %}
+
 {% endblock %}
-
-
