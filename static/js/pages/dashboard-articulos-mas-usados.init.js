@@ -1,4 +1,5 @@
 /**
+<<<<<<< HEAD
  * Dashboard Artículos Más Usados Chart
  * 
  * Inicializa el gráfico de barras para artículos más utilizados.
@@ -63,11 +64,50 @@
                 toolbar: {
                     show: false
                 }
+=======
+ * Dashboard Artículos Más Usados - Gráfico de barras para artículos más utilizados
+ * 
+ * Separación de responsabilidades: JavaScript en archivo dedicado
+ * No mezclar JS con HTML (SRP - Single Responsibility Principle)
+ * 
+ * Los datos se obtienen desde data-attributes del elemento HTML
+ */
+
+(function() {
+    'use strict';
+
+    /**
+     * Inicializa el gráfico de artículos más usados cuando el DOM está listo
+     */
+    document.addEventListener("DOMContentLoaded", function() {
+        var chartElement = document.getElementById('articulos_mas_usados');
+        if (!chartElement) return;
+
+        var colors = getChartColorsArray("articulos_mas_usados");
+        if (!colors) return;
+
+        // Obtener datos desde data-attributes (práctica limpia)
+        var articulosNombres = JSON.parse(chartElement.getAttribute('data-nombres') || '[]');
+        var articulosCantidades = JSON.parse(chartElement.getAttribute('data-cantidades') || '[]');
+
+        if (!articulosNombres.length || !articulosCantidades.length) return;
+        
+        var options = {
+            series: [{
+                name: 'Movimientos',
+                data: articulosCantidades
+            }],
+            chart: {
+                type: 'bar',
+                height: 300,
+                toolbar: { show: false }
+>>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
             },
             plotOptions: {
                 bar: {
                     horizontal: false,
                     columnWidth: '55%',
+<<<<<<< HEAD
                     endingShape: 'rounded',
                     borderRadius: 8
                 }
@@ -77,6 +117,13 @@
                 formatter: function(val) {
                     return Math.round(val);
                 }
+=======
+                    endingShape: 'rounded'
+                }
+            },
+            dataLabels: {
+                enabled: false
+>>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
             },
             stroke: {
                 show: true,
@@ -84,6 +131,7 @@
                 colors: ['transparent']
             },
             xaxis: {
+<<<<<<< HEAD
                 categories: nombres,
                 labels: {
                     rotate: -45,
@@ -91,6 +139,12 @@
                     style: {
                         fontSize: '12px'
                     }
+=======
+                categories: articulosNombres,
+                labels: {
+                    rotate: -45,
+                    rotateAlways: true
+>>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
                 }
             },
             yaxis: {
@@ -99,6 +153,7 @@
                 }
             },
             fill: {
+<<<<<<< HEAD
                 opacity: 1,
                 type: 'gradient',
                 gradient: {
@@ -111,10 +166,14 @@
                     opacityTo: 0.5,
                     stops: [0, 100]
                 }
+=======
+                opacity: 1
+>>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
             },
             colors: colors,
             tooltip: {
                 y: {
+<<<<<<< HEAD
                     formatter: function(val) {
                         return val + " movimientos";
                     }
@@ -131,3 +190,16 @@
     });
 })();
 
+=======
+                    formatter: function (val) {
+                        return val + " movimientos";
+                    }
+                }
+            }
+        };
+        
+        var chart = new ApexCharts(chartElement, options);
+        chart.render();
+    });
+})();
+>>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
