@@ -1,38 +1,14 @@
-<<<<<<< HEAD
 /**
  * Dashboard Cards CSS
  * 
  * Estilos para las cards del dashboard principal.
- * Separación de responsabilidades: solo presentación visual.
+ * Separacion de responsabilidades: solo presentacion visual.
  */
 
 /* ============================================
    CARDS PRINCIPALES DEL DASHBOARD
    ============================================ */
 
-.dashboard-stat-card {
-    border-radius: 16px;
-    border: none;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    animation: cardFadeIn 0.6s ease-out forwards;
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-@keyframes cardFadeIn {
-=======
-/*
- * Dashboard Cards - Estilos para métricas operativas
- * 
- * Separación de responsabilidades: CSS en archivo dedicado
- * No mezclar estilos con HTML (SRP - Single Responsibility Principle)
- */
-
-/* Cards del dashboard impresionantes - más compactos verticalmente */
 .dashboard-stat-card {
     border-radius: 16px;
     border: 2px solid #e1e5e9;
@@ -56,100 +32,12 @@
 .dashboard-stat-card:nth-child(4) { animation-delay: 0.4s; }
 
 @keyframes cardFadeInUp {
->>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
     to {
         opacity: 1;
         transform: translateY(0);
     }
 }
 
-<<<<<<< HEAD
-/* Delay escalonado para cada card */
-.dashboard-stat-card:nth-child(1) { animation-delay: 0.1s; }
-.dashboard-stat-card:nth-child(2) { animation-delay: 0.2s; }
-.dashboard-stat-card:nth-child(3) { animation-delay: 0.3s; }
-.dashboard-stat-card:nth-child(4) { animation-delay: 0.4s; }
-
-/* Hover effect */
-.dashboard-stat-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-}
-
-/* Iconos de las cards */
-.dashboard-stat-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    transition: all 0.3s ease;
-}
-
-.dashboard-stat-card:hover .dashboard-stat-icon {
-    transform: scale(1.1) rotate(5deg);
-}
-
-/* Colores por tipo de card */
-.dashboard-stat-warning .dashboard-stat-icon {
-    background: linear-gradient(135deg, #f7b84b 0%, #f59e0b 100%);
-    color: white;
-}
-
-.dashboard-stat-info .dashboard-stat-icon {
-    background: linear-gradient(135deg, #299cdb 0%, #0ea5e9 100%);
-    color: white;
-}
-
-.dashboard-stat-danger .dashboard-stat-icon {
-    background: linear-gradient(135deg, #f06548 0%, #dc2626 100%);
-    color: white;
-}
-
-.dashboard-stat-success .dashboard-stat-icon {
-    background: linear-gradient(135deg, #0ab39c 0%, #059669 100%);
-    color: white;
-}
-
-/* Títulos y valores */
-.dashboard-stat-title {
-    font-size: 0.75rem;
-    letter-spacing: 0.5px;
-    margin-bottom: 0.5rem;
-}
-
-.dashboard-stat-value {
-    font-size: 2rem;
-    font-weight: 700;
-    line-height: 1.2;
-    margin-bottom: 0.5rem;
-}
-
-/* Trend indicators */
-.dashboard-stat-trend {
-    font-size: 0.875rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-}
-
-/* Sparkline charts container */
-.dashboard-stat-card .apex-charts {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    opacity: 0.3;
-}
-
-/* ============================================
-   CARDS CLICKEABLES
-   ============================================ */
-
-=======
 .dashboard-stat-card::before {
     content: '';
     position: absolute;
@@ -295,7 +183,7 @@
     }
 }
 
-/* Mejorar gráficos sparkline - más compactos */
+/* Mejorar graficos sparkline - mas compactos */
 .dashboard-stat-card .apex-charts {
     margin-top: 0.5rem;
     opacity: 0.7;
@@ -328,50 +216,25 @@ a:active .dashboard-stat-card {
 }
 
 /* Links de cards clickeables */
->>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
 .dashboard-card-link {
     display: block;
     text-decoration: none;
     color: inherit;
-<<<<<<< HEAD
-    transition: all 0.3s ease;
 }
 
-.dashboard-card-link:hover {
-    color: inherit;
-    text-decoration: none;
-}
-
-.dashboard-stat-card.clickeable {
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.3s;
-}
-
-.dashboard-stat-card.clickeable:hover {
-    transform: translateY(-8px) scale(1.02);
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
-}
-
-/* ============================================
-   ACTIVIDADES RECIENTES COMPACTA
-   ============================================ */
-
-=======
-}
-
-/* Cards clickeables - cursor y transición */
+/* Cards clickeables - cursor y transicion */
 .dashboard-stat-card.clickeable {
     cursor: pointer;
     transition: transform 0.2s;
 }
 
-/* Títulos de las cards */
+/* Titulos de las cards */
 .dashboard-stat-title {
     letter-spacing: 0.5px;
     font-size: 0.7rem;
 }
 
-/* Título de bienvenida con color dorado */
+/* Titulo de bienvenida con color dorado */
 .text-gold {
     color: #D4AF37;
 }
@@ -381,75 +244,18 @@ a:active .dashboard-stat-card {
    ============================================================ */
 
 /* Card compacta para actividades recientes */
->>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
 .actividades-recientes-compacta {
     height: auto;
     min-height: 200px;
     max-height: 280px;
 }
 
-<<<<<<< HEAD
-=======
 /* Contenedor con scroll para actividades */
->>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
 .actividades-recientes-container {
     max-height: 200px;
     overflow-y: auto;
 }
 
-<<<<<<< HEAD
-/* Timeline de actividades */
-.activity-timeline-2 {
-    position: relative;
-    padding-left: 0;
-}
-
-.activity-timeline-2 li {
-    position: relative;
-    padding-bottom: 1.5rem;
-    padding-left: 2.5rem;
-    border-left: 2px solid #e9ecef;
-    margin-bottom: 0.5rem;
-}
-
-.activity-timeline-2 li:last-child {
-    border-left: none;
-    padding-bottom: 0;
-}
-
-.activity-timeline-2 li::before {
-    content: '';
-    position: absolute;
-    left: -6px;
-    top: 0;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #dee2e6;
-    border: 2px solid #fff;
-}
-
-.activity-timeline-2 li .avatar-xs {
-    position: absolute;
-    left: -16px;
-    top: 0;
-}
-
-/* ============================================
-   RESPONSIVE
-   ============================================ */
-
-@media (max-width: 768px) {
-    .dashboard-stat-card {
-        margin-bottom: 1rem;
-    }
-    
-    .dashboard-stat-value {
-        font-size: 1.5rem;
-    }
-}
-
-=======
 /* Ajustar espaciado de items en timeline */
 .actividades-recientes-compacta .activity-timeline-2 li {
     margin-bottom: 1rem;
@@ -463,7 +269,7 @@ a:active .dashboard-stat-card {
     padding-bottom: 0;
 }
 
-/* Reducir tamaño de texto en actividades */
+/* Reducir tamano de texto en actividades */
 .actividades-recientes-compacta .card-title {
     font-size: 0.95rem;
     margin-bottom: 0.5rem;
@@ -483,7 +289,7 @@ a:active .dashboard-stat-card {
     font-size: 0.7rem;
 }
 
-/* Asegurar que el botón "Ver Más" siempre sea visible */
+/* Asegurar que el boton "Ver Mas" siempre sea visible */
 .actividades-recientes-compacta .card-header {
     position: sticky;
     top: 0;
@@ -492,4 +298,17 @@ a:active .dashboard-stat-card {
     border-bottom: 1px solid #e9ecef;
     padding: 0.75rem 1rem;
 }
->>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .dashboard-stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    .dashboard-stat-value {
+        font-size: 1.5rem;
+    }
+}
