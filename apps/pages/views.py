@@ -46,12 +46,20 @@ pages_web_apps = pagesview.as_view(template_name = "pages/pages-web-apps.html")
 class DashboardView(LoginRequiredMixin, TemplateView):
     """
     Vista del dashboard principal con datos reales del sistema.
-    Mantiene las animaciones y gráficos pero usa datos reales de la BD.
+    
+    SOLO ORQUESTA - Toda la lógica de negocio está en DashboardService.
+    Sigue Clean Architecture: Views → solo orquestan, sin lógica pesada.
     """
 
     def get_context_data(self, **kwargs):
-        """Obtiene datos reales para el dashboard"""
+        """
+        Obtiene datos reales para el dashboard.
+        
+        La vista solo orquesta llamadas al Service Layer.
+        Toda la lógica de negocio está en DashboardService.
+        """
         context = super().get_context_data(**kwargs)
+<<<<<<< HEAD
         from apps.reportes.models import ConsultasReportes
 
         # Obtener datos reales usando ConsultasReportes
@@ -244,19 +252,44 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'entregas_change': entregas_change,
             'stock_change': stock_change,
             'activos_change': activos_change,
+=======
+        from .services import DashboardService
+        
+        # Obtener todas las métricas desde el Service Layer
+        metricas_principales = DashboardService.obtener_metricas_principales()
+        metricas_complementarias = DashboardService.obtener_metricas_complementarias()
+        datos_graficos = DashboardService.obtener_datos_graficos()
+        datos_articulos = DashboardService.obtener_datos_grafico_articulos_mas_usados()
+        
+        # Obtener datos de tablas desde el Service Layer
+        ultimos_productos = DashboardService.obtener_ultimos_productos(limite=10)
+        productos_top_stock = DashboardService.obtener_productos_top_stock(limite=10)
+        articulos_stock_bajo = DashboardService.obtener_articulos_stock_bajo(limite=10)
+        ultimas_entregas = DashboardService.obtener_ultimas_entregas(limite=10)
+        ultimos_movimientos = DashboardService.obtener_ultimos_movimientos(limite=10)
+        actividades_recientes = DashboardService.obtener_actividades_recientes(limite=2)
+        
+        # Combinar todo el contexto
+        context.update({
+            # Métricas principales del dashboard operativo
+            **metricas_principales,
+            
+            # Métricas complementarias
+            **metricas_complementarias,
+            
+>>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
             # Datos para gráficos
-            'meses_data': meses_data,
-            'movimientos_data': movimientos_data,
-            'solicitudes_data': solicitudes_data,
-            # Datos adicionales
+            **datos_graficos,
+            
+            # Datos de artículos más usados
+            **datos_articulos,
+            
+            # Datos para tablas
             'user': self.request.user,
             'ultimos_productos': ultimos_productos,
             'productos_top_stock': productos_top_stock,
             'ultimas_entregas': ultimas_entregas,
             'ultimos_movimientos': ultimos_movimientos,
-            'articulos_mas_usados': articulos_mas_usados,
-            'articulos_nombres': articulos_nombres,
-            'articulos_cantidades': articulos_cantidades,
             'actividades_recientes': actividades_recientes,
             'articulos_stock_bajo': articulos_stock_bajo,
         })
