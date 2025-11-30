@@ -40,16 +40,19 @@
                 <div class="row g-3" id="modulos-lista">
                     {% for mod in modulos_disponibles %}
                     <div class="col-md-6 col-lg-4">
-                        <div class="reporte-card" 
+                        <div class="reporte-card {% if mod.tipo == 'auditoria' %}reporte-card-auditoria{% endif %}" 
                              data-modulo-codigo="{{ mod.codigo }}"
-                             onclick="seleccionarModulo('{{ mod.codigo }}')">
-                            <div class="reporte-card-icon">
+                             data-modulo-tipo="{{ mod.tipo }}"
+                             onclick="seleccionarModulo('{{ mod.codigo }}', '{{ mod.tipo }}')">
+                            <div class="reporte-card-icon {% if mod.tipo == 'auditoria' %}reporte-card-icon-auditoria{% endif %}">
                                 <i class="{{ mod.icono }}"></i>
                             </div>
                             <div class="reporte-card-content">
                                 <h6 class="reporte-card-title">{{ mod.nombre }}</h6>
                                 <p class="reporte-card-desc">{{ mod.descripcion }}</p>
-                                <span class="badge bg-primary-subtle text-primary">Modulo</span>
+                                <span class="badge {% if mod.tipo == 'auditoria' %}bg-warning-subtle text-warning{% else %}bg-primary-subtle text-primary{% endif %}">
+                                    {% if mod.tipo == 'auditoria' %}Auditoria{% else %}Modulo{% endif %}
+                                </span>
                             </div>
                         </div>
                     </div>
