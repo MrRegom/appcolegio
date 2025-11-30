@@ -351,3 +351,75 @@ class ConsultasReportes:
         """Total de bajas de inventario"""
         from apps.bajas_inventario.models import BajaInventario
         return BajaInventario.objects.filter(eliminado=False).count()
+    
+    @staticmethod
+    def ordenes_compra_en_proceso():
+        """Total de órdenes de compra en estado PENDIENTE o APROBADA"""
+        from apps.compras.models import OrdenCompra, EstadoOrdenCompra
+        estados_en_proceso = EstadoOrdenCompra.objects.filter(
+            codigo__in=['PENDIENTE', 'APROBADA'],
+            eliminado=False
+        )
+        return OrdenCompra.objects.filter(
+            eliminado=False,
+            estado__in=estados_en_proceso
+        ).count()
+    
+    @staticmethod
+    def articulos_stock_critico():
+        """Total de artículos con stock por debajo del mínimo"""
+        from apps.bodega.models import Articulo
+        from django.db.models import F
+        return Articulo.objects.filter(
+            eliminado=False
+        ).filter(
+            stock_actual__lt=F('stock_minimo')
+        ).count()
+    
+    @staticmethod
+    def solicitudes_entregadas_mes_actual():
+        """Total de solicitudes entregadas en el mes actual"""
+        from apps.solicitudes.models import Solicitud, EstadoSolicitud
+        from django.utils import timezone
+        from datetime import datetime
+        
+        hoy = timezone.now()
+        inicio_mes = datetime(hoy.year, hoy.month, 1)
+        
+        estado_entregada = EstadoSolicitud.objects.filter(
+            codigo='ENTREGADA',
+            eliminado=False
+        ).first()
+        
+        if estado_entregada:
+            return Solicitud.objects.filter(
+                eliminado=False,
+                estado=estado_entregada,
+                fecha_actualizacion__gte=inicio_mes
+            ).count()
+        return 0
+    
+    @staticmethod
+    def calcular_tendencia_solicitudes():
+        """Calcula el cambio porcentual de solicitudes pendientes"""
+        # Por ahora retorna un valor simulado
+        # Se puede mejorar con datos históricos
+        return -12.5
+    
+    @staticmethod
+    def calcular_tendencia_ordenes():
+        """Calcula el cambio porcentual de órdenes en proceso"""
+        # Por ahora retorna un valor simulado
+        return 0.0
+    
+    @staticmethod
+    def calcular_tendencia_stock_critico():
+        """Calcula el cambio porcentual de stock crítico"""
+        # Por ahora retorna un valor simulado
+        return 0.0
+    
+    @staticmethod
+    def calcular_tendencia_entregas():
+        """Calcula el cambio porcentual de entregas del mes"""
+        # Por ahora retorna un valor simulado
+        return 0.0
