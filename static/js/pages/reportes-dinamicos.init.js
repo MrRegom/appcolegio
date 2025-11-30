@@ -9,13 +9,17 @@
     'use strict';
 
     /**
-     * Selecciona un modulo y redirige a la vista de reportes de ese modulo
+     * Selecciona un modulo y redirige a la vista correspondiente
      */
-    function seleccionarModulo(codigo) {
-        // Construir URL con el modulo seleccionado
-        const url = new URL(window.location.origin + '/reportes/generar/' + codigo + '/');
+    function seleccionarModulo(codigo, tipo) {
+        // Si es auditoria, ir directamente a la vista de auditoria
+        if (tipo === 'auditoria') {
+            window.location.href = '/reportes/auditoria/';
+            return;
+        }
         
-        // Redirigir para mostrar reportes del modulo
+        // Para otros modulos, ir a la vista de reportes del modulo
+        const url = new URL(window.location.origin + '/reportes/generar/' + codigo + '/');
         window.location.href = url.toString();
     }
 

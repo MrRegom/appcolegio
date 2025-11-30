@@ -92,6 +92,36 @@
     opacity: 1;
 }
 
+/* Card de Auditoria - Color distintivo (naranja/dorado) */
+.reporte-card-auditoria {
+    border-color: #f7b84b;
+}
+
+.reporte-card-auditoria::before {
+    background: linear-gradient(90deg, #f7b84b, #f4d03f);
+}
+
+.reporte-card-auditoria:hover {
+    border-color: #f7b84b;
+    box-shadow: 0 8px 24px rgba(247, 184, 75, 0.2);
+}
+
+.reporte-card-auditoria.selected {
+    border-color: #f7b84b;
+    background: linear-gradient(135deg, #fff8e6 0%, #ffffff 100%);
+    box-shadow: 0 4px 16px rgba(247, 184, 75, 0.25);
+}
+
+.reporte-card-icon-auditoria {
+    background: linear-gradient(135deg, #f7b84b 0%, #f4d03f 100%);
+    color: #1e3a8a;
+}
+
+.reporte-card-auditoria:hover .reporte-card-icon-auditoria {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 6px 20px rgba(247, 184, 75, 0.3);
+}
+
 /* ============================================
    CONTENEDOR DE FILTROS
    ============================================ */

@@ -188,11 +188,12 @@ def seleccionar_reporte(request, modulo=None):
     # Si no hay modulo, mostrar seleccion de modulos
     if not modulo:
         modulos_disponibles = [
-            {'codigo': 'bodega', 'nombre': 'Bodega', 'descripcion': 'Reportes del modulo de bodega e inventario', 'icono': 'ri-archive-line'},
-            {'codigo': 'compras', 'nombre': 'Compras', 'descripcion': 'Reportes del modulo de compras y ordenes', 'icono': 'ri-shopping-cart-line'},
-            {'codigo': 'solicitudes', 'nombre': 'Solicitudes', 'descripcion': 'Reportes del modulo de solicitudes', 'icono': 'ri-file-text-line'},
-            {'codigo': 'activos', 'nombre': 'Activos', 'descripcion': 'Reportes del modulo de activos fijos', 'icono': 'ri-building-line'},
-            {'codigo': 'bajas', 'nombre': 'Bajas', 'descripcion': 'Reportes del modulo de bajas de inventario', 'icono': 'ri-delete-bin-line'},
+            {'codigo': 'auditoria', 'nombre': 'Auditoria', 'descripcion': 'Auditoria de actividades del sistema', 'icono': 'ri-time-line', 'tipo': 'auditoria'},
+            {'codigo': 'bodega', 'nombre': 'Bodega', 'descripcion': 'Reportes del modulo de bodega e inventario', 'icono': 'ri-archive-line', 'tipo': 'reporte'},
+            {'codigo': 'compras', 'nombre': 'Compras', 'descripcion': 'Reportes del modulo de compras y ordenes', 'icono': 'ri-shopping-cart-line', 'tipo': 'reporte'},
+            {'codigo': 'solicitudes', 'nombre': 'Solicitudes', 'descripcion': 'Reportes del modulo de solicitudes', 'icono': 'ri-file-text-line', 'tipo': 'reporte'},
+            {'codigo': 'activos', 'nombre': 'Activos', 'descripcion': 'Reportes del modulo de activos fijos', 'icono': 'ri-building-line', 'tipo': 'reporte'},
+            {'codigo': 'bajas', 'nombre': 'Bajas', 'descripcion': 'Reportes del modulo de bajas de inventario', 'icono': 'ri-delete-bin-line', 'tipo': 'reporte'},
         ]
         context = {
             'titulo': 'Generar Reporte',
