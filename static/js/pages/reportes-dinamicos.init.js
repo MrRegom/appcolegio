@@ -9,9 +9,30 @@
     'use strict';
 
     /**
+     * Selecciona un modulo y redirige a la vista de reportes de ese modulo
+     */
+    function seleccionarModulo(codigo) {
+        // Construir URL con el modulo seleccionado
+        const url = new URL(window.location.origin + '/reportes/generar/' + codigo + '/');
+        
+        // Redirigir para mostrar reportes del modulo
+        window.location.href = url.toString();
+    }
+
+    /**
      * Selecciona un reporte y muestra sus filtros
      */
     function seleccionarReporte(codigo) {
+        // Obtener el modulo actual de la URL
+        const pathParts = window.location.pathname.split('/');
+        const moduloIndex = pathParts.indexOf('generar');
+        const modulo = moduloIndex !== -1 && pathParts[moduloIndex + 1] ? pathParts[moduloIndex + 1] : null;
+        
+        if (!modulo) {
+            console.error('No se pudo determinar el modulo');
+            return;
+        }
+        
         // Remover seleccion anterior
         document.querySelectorAll('.reporte-card').forEach(card => {
             card.classList.remove('selected');
@@ -36,7 +57,8 @@
      * Inicializa la vista cuando el DOM esta listo
      */
     document.addEventListener("DOMContentLoaded", function() {
-        // Hacer la funcion seleccionarReporte disponible globalmente
+        // Hacer las funciones disponibles globalmente
+        window.seleccionarModulo = seleccionarModulo;
         window.seleccionarReporte = seleccionarReporte;
         
         // Si hay un reporte seleccionado, marcar su card
@@ -61,4 +83,3 @@
         }
     });
 })();
-

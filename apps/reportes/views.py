@@ -178,12 +178,29 @@ def seleccionar_reporte(request, modulo=None):
     Vista unificada para seleccionar y generar reportes de forma dinamica.
     
     Flujo:
-    1. Estado inicial: Solo muestra nombres de reportes
-    2. Al seleccionar reporte: Muestra filtros especificos
-    3. Al hacer clic en "Crear Informe": Muestra tabla con datos
+    1. Si no hay modulo: Muestra cards de modulos (Bodega, Compras, etc.)
+    2. Si hay modulo pero no reporte: Muestra cards de reportes del modulo
+    3. Si hay reporte seleccionado: Muestra filtros especificos
+    4. Al hacer clic en "Crear Informe": Muestra tabla con datos
     
     SOLO ORQUESTA - Toda la logica de negocio esta en ReporteService.
     """
+    # Si no hay modulo, mostrar seleccion de modulos
+    if not modulo:
+        modulos_disponibles = [
+            {'codigo': 'bodega', 'nombre': 'Bodega', 'descripcion': 'Reportes del modulo de bodega e inventario', 'icono': 'ri-archive-line'},
+            {'codigo': 'compras', 'nombre': 'Compras', 'descripcion': 'Reportes del modulo de compras y ordenes', 'icono': 'ri-shopping-cart-line'},
+            {'codigo': 'solicitudes', 'nombre': 'Solicitudes', 'descripcion': 'Reportes del modulo de solicitudes', 'icono': 'ri-file-text-line'},
+            {'codigo': 'activos', 'nombre': 'Activos', 'descripcion': 'Reportes del modulo de activos fijos', 'icono': 'ri-building-line'},
+            {'codigo': 'bajas', 'nombre': 'Bajas', 'descripcion': 'Reportes del modulo de bajas de inventario', 'icono': 'ri-delete-bin-line'},
+        ]
+        context = {
+            'titulo': 'Generar Reporte',
+            'modulos_disponibles': modulos_disponibles,
+            'mostrar_modulos': True,
+        }
+        return render(request, 'reportes/seleccionar_reporte.html', context)
+    
     # Obtener reporte seleccionado desde GET
     reporte_codigo = request.GET.get('reporte', '').strip()
     crear_informe = request.GET.get('crear_informe', '').strip() == '1'
@@ -244,9 +261,20 @@ def seleccionar_reporte(request, modulo=None):
     categorias = Categoria.objects.filter(eliminado=False).order_by("codigo")
     proveedores = Proveedor.objects.filter(eliminado=False, activo=True).order_by("razon_social")
     
+    # Nombre del modulo para mostrar
+    nombres_modulos = {
+        'bodega': 'Bodega',
+        'compras': 'Compras',
+        'solicitudes': 'Solicitudes',
+        'activos': 'Activos',
+        'bajas': 'Bajas',
+    }
+    nombre_modulo = nombres_modulos.get(modulo, modulo.capitalize())
+    
     context = {
-        'titulo': 'Generar Reporte',
+        'titulo': f'Reportes - {nombre_modulo}',
         'modulo': modulo,
+        'nombre_modulo': nombre_modulo,
         'reportes_disponibles': reportes_disponibles,
         'reporte_seleccionado': reporte_seleccionado,
         'reporte_codigo': reporte_codigo,
@@ -257,6 +285,7 @@ def seleccionar_reporte(request, modulo=None):
         'proveedores': proveedores,
         'report': report_data,
         'crear_informe': crear_informe,
+        'mostrar_modulos': False,
         # Valores actuales de filtros para mantener en el formulario
         'filtros_actuales': {
             'desde': request.GET.get('desde', ''),

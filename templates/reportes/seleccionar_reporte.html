@@ -16,21 +16,65 @@
             <div class="page-title-right">
                 <ol class="breadcrumb m-0">
                     <li class="breadcrumb-item"><a href="{% url 'dashboard_analytics' %}">Dashboard</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'reportes:dashboard' %}">Reportes</a></li>
-                    <li class="breadcrumb-item active">Generar Reporte</li>
+                    <li class="breadcrumb-item"><a href="{% url 'reportes:seleccionar_reporte' %}">Reportes</a></li>
+                    {% if modulo %}
+                    <li class="breadcrumb-item active">{{ nombre_modulo }}</li>
+                    {% endif %}
                 </ol>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Seleccion de Reporte -->
+<!-- Seleccion de Modulos (solo si no hay modulo seleccionado) -->
+{% if mostrar_modulos %}
 <div class="row mb-4">
     <div class="col-12">
         <div class="card">
             <div class="card-header">
                 <h5 class="card-title mb-0">
-                    <i class="ri-file-list-3-line me-2"></i>Seleccionar Reporte
+                    <i class="ri-folder-line me-2"></i>Seleccionar Modulo
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3" id="modulos-lista">
+                    {% for mod in modulos_disponibles %}
+                    <div class="col-md-6 col-lg-4">
+                        <div class="reporte-card" 
+                             data-modulo-codigo="{{ mod.codigo }}"
+                             onclick="seleccionarModulo('{{ mod.codigo }}')">
+                            <div class="reporte-card-icon">
+                                <i class="{{ mod.icono }}"></i>
+                            </div>
+                            <div class="reporte-card-content">
+                                <h6 class="reporte-card-title">{{ mod.nombre }}</h6>
+                                <p class="reporte-card-desc">{{ mod.descripcion }}</p>
+                                <span class="badge bg-primary-subtle text-primary">Modulo</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            <i class="ri-information-line me-2"></i>No hay modulos disponibles.
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Seleccion de Reporte (solo si hay modulo seleccionado) -->
+{% if modulo and not reporte_seleccionado %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="ri-file-list-3-line me-2"></i>Reportes de {{ nombre_modulo }}
                 </h5>
             </div>
             <div class="card-body">
@@ -62,6 +106,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- Filtros (se muestran dinamicamente al seleccionar reporte) -->
 {% if reporte_seleccionado %}
@@ -74,7 +119,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form method="get" action="{% url 'reportes:seleccionar_reporte' %}" id="filtros-form">
+                <form method="get" action="{% url 'reportes:seleccionar_reporte_modulo' modulo %}" id="filtros-form">
                     <input type="hidden" name="reporte" value="{{ reporte_codigo }}">
                     <input type="hidden" name="crear_informe" value="1" id="crear-informe-flag">
                     
@@ -123,7 +168,7 @@
                             <button type="submit" class="btn btn-primary">
                                 <i class="ri-bar-chart-2-line me-1"></i> Crear Informe
                             </button>
-                            <a href="{% url 'reportes:seleccionar_reporte' %}" class="btn btn-secondary">
+                            <a href="{% url 'reportes:seleccionar_reporte_modulo' modulo %}" class="btn btn-secondary">
                                 <i class="ri-arrow-left-line me-1"></i> Volver
                             </a>
                         </div>
@@ -137,7 +182,7 @@
 
 <!-- Tabla de Resultados (se muestra solo despues de crear informe) -->
 {% if crear_informe and report %}
-<div class="row">
+<div class="row" id="resultados-container">
     <div class="col-12">
         {% include "reportes/_tabla_report.html" %}
     </div>
@@ -149,4 +194,3 @@
 {% block extra_js %}
 <script src="{% static 'js/pages/reportes-dinamicos.init.js' %}"></script>
 {% endblock extra_js %}
-
