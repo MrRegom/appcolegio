@@ -239,3 +239,117 @@ def oc_atrasadas_por_proveedor(request: HttpRequest) -> HttpResponse:
         "bodega_id": bodega_id,
     }
     return render(request, "reportes/oc_atrasadas_por_proveedor.html", context)
+
+
+# ==================== VISTA DE AUDITORÍA DE ACTIVIDADES ====================
+
+
+@login_required
+def auditoria_actividades(request: HttpRequest) -> HttpResponse:
+    """
+    Vista dedicada para auditoría de actividades del sistema.
+
+    SOLO ORQUESTA - Toda la lógica de negocio está en AuditoriaService.
+    Sigue Clean Architecture: Views → solo orquestan, sin lógica pesada.
+
+    Filtros disponibles:
+    - tipo: Tipo de actividad (movimiento, entrega, solicitud, etc.)
+    - usuario_id: ID del usuario
+    - modulo: Módulo del sistema (bodega, compras, solicitudes, activos)
+    - fecha_desde: Fecha inicial
+    - fecha_hasta: Fecha final
+    - buscar: Búsqueda por texto
+    - page: Número de página para paginación
+    """
+    from .services.auditoria import AuditoriaService
+    from django.contrib.auth import get_user_model
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    User = get_user_model()
+
+    # Obtener parámetros de filtro desde GET
+    tipo = request.GET.get('tipo', '').strip() or None
+    usuario_id = request.GET.get('usuario_id', '').strip()
+    usuario_id = int(usuario_id) if usuario_id.isdigit() else None
+    modulo = request.GET.get('modulo', '').strip() or None
+    buscar = request.GET.get('buscar', '').strip() or None
+    fecha_desde_str = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta_str = request.GET.get('fecha_hasta', '').strip()
+
+    # Convertir fechas
+    fecha_desde = None
+    fecha_hasta = None
+    if fecha_desde_str:
+        try:
+            fecha_desde = datetime.strptime(fecha_desde_str, '%Y-%m-%d')
+            fecha_desde = timezone.make_aware(fecha_desde)
+        except ValueError:
+            fecha_desde = None
+
+    if fecha_hasta_str:
+        try:
+            fecha_hasta = datetime.strptime(fecha_hasta_str, '%Y-%m-%d')
+            fecha_hasta = timezone.make_aware(fecha_hasta)
+            # Incluir todo el día
+            fecha_hasta = fecha_hasta.replace(hour=23, minute=59, second=59)
+        except ValueError:
+            fecha_hasta = None
+
+    # Si no hay fechas, usar últimos 30 días por defecto
+    if not fecha_desde and not fecha_hasta:
+        fecha_hasta = timezone.now()
+        fecha_desde = fecha_hasta - timedelta(days=30)
+
+    # Obtener actividades desde el Service Layer
+    actividades = AuditoriaService.obtener_actividades(
+        tipo=tipo,
+        usuario_id=usuario_id,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        modulo=modulo,
+        buscar=buscar,
+        limite=500  # Límite alto para paginación
+    )
+
+    # Paginación
+    paginator = Paginator(actividades, 50)  # 50 actividades por página
+    page = request.GET.get('page', 1)
+
+    try:
+        actividades_paginadas = paginator.page(page)
+    except PageNotAnInteger:
+        actividades_paginadas = paginator.page(1)
+    except EmptyPage:
+        actividades_paginadas = paginator.page(paginator.num_pages)
+
+    # Obtener estadísticas desde el Service Layer
+    estadisticas = AuditoriaService.obtener_estadisticas_actividades()
+
+    # Obtener lista de usuarios para el filtro
+    usuarios = User.objects.filter(is_active=True).order_by('first_name', 'last_name', 'username')[:100]
+
+    # Contexto para el template
+    context = {
+        'titulo': 'Auditoría de Actividades',
+        'actividades': actividades_paginadas,
+        'estadisticas': estadisticas,
+        'tipos_actividad': AuditoriaService.TIPOS_ACTIVIDAD,
+        'modulos': {
+            'bodega': 'Bodega',
+            'compras': 'Compras',
+            'solicitudes': 'Solicitudes',
+            'activos': 'Activos',
+        },
+        'usuarios': usuarios,
+        # Valores actuales de filtros para mantener en el formulario
+        'filtros_actuales': {
+            'tipo': tipo or '',
+            'usuario_id': usuario_id or '',
+            'modulo': modulo or '',
+            'buscar': buscar or '',
+            'fecha_desde': fecha_desde_str or '',
+            'fecha_hasta': fecha_hasta_str or '',
+        },
+    }
+
+    return render(request, 'reportes/auditoria_actividades.html', context)

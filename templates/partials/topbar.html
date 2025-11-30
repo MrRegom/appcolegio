@@ -81,6 +81,11 @@
                                 <div class="collapse menu-dropdown" id="sidebarReportes">
                                     <ul class="nav nav-sm flex-column">
                                         <li class="nav-item">
+                                            <a href="{% url 'reportes:auditoria_actividades' %}" class="nav-link">
+                                                <i class="ri-time-line"></i> Auditoría de Actividades
+                                            </a>
+                                        </li>
+                                        <li class="nav-item">
                                             <a href="{% url 'reportes:dashboard_app' 'bodega' %}" class="nav-link">
                                                 <i class="ri-archive-line"></i> Bodega
                                             </a>

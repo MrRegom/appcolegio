@@ -352,11 +352,6 @@ class ConsultasReportes:
         from apps.bajas_inventario.models import BajaInventario
         return BajaInventario.objects.filter(eliminado=False).count()
     
-<<<<<<< HEAD
-    @staticmethod
-    def ordenes_compra_en_proceso():
-        """Total de órdenes de compra en estado PENDIENTE o APROBADA"""
-=======
     # ========== CONSULTAS PARA DASHBOARD OPERATIVO ==========
     
     @staticmethod
@@ -367,7 +362,6 @@ class ConsultasReportes:
         Returns:
             int: Cantidad de órdenes de compra en proceso
         """
->>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
         from apps.compras.models import OrdenCompra, EstadoOrdenCompra
         estados_en_proceso = EstadoOrdenCompra.objects.filter(
             codigo__in=['PENDIENTE', 'APROBADA'],
@@ -380,37 +374,6 @@ class ConsultasReportes:
     
     @staticmethod
     def articulos_stock_critico():
-<<<<<<< HEAD
-        """Total de artículos con stock por debajo del mínimo"""
-        from apps.bodega.models import Articulo
-        from django.db.models import F
-        return Articulo.objects.filter(
-            eliminado=False
-        ).filter(
-            stock_actual__lt=F('stock_minimo')
-        ).count()
-    
-    @staticmethod
-    def solicitudes_entregadas_mes_actual():
-        """Total de solicitudes entregadas en el mes actual"""
-        from apps.solicitudes.models import Solicitud, EstadoSolicitud
-        from django.utils import timezone
-        from datetime import datetime
-        
-        hoy = timezone.now()
-        inicio_mes = datetime(hoy.year, hoy.month, 1)
-        
-        estado_entregada = EstadoSolicitud.objects.filter(
-            codigo='ENTREGADA',
-            eliminado=False
-        ).first()
-        
-        if estado_entregada:
-            return Solicitud.objects.filter(
-                eliminado=False,
-                estado=estado_entregada,
-                fecha_actualizacion__gte=inicio_mes
-=======
         """
         Artículos con stock crítico (stock_actual < stock_minimo).
         
@@ -447,12 +410,10 @@ class ConsultasReportes:
                 eliminado=False,
                 estado=estado_completada,
                 fecha_entrega__gte=inicio_mes
->>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413
             ).count()
         return 0
     
     @staticmethod
-<<<<<<< HEAD
     def calcular_tendencia_solicitudes():
         """Calcula el cambio porcentual de solicitudes pendientes"""
         # Por ahora retorna un valor simulado
@@ -476,7 +437,8 @@ class ConsultasReportes:
         """Calcula el cambio porcentual de entregas del mes"""
         # Por ahora retorna un valor simulado
         return 0.0
-=======
+    
+    @staticmethod
     def tendencia_solicitudes_pendientes(dias: int = 7) -> float:
         """
         Calcula el porcentaje de cambio en solicitudes pendientes.
@@ -573,4 +535,3 @@ class ConsultasReportes:
         
         # Simulación: si hay entregas, asumimos que es actividad positiva
         return 100.0
->>>>>>> b8346a8f8f921bf1c6d1feafdd4856ee9f79e413

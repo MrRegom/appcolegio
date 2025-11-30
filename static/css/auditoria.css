@@ -1,0 +1,193 @@
+/*
+ * Auditoría de Actividades - Estilos CSS
+ * 
+ * Separación de responsabilidades: CSS en archivo dedicado
+ * No mezclar estilos con HTML (SRP - Single Responsibility Principle)
+ */
+
+/* ============================================================
+   Timeline de Auditoría
+   ============================================================ */
+
+.auditoria-timeline {
+    position: relative;
+    padding-left: 0;
+}
+
+.auditoria-item {
+    position: relative;
+    padding: 1.25rem 0;
+    border-bottom: 1px solid #e9ecef;
+    transition: all 0.3s ease;
+}
+
+.auditoria-item:last-child {
+    border-bottom: none;
+}
+
+.auditoria-item:hover {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+}
+
+.auditoria-item .avatar-title {
+    font-size: 1.25rem;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.auditoria-item:hover .avatar-title {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Línea conectora del timeline */
+.auditoria-timeline::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, #e9ecef 0%, #dee2e6 100%);
+    z-index: 0;
+}
+
+.auditoria-item::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 48px;
+    width: 2px;
+    height: calc(100% - 48px);
+    background: #e9ecef;
+    z-index: 0;
+}
+
+.auditoria-item:last-child::before {
+    display: none;
+}
+
+/* Ajustar posición del avatar para que esté sobre la línea */
+.auditoria-item .avatar-sm {
+    position: relative;
+    z-index: 1;
+    background: white;
+}
+
+/* ============================================================
+   Cards de Estadísticas
+   ============================================================ */
+
+.card .avatar-sm {
+    transition: all 0.3s ease;
+}
+
+.card:hover .avatar-sm {
+    transform: translateY(-2px);
+}
+
+/* ============================================================
+   Formulario de Filtros
+   ============================================================ */
+
+#filtros-form .form-label {
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+    color: #495057;
+}
+
+#filtros-form .form-select,
+#filtros-form .form-control {
+    border: 1px solid #ced4da;
+    transition: all 0.3s ease;
+}
+
+#filtros-form .form-select:focus,
+#filtros-form .form-control:focus {
+    border-color: #405189;
+    box-shadow: 0 0 0 0.2rem rgba(64, 81, 137, 0.25);
+}
+
+/* ============================================================
+   Badges y Etiquetas
+   ============================================================ */
+
+.auditoria-item .badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+    font-weight: 500;
+}
+
+/* ============================================================
+   Paginación
+   ============================================================ */
+
+.pagination {
+    margin-top: 1.5rem;
+}
+
+.pagination .page-link {
+    color: #405189;
+    border-color: #dee2e6;
+    transition: all 0.3s ease;
+}
+
+.pagination .page-link:hover {
+    background-color: #405189;
+    color: white;
+    border-color: #405189;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #405189;
+    border-color: #405189;
+}
+
+/* ============================================================
+   Estado Vacío
+   ============================================================ */
+
+.text-center.py-5 .avatar-lg {
+    width: 80px;
+    height: 80px;
+}
+
+.text-center.py-5 .avatar-title {
+    font-size: 2.5rem;
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .auditoria-item {
+        padding: 1rem 0;
+    }
+
+    .auditoria-item .d-flex.gap-3 {
+        flex-direction: column;
+        gap: 0.5rem !important;
+    }
+
+    .auditoria-timeline::before {
+        left: 20px;
+    }
+
+    .auditoria-item::before {
+        left: 20px;
+    }
+}
+
+
