@@ -12,8 +12,9 @@
      * Selecciona un modulo y redirige a la vista correspondiente
      */
     function seleccionarModulo(codigo, tipo) {
-        // Si es auditoria, ir directamente a la vista de auditoria
+        // Si es auditoria, ir directamente a la vista de auditoria de actividades
         if (tipo === 'auditoria') {
+            // Usar la URL de Django para asegurar que sea correcta
             window.location.href = '/reportes/auditoria/';
             return;
         }
