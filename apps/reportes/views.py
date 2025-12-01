@@ -13,6 +13,7 @@ from apps.compras.models import Proveedor
 # Servicios y exportadores
 from apps.reportes.services.bodega import ArticulosSinMovimientoService
 from apps.reportes.services.compras import OcAtrasadasPorProveedorService
+from apps.reportes.services.reporte import ReporteService
 from apps.reportes.exporters.pdf import export_pdf
 from apps.reportes.exporters.xlsx import export_xlsx
 
@@ -168,6 +169,137 @@ def dashboard_reportes(request, app=None):
     return render(request, 'reportes/dashboard.html', context)
 
 
+# ==================== NUEVOS REPORTES DINAMICOS ====================
+
+
+@login_required
+def seleccionar_reporte(request, modulo=None):
+    """
+    Vista unificada para seleccionar y generar reportes de forma dinamica.
+    
+    Flujo:
+    1. Si no hay modulo: Muestra cards de modulos (Bodega, Compras, etc.)
+    2. Si hay modulo pero no reporte: Muestra cards de reportes del modulo
+    3. Si hay reporte seleccionado: Muestra filtros especificos
+    4. Al hacer clic en "Crear Informe": Muestra tabla con datos
+    
+    SOLO ORQUESTA - Toda la logica de negocio esta en ReporteService.
+    """
+    # Si no hay modulo, mostrar seleccion de modulos
+    if not modulo:
+        modulos_disponibles = [
+            {'codigo': 'auditoria', 'nombre': 'Auditoria', 'descripcion': 'Auditoria de actividades del sistema', 'icono': 'ri-time-line', 'tipo': 'auditoria'},
+            {'codigo': 'bodega', 'nombre': 'Bodega', 'descripcion': 'Reportes del modulo de bodega e inventario', 'icono': 'ri-archive-line', 'tipo': 'reporte'},
+            {'codigo': 'compras', 'nombre': 'Compras', 'descripcion': 'Reportes del modulo de compras y ordenes', 'icono': 'ri-shopping-cart-line', 'tipo': 'reporte'},
+            {'codigo': 'solicitudes', 'nombre': 'Solicitudes', 'descripcion': 'Reportes del modulo de solicitudes', 'icono': 'ri-file-text-line', 'tipo': 'reporte'},
+            {'codigo': 'activos', 'nombre': 'Activos', 'descripcion': 'Reportes del modulo de activos fijos', 'icono': 'ri-building-line', 'tipo': 'reporte'},
+            {'codigo': 'bajas', 'nombre': 'Bajas', 'descripcion': 'Reportes del modulo de bajas de inventario', 'icono': 'ri-delete-bin-line', 'tipo': 'reporte'},
+        ]
+        context = {
+            'titulo': 'Generar Reporte',
+            'modulos_disponibles': modulos_disponibles,
+            'mostrar_modulos': True,
+        }
+        return render(request, 'reportes/seleccionar_reporte.html', context)
+    
+    # Obtener reporte seleccionado desde GET
+    reporte_codigo = request.GET.get('reporte', '').strip()
+    crear_informe = request.GET.get('crear_informe', '').strip() == '1'
+    
+    # Obtener reportes disponibles desde Service Layer
+    reportes_disponibles = ReporteService.obtener_reportes_por_modulo(modulo)
+    
+    # Si hay un reporte seleccionado, obtener su configuracion
+    reporte_seleccionado = None
+    filtros_config = {}
+    opciones_filtros = {}
+    
+    if reporte_codigo:
+        reporte_seleccionado = ReporteService.obtener_reporte_por_codigo(reporte_codigo)
+        if reporte_seleccionado:
+            filtros_config = ReporteService.obtener_filtros_para_reporte(reporte_codigo)
+            
+            # Obtener opciones para cada filtro
+            for filtro_key, filtro_config in filtros_config.items():
+                if filtro_config.get('tipo') == 'select' and filtro_config.get('opciones'):
+                    opciones_filtros[filtro_key] = ReporteService.obtener_opciones_para_filtro(
+                        filtro_config['opciones']
+                    )
+    
+    # Si se solicito crear el informe, procesar y mostrar resultados
+    report_data = None
+    if crear_informe and reporte_seleccionado:
+        # Obtener valores de filtros desde GET
+        filtros_valores = {}
+        for filtro_key in filtros_config.keys():
+            valor = request.GET.get(filtro_key, '').strip()
+            if valor:
+                filtros_valores[filtro_key] = valor
+        
+        # Llamar al service correspondiente segun el tipo de reporte
+        if reporte_codigo == 'articulos_sin_movimiento':
+            desde_str = filtros_valores.get('desde')
+            hasta_str = filtros_valores.get('hasta')
+            bodega_id = filtros_valores.get('bodega_id')
+            categoria_id = filtros_valores.get('categoria_id')
+            
+            hoy = timezone.now().date()
+            desde = datetime.strptime(desde_str, "%Y-%m-%d").date() if desde_str else (hoy - timedelta(days=30))
+            hasta = datetime.strptime(hasta_str, "%Y-%m-%d").date() if hasta_str else hoy
+            
+            service = ArticulosSinMovimientoService()
+            report_data = service.run(desde, hasta, bodega_id=bodega_id, categoria_id=categoria_id)
+            
+        elif reporte_codigo == 'oc_atrasadas_por_proveedor':
+            proveedor_id = filtros_valores.get('proveedor_id')
+            bodega_id = filtros_valores.get('bodega_id')
+            
+            service = OcAtrasadasPorProveedorService()
+            report_data = service.run(proveedor_id=proveedor_id, bodega_id=bodega_id)
+    
+    # Obtener opciones para filtros de tipo select
+    bodegas = Bodega.objects.filter(eliminado=False, activo=True).order_by("codigo")
+    categorias = Categoria.objects.filter(eliminado=False).order_by("codigo")
+    proveedores = Proveedor.objects.filter(eliminado=False, activo=True).order_by("razon_social")
+    
+    # Nombre del modulo para mostrar
+    nombres_modulos = {
+        'bodega': 'Bodega',
+        'compras': 'Compras',
+        'solicitudes': 'Solicitudes',
+        'activos': 'Activos',
+        'bajas': 'Bajas',
+    }
+    nombre_modulo = nombres_modulos.get(modulo, modulo.capitalize())
+    
+    context = {
+        'titulo': f'Reportes - {nombre_modulo}',
+        'modulo': modulo,
+        'nombre_modulo': nombre_modulo,
+        'reportes_disponibles': reportes_disponibles,
+        'reporte_seleccionado': reporte_seleccionado,
+        'reporte_codigo': reporte_codigo,
+        'filtros_config': filtros_config,
+        'opciones_filtros': opciones_filtros,
+        'bodegas': bodegas,
+        'categorias': categorias,
+        'proveedores': proveedores,
+        'report': report_data,
+        'crear_informe': crear_informe,
+        'mostrar_modulos': False,
+        # Valores actuales de filtros para mantener en el formulario
+        'filtros_actuales': {
+            'desde': request.GET.get('desde', ''),
+            'hasta': request.GET.get('hasta', ''),
+            'bodega_id': request.GET.get('bodega_id', ''),
+            'categoria_id': request.GET.get('categoria_id', ''),
+            'proveedor_id': request.GET.get('proveedor_id', ''),
+        }
+    }
+    
+    return render(request, 'reportes/seleccionar_reporte.html', context)
+
+
 # ==================== NUEVOS REPORTES ====================
 
 
@@ -239,3 +371,117 @@ def oc_atrasadas_por_proveedor(request: HttpRequest) -> HttpResponse:
         "bodega_id": bodega_id,
     }
     return render(request, "reportes/oc_atrasadas_por_proveedor.html", context)
+
+
+# ==================== VISTA DE AUDITORÍA DE ACTIVIDADES ====================
+
+
+@login_required
+def auditoria_actividades(request: HttpRequest) -> HttpResponse:
+    """
+    Vista dedicada para auditoría de actividades del sistema.
+
+    SOLO ORQUESTA - Toda la lógica de negocio está en AuditoriaService.
+    Sigue Clean Architecture: Views → solo orquestan, sin lógica pesada.
+
+    Filtros disponibles:
+    - tipo: Tipo de actividad (movimiento, entrega, solicitud, etc.)
+    - usuario_id: ID del usuario
+    - modulo: Módulo del sistema (bodega, compras, solicitudes, activos)
+    - fecha_desde: Fecha inicial
+    - fecha_hasta: Fecha final
+    - buscar: Búsqueda por texto
+    - page: Número de página para paginación
+    """
+    from .services.auditoria import AuditoriaService
+    from django.contrib.auth import get_user_model
+    from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+
+    User = get_user_model()
+
+    # Obtener parámetros de filtro desde GET
+    tipo = request.GET.get('tipo', '').strip() or None
+    usuario_id = request.GET.get('usuario_id', '').strip()
+    usuario_id = int(usuario_id) if usuario_id.isdigit() else None
+    modulo = request.GET.get('modulo', '').strip() or None
+    buscar = request.GET.get('buscar', '').strip() or None
+    fecha_desde_str = request.GET.get('fecha_desde', '').strip()
+    fecha_hasta_str = request.GET.get('fecha_hasta', '').strip()
+
+    # Convertir fechas
+    fecha_desde = None
+    fecha_hasta = None
+    if fecha_desde_str:
+        try:
+            fecha_desde = datetime.strptime(fecha_desde_str, '%Y-%m-%d')
+            fecha_desde = timezone.make_aware(fecha_desde)
+        except ValueError:
+            fecha_desde = None
+
+    if fecha_hasta_str:
+        try:
+            fecha_hasta = datetime.strptime(fecha_hasta_str, '%Y-%m-%d')
+            fecha_hasta = timezone.make_aware(fecha_hasta)
+            # Incluir todo el día
+            fecha_hasta = fecha_hasta.replace(hour=23, minute=59, second=59)
+        except ValueError:
+            fecha_hasta = None
+
+    # Si no hay fechas, usar últimos 30 días por defecto
+    if not fecha_desde and not fecha_hasta:
+        fecha_hasta = timezone.now()
+        fecha_desde = fecha_hasta - timedelta(days=30)
+
+    # Obtener actividades desde el Service Layer
+    actividades = AuditoriaService.obtener_actividades(
+        tipo=tipo,
+        usuario_id=usuario_id,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+        modulo=modulo,
+        buscar=buscar,
+        limite=500  # Límite alto para paginación
+    )
+
+    # Paginación
+    paginator = Paginator(actividades, 50)  # 50 actividades por página
+    page = request.GET.get('page', 1)
+
+    try:
+        actividades_paginadas = paginator.page(page)
+    except PageNotAnInteger:
+        actividades_paginadas = paginator.page(1)
+    except EmptyPage:
+        actividades_paginadas = paginator.page(paginator.num_pages)
+
+    # Obtener estadísticas desde el Service Layer
+    estadisticas = AuditoriaService.obtener_estadisticas_actividades()
+
+    # Obtener lista de usuarios para el filtro
+    usuarios = User.objects.filter(is_active=True).order_by('first_name', 'last_name', 'username')[:100]
+
+    # Contexto para el template
+    context = {
+        'titulo': 'Auditoría de Actividades',
+        'actividades': actividades_paginadas,
+        'estadisticas': estadisticas,
+        'tipos_actividad': AuditoriaService.TIPOS_ACTIVIDAD,
+        'modulos': {
+            'bodega': 'Bodega',
+            'compras': 'Compras',
+            'solicitudes': 'Solicitudes',
+            'activos': 'Activos',
+        },
+        'usuarios': usuarios,
+        # Valores actuales de filtros para mantener en el formulario
+        'filtros_actuales': {
+            'tipo': tipo or '',
+            'usuario_id': usuario_id or '',
+            'modulo': modulo or '',
+            'buscar': buscar or '',
+            'fecha_desde': fecha_desde_str or '',
+            'fecha_hasta': fecha_hasta_str or '',
+        },
+    }
+
+    return render(request, 'reportes/auditoria_actividades.html', context)
