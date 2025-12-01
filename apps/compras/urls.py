@@ -48,16 +48,22 @@ urlpatterns = [
     path('mantenedores/estados-recepcion/crear/', views.EstadoRecepcionCreateView.as_view(), name='estado_recepcion_crear'),
     path('mantenedores/estados-recepcion/<int:pk>/editar/', views.EstadoRecepcionUpdateView.as_view(), name='estado_recepcion_editar'),
     path('mantenedores/estados-recepcion/<int:pk>/eliminar/', views.EstadoRecepcionDeleteView.as_view(), name='estado_recepcion_eliminar'),
+    path('mantenedores/estados-recepcion/importar/plantilla/', views.estado_recepcion_descargar_plantilla, name='estado_recepcion_descargar_plantilla'),
+    path('mantenedores/estados-recepcion/importar/', views.estado_recepcion_importar_excel, name='estado_recepcion_importar_excel'),
 
     # Tipos de Recepción
     path('mantenedores/tipos-recepcion/', views.TipoRecepcionListView.as_view(), name='tipo_recepcion_lista'),
     path('mantenedores/tipos-recepcion/crear/', views.TipoRecepcionCreateView.as_view(), name='tipo_recepcion_crear'),
     path('mantenedores/tipos-recepcion/<int:pk>/editar/', views.TipoRecepcionUpdateView.as_view(), name='tipo_recepcion_editar'),
     path('mantenedores/tipos-recepcion/<int:pk>/eliminar/', views.TipoRecepcionDeleteView.as_view(), name='tipo_recepcion_eliminar'),
+    path('mantenedores/tipos-recepcion/importar/plantilla/', views.tipo_recepcion_descargar_plantilla, name='tipo_recepcion_descargar_plantilla'),
+    path('mantenedores/tipos-recepcion/importar/', views.tipo_recepcion_importar_excel, name='tipo_recepcion_importar_excel'),
 
     # Estados de Orden de Compra
     path('mantenedores/estados-orden-compra/', views.EstadoOrdenCompraListView.as_view(), name='estado_orden_compra_lista'),
     path('mantenedores/estados-orden-compra/crear/', views.EstadoOrdenCompraCreateView.as_view(), name='estado_orden_compra_crear'),
     path('mantenedores/estados-orden-compra/<int:pk>/editar/', views.EstadoOrdenCompraUpdateView.as_view(), name='estado_orden_compra_editar'),
     path('mantenedores/estados-orden-compra/<int:pk>/eliminar/', views.EstadoOrdenCompraDeleteView.as_view(), name='estado_orden_compra_eliminar'),
+    path('mantenedores/estados-orden-compra/importar/plantilla/', views.estado_orden_compra_descargar_plantilla, name='estado_orden_compra_descargar_plantilla'),
+    path('mantenedores/estados-orden-compra/importar/', views.estado_orden_compra_importar_excel, name='estado_orden_compra_importar_excel'),
 ]
