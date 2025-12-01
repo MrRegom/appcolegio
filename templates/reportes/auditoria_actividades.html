@@ -1,0 +1,306 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock title %}
+
+{% block extra_css %}
+    <!-- Auditoría CSS - Separación de responsabilidades (SRP) -->
+    <link href="{% static 'css/auditoria.css' %}" rel="stylesheet" type="text/css">
+{% endblock extra_css %}
+
+{% block main_title %}
+    <div class="page-title-box">
+        <div class="row align-items-center gy-3">
+            <div class="col-md">
+                <h3 class="page-title text-capitalize fw-medium fs-3xl">{{ titulo }}</h3>
+                <p class="mb-0 page-sub-title">Vista completa de todas las actividades del sistema para auditoría.</p>
+            </div>
+        </div>
+    </div>
+{% endblock main_title %}
+
+{% block content %}
+    <div class="row">
+        <!-- Estadísticas rápidas -->
+        <div class="col-12">
+            <div class="row">
+                <div class="col-lg-3 col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="avatar-sm bg-primary-subtle rounded">
+                                        <div class="avatar-title bg-primary-subtle text-primary rounded">
+                                            <i class="ri-arrow-left-right-line fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <p class="text-uppercase fw-semibold fs-xs text-muted mb-0">Movimientos</p>
+                                    <h4 class="mb-0">{{ estadisticas.total_movimientos }}</h4>
+                                    <small class="text-muted">Últimos 30 días: {{ estadisticas.movimientos_30_dias }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="avatar-sm bg-success-subtle rounded">
+                                        <div class="avatar-title bg-success-subtle text-success rounded">
+                                            <i class="ri-truck-line fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <p class="text-uppercase fw-semibold fs-xs text-muted mb-0">Entregas</p>
+                                    <h4 class="mb-0">{{ estadisticas.total_entregas }}</h4>
+                                    <small class="text-muted">Últimos 30 días: {{ estadisticas.entregas_30_dias }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="avatar-sm bg-info-subtle rounded">
+                                        <div class="avatar-title bg-info-subtle text-info rounded">
+                                            <i class="ri-file-text-line fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <p class="text-uppercase fw-semibold fs-xs text-muted mb-0">Solicitudes</p>
+                                    <h4 class="mb-0">{{ estadisticas.total_solicitudes }}</h4>
+                                    <small class="text-muted">Últimos 30 días: {{ estadisticas.solicitudes_30_dias }}</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <div class="avatar-sm bg-warning-subtle rounded">
+                                        <div class="avatar-title bg-warning-subtle text-warning rounded">
+                                            <i class="ri-shopping-cart-line fs-4"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <p class="text-uppercase fw-semibold fs-xs text-muted mb-0">Órdenes Compra</p>
+                                    <h4 class="mb-0">{{ estadisticas.total_ordenes_compra }}</h4>
+                                    <small class="text-muted">Total en sistema</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="ri-filter-line me-2"></i>Filtros de Búsqueda
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'reportes:auditoria_actividades' %}" id="filtros-form">
+                        <div class="row g-3">
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">Tipo de Actividad</label>
+                                <select class="form-select" name="tipo" id="filtro-tipo">
+                                    <option value="">Todos los tipos</option>
+                                    {% for key, value in tipos_actividad.items %}
+                                        <option value="{{ key }}" {% if filtros_actuales.tipo == key %}selected{% endif %}>{{ value }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">Módulo</label>
+                                <select class="form-select" name="modulo" id="filtro-modulo">
+                                    <option value="">Todos los módulos</option>
+                                    {% for key, value in modulos.items %}
+                                        <option value="{{ key }}" {% if filtros_actuales.modulo == key %}selected{% endif %}>{{ value }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">Usuario</label>
+                                <select class="form-select" name="usuario_id" id="filtro-usuario">
+                                    <option value="">Todos los usuarios</option>
+                                    {% for usuario in usuarios %}
+                                        <option value="{{ usuario.id }}" {% if filtros_actuales.usuario_id == usuario.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ usuario.get_full_name|default:usuario.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">Buscar</label>
+                                <input type="text" class="form-control" name="buscar" id="filtro-buscar" 
+                                       placeholder="Código, nombre, descripción..." value="{{ filtros_actuales.buscar }}">
+                            </div>
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">Fecha Desde</label>
+                                <input type="date" class="form-control" name="fecha_desde" id="filtro-fecha-desde" 
+                                       value="{{ filtros_actuales.fecha_desde }}">
+                            </div>
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label">Fecha Hasta</label>
+                                <input type="date" class="form-control" name="fecha_hasta" id="filtro-fecha-hasta" 
+                                       value="{{ filtros_actuales.fecha_hasta }}">
+                            </div>
+                            <div class="col-lg-6 col-md-12">
+                                <label class="form-label d-block">&nbsp;</label>
+                                <div class="d-flex gap-2">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="ri-search-line me-1"></i>Buscar
+                                    </button>
+                                    <a href="{% url 'reportes:auditoria_actividades' %}" class="btn btn-outline-secondary">
+                                        <i class="ri-refresh-line me-1"></i>Limpiar
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Actividades -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <h5 class="card-title mb-0">
+                        <i class="ri-time-line me-2"></i>Actividades del Sistema
+                    </h5>
+                    <div class="text-muted">
+                        Total: <strong>{{ actividades.paginator.count }}</strong> actividades
+                    </div>
+                </div>
+                <div class="card-body">
+                    {% if actividades %}
+                        <div class="table-responsive">
+                            <ul class="activity-timeline-2 list-unstyled mb-0 auditoria-timeline">
+                                {% for actividad in actividades %}
+                                    <li class="auditoria-item">
+                                        <div class="d-flex align-items-start gap-3">
+                                            <div class="flex-shrink-0">
+                                                <div class="avatar-sm">
+                                                    <div class="avatar-title rounded-circle bg-{{ actividad.color }}-subtle text-{{ actividad.color }}">
+                                                        <i class="{{ actividad.icono }}"></i>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex align-items-start justify-content-between">
+                                                    <div>
+                                                        <h6 class="mb-1 lh-base">
+                                                            <a href="{{ actividad.url_detalle }}" class="text-reset">
+                                                                {{ actividad.titulo }}
+                                                            </a>
+                                                        </h6>
+                                                        <p class="text-muted mb-1">{{ actividad.descripcion }}</p>
+                                                        <div class="d-flex align-items-center gap-3 flex-wrap">
+                                                            <small class="text-muted">
+                                                                <i class="ri-user-line me-1"></i>{{ actividad.usuario }}
+                                                            </small>
+                                                            <small class="text-muted">
+                                                                <i class="ri-calendar-line me-1"></i>{{ actividad.fecha|date:"d/m/Y H:i" }}
+                                                            </small>
+                                                            <span class="badge bg-{{ actividad.color }}-subtle text-{{ actividad.color }}">
+                                                                {{ actividad.modulo|capfirst }}
+                                                            </span>
+                                                            <span class="badge bg-secondary-subtle text-secondary">
+                                                                {{ actividad.codigo }}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+
+                        <!-- Paginación -->
+                        {% if actividades.has_other_pages %}
+                            <nav aria-label="Paginación de actividades">
+                                <ul class="pagination pagination-rounded justify-content-center mt-4 mb-0">
+                                    {% if actividades.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page=1{% if filtros_actuales.tipo %}&tipo={{ filtros_actuales.tipo }}{% endif %}{% if filtros_actuales.modulo %}&modulo={{ filtros_actuales.modulo }}{% endif %}{% if filtros_actuales.usuario_id %}&usuario_id={{ filtros_actuales.usuario_id }}{% endif %}{% if filtros_actuales.buscar %}&buscar={{ filtros_actuales.buscar }}{% endif %}{% if filtros_actuales.fecha_desde %}&fecha_desde={{ filtros_actuales.fecha_desde }}{% endif %}{% if filtros_actuales.fecha_hasta %}&fecha_hasta={{ filtros_actuales.fecha_hasta }}{% endif %}">
+                                                <i class="ri-arrow-left-s-line"></i>
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ actividades.previous_page_number }}{% if filtros_actuales.tipo %}&tipo={{ filtros_actuales.tipo }}{% endif %}{% if filtros_actuales.modulo %}&modulo={{ filtros_actuales.modulo }}{% endif %}{% if filtros_actuales.usuario_id %}&usuario_id={{ filtros_actuales.usuario_id }}{% endif %}{% if filtros_actuales.buscar %}&buscar={{ filtros_actuales.buscar }}{% endif %}{% if filtros_actuales.fecha_desde %}&fecha_desde={{ filtros_actuales.fecha_desde }}{% endif %}{% if filtros_actuales.fecha_hasta %}&fecha_hasta={{ filtros_actuales.fecha_hasta }}{% endif %}">
+                                                Anterior
+                                            </a>
+                                        </li>
+                                    {% endif %}
+
+                                    <li class="page-item active">
+                                        <span class="page-link">
+                                            Página {{ actividades.number }} de {{ actividades.paginator.num_pages }}
+                                        </span>
+                                    </li>
+
+                                    {% if actividades.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ actividades.next_page_number }}{% if filtros_actuales.tipo %}&tipo={{ filtros_actuales.tipo }}{% endif %}{% if filtros_actuales.modulo %}&modulo={{ filtros_actuales.modulo }}{% endif %}{% if filtros_actuales.usuario_id %}&usuario_id={{ filtros_actuales.usuario_id }}{% endif %}{% if filtros_actuales.buscar %}&buscar={{ filtros_actuales.buscar }}{% endif %}{% if filtros_actuales.fecha_desde %}&fecha_desde={{ filtros_actuales.fecha_desde }}{% endif %}{% if filtros_actuales.fecha_hasta %}&fecha_hasta={{ filtros_actuales.fecha_hasta }}{% endif %}">
+                                                Siguiente
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ actividades.paginator.num_pages }}{% if filtros_actuales.tipo %}&tipo={{ filtros_actuales.tipo }}{% endif %}{% if filtros_actuales.modulo %}&modulo={{ filtros_actuales.modulo }}{% endif %}{% if filtros_actuales.usuario_id %}&usuario_id={{ filtros_actuales.usuario_id }}{% endif %}{% if filtros_actuales.buscar %}&buscar={{ filtros_actuales.buscar }}{% endif %}{% if filtros_actuales.fecha_desde %}&fecha_desde={{ filtros_actuales.fecha_desde }}{% endif %}{% if filtros_actuales.fecha_hasta %}&fecha_hasta={{ filtros_actuales.fecha_hasta }}{% endif %}">
+                                                <i class="ri-arrow-right-s-line"></i>
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="avatar-lg mx-auto mb-4">
+                                <div class="avatar-title bg-light text-primary rounded-circle">
+                                    <i class="ri-search-line fs-1"></i>
+                                </div>
+                            </div>
+                            <h5 class="mb-2">No se encontraron actividades</h5>
+                            <p class="text-muted">Intenta ajustar los filtros de búsqueda.</p>
+                            <a href="{% url 'reportes:auditoria_actividades' %}" class="btn btn-primary">
+                                <i class="ri-refresh-line me-1"></i>Limpiar Filtros
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block extra_js %}
+    <!-- Auditoría JavaScript - Separación de responsabilidades (SRP) -->
+    <script src="{% static 'js/pages/auditoria-filtros.init.js' %}"></script>
+{% endblock extra_js %}
+
+
