@@ -25,8 +25,18 @@
         // Event listeners
         setupEventListeners();
 
-        // Actualizar visualización inicial
-        actualizarVisualizacionArticulos();
+        // Configurar estado inicial: ocultar tabla y mostrar empty state
+        const tabla = document.getElementById('tabla-articulos');
+        const sinArticulos = document.getElementById('sin-articulos');
+        if (tabla && sinArticulos) {
+            if (articulosSeleccionados.length === 0) {
+                tabla.style.display = 'none';
+                sinArticulos.style.display = 'block';
+            } else {
+                tabla.style.display = 'table';
+                sinArticulos.style.display = 'none';
+            }
+        }
     }
 
     /**
@@ -102,6 +112,23 @@
         };
 
         articulosSeleccionados.push(articulo);
+        
+        // Eliminar empty state INMEDIATAMENTE antes de agregar la fila
+        const sinArticulos = document.getElementById('sin-articulos');
+        if (sinArticulos && sinArticulos.parentNode) {
+            sinArticulos.remove();
+        }
+        
+        // Asegurar que la tabla esté visible
+        const tabla = document.getElementById('tabla-articulos');
+        const tablaContainer = tabla ? tabla.closest('.table-responsive') : null;
+        if (tabla) {
+            tabla.style.cssText = 'display: table !important;';
+        }
+        if (tablaContainer) {
+            tablaContainer.style.cssText = 'display: block !important;';
+        }
+        
         agregarFilaArticulo(articulo);
 
         // Cerrar modal
@@ -112,9 +139,6 @@
         document.querySelectorAll('#tbody-lista-articulos tr').forEach(tr => {
             tr.style.display = '';
         });
-
-        // Actualizar visualización
-        actualizarVisualizacionArticulos();
     }
 
     /**
@@ -123,6 +147,24 @@
      */
     function agregarFilaArticulo(articulo) {
         const tbody = document.getElementById('tbody-articulos');
+        if (!tbody) return;
+        
+        // ELIMINAR empty state del DOM si existe (más efectivo que ocultarlo)
+        const sinArticulos = document.getElementById('sin-articulos');
+        if (sinArticulos && sinArticulos.parentNode) {
+            sinArticulos.remove();
+        }
+        
+        // Asegurar que la tabla esté visible
+        const tabla = document.getElementById('tabla-articulos');
+        const tablaContainer = tabla ? tabla.closest('.table-responsive') : null;
+        if (tabla) {
+            tabla.style.cssText = 'display: table !important;';
+        }
+        if (tablaContainer) {
+            tablaContainer.style.cssText = 'display: block !important;';
+        }
+        
         const fila = document.createElement('tr');
         fila.dataset.articuloId = articulo.id;
         fila.dataset.filaId = contadorFilas;
@@ -190,13 +232,36 @@
         const tbody = document.getElementById('tbody-articulos');
         const sinArticulos = document.getElementById('sin-articulos');
         const tabla = document.getElementById('tabla-articulos');
+        const tablaContainer = tabla ? tabla.closest('.table-responsive') : null;
+        const cardBody = tabla ? tabla.closest('.card-body') : null;
 
-        if (articulosSeleccionados.length === 0) {
+        if (!tbody || !tabla) {
+            return;
+        }
+
+        // Contar filas reales en el tbody (no solo el array)
+        const filasReales = tbody.querySelectorAll('tr').length;
+
+        if (filasReales === 0 || articulosSeleccionados.length === 0) {
+            // Mostrar empty state (recrearlo si fue eliminado)
+            if (!sinArticulos && cardBody) {
+                const nuevoSinArticulos = document.createElement('div');
+                nuevoSinArticulos.id = 'sin-articulos';
+                nuevoSinArticulos.className = 'text-center text-muted py-4';
+                nuevoSinArticulos.innerHTML = '<i class="ri-inbox-line" style="font-size: 3rem;"></i><p class="mb-0">No hay artículos agregados. Haga clic en "Agregar Artículo" para comenzar.</p>';
+                cardBody.appendChild(nuevoSinArticulos);
+            } else if (sinArticulos) {
+                sinArticulos.style.cssText = 'display: block !important;';
+            }
+            if (tablaContainer) tablaContainer.style.display = 'none';
             tabla.style.display = 'none';
-            sinArticulos.style.display = 'block';
         } else {
-            tabla.style.display = 'table';
-            sinArticulos.style.display = 'none';
+            // Eliminar empty state si existe
+            if (sinArticulos && sinArticulos.parentNode) {
+                sinArticulos.remove();
+            }
+            if (tablaContainer) tablaContainer.style.cssText = 'display: block !important;';
+            tabla.style.cssText = 'display: table !important;';
         }
     }
 
