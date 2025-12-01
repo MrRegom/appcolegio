@@ -10,6 +10,9 @@
                     <h3 class="card-title mb-0">{{ titulo|default:"Tipos de Solicitud" }}</h3>
                     <div class="d-flex gap-2">
                         {% if puede_crear %}
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalImportarTipoSolicitud">
+                            <i class="ri-upload-line"></i> Importar
+                        </button>
                         <a href="{% url 'solicitudes:tipo_solicitud_crear' %}" class="btn btn-primary">
                             <i class="ri-add-line"></i> Nuevo Tipo
                         </a>
@@ -130,4 +133,6 @@
         </div>
     </div>
 </div>
+
+{% include 'partials/modal_importar_excel.html' with nombre_modal='TipoSolicitud' titulo='Tipos de Solicitud' url_descargar_plantilla='solicitudes:tipo_solicitud_descargar_plantilla' url_importar='solicitudes:tipo_solicitud_importar_excel' %}
 {% endblock %}
