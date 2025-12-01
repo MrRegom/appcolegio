@@ -1,0 +1,103 @@
+{% load static %}
+<!-- Modal Importar Excel -->
+<div class="modal fade" id="modalImportar{{ nombre_modal }}" tabindex="-1" aria-labelledby="modalImportar{{ nombre_modal }}Label" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalImportar{{ nombre_modal }}Label">
+                    <i class="ri-upload-line me-2"></i>Importar {{ titulo }} desde Excel
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url url_descargar_plantilla %}" class="btn btn-outline-primary">
+                        <i class="ri-file-download-line me-2"></i>Descargar Plantilla
+                    </a>
+                    <hr>
+                    <form id="formImportar{{ nombre_modal }}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="archivoExcel{{ nombre_modal }}" class="form-label">Seleccionar archivo Excel</label>
+                            <input type="file" class="form-control" id="archivoExcel{{ nombre_modal }}" name="archivo" accept=".xlsx,.xls" required>
+                            <div class="form-text">Formatos permitidos: .xlsx, .xls</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="ri-upload-line me-2"></i>Importar
+                        </button>
+                    </form>
+                </div>
+                <div id="resultadoImportacion{{ nombre_modal }}" class="mt-3 d-none"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formImportar{{ nombre_modal }}');
+    const resultado = document.getElementById('resultadoImportacion{{ nombre_modal }}');
+    
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const archivo = document.getElementById('archivoExcel{{ nombre_modal }}').files[0];
+            
+            if (!archivo) {
+                alert('Por favor seleccione un archivo');
+                return;
+            }
+            
+            formData.append('archivo', archivo);
+            
+            // Mostrar loading
+            resultado.className = 'mt-3 alert alert-info';
+            resultado.innerHTML = '<i class="ri-loader-4-line spin me-2"></i>Importando...';
+            resultado.classList.remove('d-none');
+            
+            fetch('{% url url_importar %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    resultado.className = 'mt-3 alert alert-success';
+                    resultado.innerHTML = `
+                        <strong>${data.mensaje}</strong>
+                        ${data.errores && data.errores.length > 0 ? 
+                            '<ul class="mb-0 mt-2"><li>' + data.errores.join('</li><li>') + '</li></ul>' : ''}
+                    `;
+                    // Recargar pagina despues de 2 segundos
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    resultado.className = 'mt-3 alert alert-danger';
+                    resultado.innerHTML = `<strong>Error:</strong> ${data.error}`;
+                }
+            })
+            .catch(error => {
+                resultado.className = 'mt-3 alert alert-danger';
+                resultado.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            });
+        });
+    }
+});
+</script>
+<style>
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+</style>
+
