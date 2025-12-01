@@ -1,439 +1,363 @@
 /**
- * Funcionalidad para crear entregas de bienes
- * @module bodega/entrega-bienes
- * @description Maneja la selección dinámica de bienes, cantidades, validaciones y carga desde solicitudes
+ * JavaScript para gestión de entregas de bienes/activos
+ * Siguiendo buenas prácticas de JavaScript moderno y Django
  */
 
-(function() {
-    'use strict';
-
-    // Variables globales
-    let bienesSeleccionados = [];
-    let bienesDisponibles = [];
-    let modalBien;
-    let contadorFilas = 0;
-    let solicitudCargada = false;
+const EntregaBienes = {
+    activosDisponibles: [],
+    detallesBienes: [],
+    contadorFilas: 0,
 
     /**
-     * Inicializa la funcionalidad del formulario de entrega
+     * Inicializa el módulo
      */
-    function inicializar() {
-        // Cargar bienes disponibles desde la variable global
-        if (typeof BIENES_DISPONIBLES !== 'undefined') {
-            bienesDisponibles = BIENES_DISPONIBLES;
-        }
-
-        // Inicializar modal de Bootstrap
-        const modalElement = document.getElementById('modalBien');
-        if (modalElement) {
-            modalBien = new bootstrap.Modal(modalElement);
-        }
-
-        // Event listeners
-        setupEventListeners();
-
-        // Actualizar visualización inicial
-        actualizarVisualizacionBienes();
-    }
+    init(activos) {
+        this.activosDisponibles = activos;
+        this.setupEventListeners();
+    },
 
     /**
-     * Configura todos los event listeners
+     * Configura event listeners
      */
-    function setupEventListeners() {
-        // Botón para abrir modal de agregar bien
-        const btnAgregar = document.getElementById('btn-agregar-bien');
+    setupEventListeners() {
+        // Event listener para el botón de agregar bien
+        const btnAgregar = document.getElementById('btnAgregarBien');
         if (btnAgregar) {
-            btnAgregar.addEventListener('click', () => {
-                if (solicitudCargada) {
-                    mostrarAlerta('No puede agregar bienes manualmente cuando hay una solicitud cargada', 'warning');
-                    return;
-                }
-                modalBien.show();
-            });
+            btnAgregar.addEventListener('click', () => this.agregarBien());
         }
 
-        // Buscador de bienes en el modal
-        const inputBuscar = document.getElementById('buscar-bien');
-        if (inputBuscar) {
-            inputBuscar.addEventListener('input', filtrarBienes);
-        }
-
-        // Botones de selección de bienes en el modal
-        document.querySelectorAll('.btn-seleccionar-bien').forEach(btn => {
-            btn.addEventListener('click', seleccionarBien);
-        });
-
-        // Selector de solicitud
-        const selectSolicitud = document.getElementById('id_solicitud');
-        if (selectSolicitud) {
-            selectSolicitud.addEventListener('change', handleSolicitudChange);
-        }
-
-        // Submit del formulario
+        // Event listener para el submit del formulario
         const form = document.getElementById('formEntregaBien');
         if (form) {
-            form.addEventListener('submit', validarYEnviarFormulario);
+            form.addEventListener('submit', (e) => this.validarYEnviarFormulario(e));
         }
-    }
+
+        // Event listener para el select de solicitud
+        const selectSolicitud = document.getElementById('id_solicitud');
+        if (selectSolicitud) {
+            selectSolicitud.addEventListener('change', (e) => this.cargarBienesSolicitud(e.target.value));
+        }
+    },
 
     /**
-     * Maneja el cambio en el selector de solicitud
-     * @param {Event} e - Evento change
+     * Agrega una fila de bien
      */
-    async function handleSolicitudChange(e) {
-        const solicitudId = e.target.value;
+    agregarBien() {
+        const tbody = document.getElementById('bienesBody');
+        if (!tbody) return;
 
-        if (solicitudId) {
-            await cargarBienesSolicitud(solicitudId);
-        } else {
-            limpiarBienesSolicitud();
+        // Limpiar fila vacía si existe
+        if (tbody.children.length === 1 && tbody.children[0].cells.length === 1) {
+            tbody.innerHTML = '';
         }
-    }
+
+        const fila = tbody.insertRow();
+        fila.id = `fila_${this.contadorFilas}`;
+        const idFila = this.contadorFilas;
+
+        // Celda de selección de activo
+        const celdaActivo = fila.insertCell(0);
+        const selectActivo = this.crearSelectActivo(idFila);
+        celdaActivo.appendChild(selectActivo);
+
+        // Celda de "Solicitado" (vacía para bienes agregados manualmente)
+        const celdaSolicitado = fila.insertCell(1);
+        const spanSolicitado = document.createElement('span');
+        spanSolicitado.className = 'text-muted';
+        spanSolicitado.textContent = '-';
+        celdaSolicitado.appendChild(spanSolicitado);
+
+        // Celda de cantidad a despachar
+        const celdaCantidad = fila.insertCell(2);
+        const inputCantidad = this.crearInputCantidad(idFila);
+        celdaCantidad.appendChild(inputCantidad);
+
+        // Celda de acciones
+        const celdaAcciones = fila.insertCell(3);
+        const btnEliminar = this.crearBotonEliminar(idFila);
+        celdaAcciones.appendChild(btnEliminar);
+
+        this.contadorFilas++;
+    },
 
     /**
-     * Carga bienes de una solicitud via AJAX
-     * @param {number} solicitudId - ID de la solicitud
+     * Carga bienes de una solicitud mediante AJAX
      */
-    async function cargarBienesSolicitud(solicitudId) {
+    async cargarBienesSolicitud(solicitudId) {
+        if (!solicitudId) {
+            // Si no hay solicitud, limpiar la tabla
+            this.limpiarTablaBienes();
+            return;
+        }
+
         try {
-            const response = await fetch(`/bodega/ajax/solicitud/${solicitudId}/bienes/`);
+            const response = await fetch(`/bodega/ajax/solicitud/${solicitudId}/bienes/`, {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                }
+            });
+
             const data = await response.json();
 
             if (data.success) {
-                mostrarInfoSolicitud(data.solicitud);
-                cargarBienesEnTabla(data.bienes, data.solicitud);
-                solicitudCargada = true;
-
-                mostrarAlerta('Bienes cargados desde la solicitud correctamente', 'success');
+                this.cargarBienesEnTabla(data.bienes, data.solicitud);
             } else {
-                mostrarAlerta('Error al cargar bienes de la solicitud: ' + (data.error || data.message), 'danger');
+                alert(`Error: ${data.error}`);
             }
         } catch (error) {
-            console.error('Error:', error);
-            mostrarAlerta('Error al cargar bienes de la solicitud', 'danger');
+            console.error('Error al cargar bienes:', error);
+            alert('Error al cargar los bienes de la solicitud.');
         }
-    }
+    },
 
     /**
-     * Muestra información de la solicitud
-     * @param {Object} solicitud - Datos de la solicitud
+     * Carga bienes en la tabla
      */
-    function mostrarInfoSolicitud(solicitud) {
-        const infoDiv = document.getElementById('infoSolicitud');
-        const datosDiv = document.getElementById('datosSolicitud');
+    cargarBienesEnTabla(bienes, solicitud) {
+        // Limpiar tabla actual
+        this.limpiarTablaBienes();
 
-        if (!infoDiv || !datosDiv) return;
+        if (!bienes || bienes.length === 0) {
+            alert('Esta solicitud no tiene bienes/activos asociados.');
+            return;
+        }
 
-        datosDiv.innerHTML = `
-            <p class="mb-1"><strong>Número:</strong> ${solicitud.numero}</p>
-            <p class="mb-1"><strong>Solicitante:</strong> ${solicitud.solicitante}</p>
-            <p class="mb-1"><strong>Departamento:</strong> ${solicitud.departamento || 'N/A'}</p>
-            <p class="mb-0"><strong>Motivo:</strong> ${solicitud.motivo || 'N/A'}</p>
-        `;
-
-        infoDiv.classList.remove('d-none');
-    }
-
-    /**
-     * Carga bienes en la tabla desde solicitud
-     * @param {Array} bienes - Array de bienes de la solicitud
-     * @param {Object} solicitud - Datos de la solicitud
-     */
-    function cargarBienesEnTabla(bienes, solicitud) {
-        // Limpiar bienes existentes
-        bienesSeleccionados = [];
-        const tbody = document.getElementById('tbody-bienes');
-        tbody.innerHTML = '';
-
-        // Agregar cada bien de la solicitud
+        // Agregar cada bien a la tabla
         bienes.forEach(bien => {
-            const bienData = {
-                id: bien.activo_id || bien.equipo_id,
-                codigo: bien.activo_codigo || bien.codigo,
-                nombre: bien.activo_nombre || bien.nombre,
-                categoria: bien.categoria || '-',
-                cantidadSolicitada: parseFloat(bien.cantidad_solicitada || bien.cantidad_aprobada || 0),
-                cantidadPendiente: parseFloat(bien.cantidad_pendiente || 0)
-            };
-
-            bienesSeleccionados.push(bienData);
-            agregarFilaBien(bienData, true, bien.cantidad_pendiente);
+            this.agregarBienDesdeSolicitud(bien);
         });
 
-        actualizarVisualizacionBienes();
-    }
-
-    /**
-     * Limpia datos de solicitud
-     */
-    function limpiarBienesSolicitud() {
-        const infoDiv = document.getElementById('infoSolicitud');
-        if (infoDiv) {
-            infoDiv.classList.add('d-none');
-        }
-
-        // Limpiar bienes
-        bienesSeleccionados = [];
-        const tbody = document.getElementById('tbody-bienes');
-        tbody.innerHTML = '';
-
-        solicitudCargada = false;
-        actualizarVisualizacionBienes();
-    }
-
-    /**
-     * Filtra la lista de bienes en el modal según el término de búsqueda
-     * @param {Event} e - Evento input
-     */
-    function filtrarBienes(e) {
-        const termino = e.target.value.toLowerCase();
-        const filas = document.querySelectorAll('#tbody-lista-bienes tr');
-
-        filas.forEach(fila => {
-            const codigo = fila.dataset.bienCodigo.toLowerCase();
-            const nombre = fila.dataset.bienNombre.toLowerCase();
-
-            if (codigo.includes(termino) || nombre.includes(termino)) {
-                fila.style.display = '';
-            } else {
-                fila.style.display = 'none';
+        // Rellenar otros campos del formulario
+        if (solicitud) {
+            // Rellenar motivo si está vacío
+            const inputMotivo = document.getElementById('id_motivo');
+            if (inputMotivo && !inputMotivo.value) {
+                inputMotivo.value = solicitud.motivo || '';
             }
-        });
-    }
+        }
+    },
 
     /**
-     * Selecciona un bien y lo agrega a la tabla
-     * @param {Event} e - Evento click
+     * Agrega un bien desde una solicitud
      */
-    function seleccionarBien(e) {
-        const fila = e.target.closest('tr');
-        const bienId = parseInt(fila.dataset.bienId);
+    agregarBienDesdeSolicitud(bien) {
+        const tbody = document.getElementById('bienesBody');
+        if (!tbody) return;
 
-        // Verificar si el bien ya está seleccionado
-        if (bienesSeleccionados.some(b => b.id === bienId)) {
-            mostrarAlerta('Este bien ya ha sido agregado', 'warning');
-            return;
+        // Limpiar fila vacia si existe (empty state)
+        if (tbody.children.length > 0) {
+            const primeraFila = tbody.children[0];
+            // Verificar si es el mensaje de empty state (1 celda con colspan)
+            if (primeraFila.cells.length === 1) {
+                const primeraCelda = primeraFila.cells[0];
+                const colspan = primeraCelda.colSpan || parseInt(primeraCelda.getAttribute('colspan') || '0');
+                if (colspan > 1) {
+                    tbody.innerHTML = '';
+                }
+            }
         }
 
-        // Agregar bien a la lista
-        const bien = {
-            id: bienId,
-            codigo: fila.dataset.bienCodigo,
-            nombre: fila.dataset.bienNombre,
-            categoria: fila.dataset.bienCategoria,
-            estado: fila.dataset.bienEstado
-        };
+        const fila = tbody.insertRow();
+        fila.id = `fila_${this.contadorFilas}`;
+        const idFila = this.contadorFilas;
 
-        bienesSeleccionados.push(bien);
-        agregarFilaBien(bien, false);
+        // Celda de selección de activo (pre-seleccionado)
+        const celdaActivo = fila.insertCell(0);
+        const selectActivo = this.crearSelectActivo(idFila);
+        selectActivo.value = bien.activo_id;
+        celdaActivo.appendChild(selectActivo);
 
-        // Cerrar modal
-        modalBien.hide();
-
-        // Limpiar búsqueda
-        document.getElementById('buscar-bien').value = '';
-        document.querySelectorAll('#tbody-lista-bienes tr').forEach(tr => {
-            tr.style.display = '';
-        });
-
-        // Actualizar visualización
-        actualizarVisualizacionBienes();
-    }
-
-    /**
-     * Agrega una fila de bien a la tabla
-     * @param {Object} bien - Datos del bien
-     * @param {boolean} desdeSolicitud - Si viene de una solicitud
-     * @param {number} cantidadSugerida - Cantidad sugerida (desde solicitud)
-     */
-    function agregarFilaBien(bien, desdeSolicitud = false, cantidadSugerida = null) {
-        const tbody = document.getElementById('tbody-bienes');
-        const fila = document.createElement('tr');
-        fila.dataset.bienId = bien.id;
-        fila.dataset.filaId = contadorFilas;
-
-        fila.innerHTML = `
-            <td>
-                <strong>${bien.nombre}</strong><br>
-                <small class="text-muted">Código: ${bien.codigo}</small>
-            </td>
-            <td>
-                <span class="badge bg-secondary">${bien.categoria || '-'}</span>
-            </td>
-            <td>
-                ${bien.cantidadSolicitada ? `<span class="badge bg-info">${bien.cantidadSolicitada}</span>` : '<span class="text-muted">-</span>'}
-            </td>
-            <td>
-                <input type="number"
-                       class="form-control form-control-sm input-cantidad"
-                       data-pendiente="${bien.cantidadPendiente || 0}"
-                       min="1"
-                       step="1"
-                       max="${bien.cantidadPendiente || 999}"
-                       value="${cantidadSugerida || ''}"
-                       required
-                       placeholder="1">
-            </td>
-            <td>
-                <input type="text"
-                       class="form-control form-control-sm input-observaciones"
-                       placeholder="Opcional">
-            </td>
-            <td class="text-center">
-                <button type="button"
-                        class="btn btn-sm btn-danger btn-eliminar-fila"
-                        data-fila-id="${contadorFilas}"
-                        ${desdeSolicitud ? 'disabled title="No puede eliminar bienes de una solicitud"' : ''}>
-                    <i class="ri-delete-bin-line"></i>
-                </button>
-            </td>
+        // Celda de "Solicitado" con información de seguimiento
+        const celdaSolicitado = fila.insertCell(1);
+        const divInfo = document.createElement('div');
+        divInfo.innerHTML = `
+            <div><strong>${bien.cantidad_solicitada}</strong> <span class="text-muted">solicitado(s)</span></div>
+            <small class="text-muted">Aprobado: ${bien.cantidad_aprobada} | Despachado: ${bien.cantidad_despachada}</small>
         `;
+        celdaSolicitado.appendChild(divInfo);
 
-        tbody.appendChild(fila);
+        // Celda de cantidad a despachar (pre-llenada con cantidad pendiente)
+        const celdaCantidad = fila.insertCell(2);
+        const inputCantidad = this.crearInputCantidad(idFila);
+        inputCantidad.value = bien.cantidad_pendiente || bien.cantidad_aprobada || 1;
+        inputCantidad.max = bien.cantidad_pendiente || bien.cantidad_aprobada;
+        celdaCantidad.appendChild(inputCantidad);
 
-        // Event listener para validar cantidad en tiempo real
-        const inputCantidad = fila.querySelector('.input-cantidad');
-        inputCantidad.addEventListener('input', validarCantidadEnTiempoReal);
+        // Agregar información de pendiente debajo del input
+        const smallPendiente = document.createElement('small');
+        smallPendiente.className = 'text-muted d-block mt-1';
+        smallPendiente.textContent = `Pendiente: ${bien.cantidad_pendiente}`;
+        celdaCantidad.appendChild(smallPendiente);
 
-        // Event listener para eliminar fila (solo si no viene de solicitud)
-        if (!desdeSolicitud) {
-            fila.querySelector('.btn-eliminar-fila').addEventListener('click', eliminarFilaBien);
-        }
+        // Celda de acciones
+        const celdaAcciones = fila.insertCell(3);
+        const btnEliminar = this.crearBotonEliminar(idFila);
+        celdaAcciones.appendChild(btnEliminar);
 
-        contadorFilas++;
-    }
+        // Guardar el detalle_solicitud_id para enviar en el formulario
+        fila.dataset.detalleSolicitudId = bien.detalle_solicitud_id;
 
-    /**
-     * Valida la cantidad en tiempo real
-     * @param {Event} e - Evento input
-     */
-    function validarCantidadEnTiempoReal(e) {
-        const input = e.target;
-        const cantidad = parseFloat(input.value) || 0;
-        const pendiente = parseFloat(input.dataset.pendiente) || 0;
-
-        // Validar contra cantidad pendiente si existe
-        if (pendiente > 0 && cantidad > pendiente) {
-            input.classList.add('is-invalid');
-            input.setCustomValidity('La cantidad excede la cantidad pendiente');
-        } else {
-            input.classList.remove('is-invalid');
-            input.setCustomValidity('');
-        }
-    }
+        this.contadorFilas++;
+    },
 
     /**
-     * Elimina una fila de bien
-     * @param {Event} e - Evento click
+     * Limpia la tabla de bienes
      */
-    function eliminarFilaBien(e) {
-        const filaId = e.target.closest('button').dataset.filaId;
-        const fila = document.querySelector(`tr[data-fila-id="${filaId}"]`);
-        const bienId = parseInt(fila.dataset.bienId);
+    limpiarTablaBienes() {
+        const tbody = document.getElementById('bienesBody');
+        if (!tbody) return;
 
-        // Remover de la lista de seleccionados
-        bienesSeleccionados = bienesSeleccionados.filter(b => b.id !== bienId);
-
-        // Remover del DOM
-        fila.remove();
-
-        // Actualizar visualización
-        actualizarVisualizacionBienes();
-    }
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="4" class="text-center text-muted">
+                    No hay bienes agregados. Haga clic en "Agregar Bien" para comenzar.
+                </td>
+            </tr>
+        `;
+        this.contadorFilas = 0;
+    },
 
     /**
-     * Actualiza la visualización de bienes (muestra/oculta mensaje de vacío)
+     * Crea select de activos
      */
-    function actualizarVisualizacionBienes() {
-        const sinBienes = document.getElementById('sin-bienes');
-        const tbody = document.getElementById('tbody-bienes');
+    crearSelectActivo(idFila) {
+        const select = document.createElement('select');
+        select.className = 'form-select form-select-sm';
+        select.id = `activo_${idFila}`;
+        select.required = true;
+        select.innerHTML = '<option value="">Seleccione...</option>';
 
-        if (!sinBienes || !tbody) {
-            console.warn('Elementos de visualización no encontrados');
-            return;
+        this.activosDisponibles.forEach(activo => {
+            const categoria = activo.categoria || '-';
+            const codigo = activo.codigo || '';
+            select.innerHTML += `<option value="${activo.id}">
+                ${this.escapeHtml(activo.nombre)} - ${this.escapeHtml(codigo)} (${this.escapeHtml(categoria)})
+            </option>`;
+        });
+
+        return select;
+    },
+
+    /**
+     * Crea input de cantidad
+     */
+    crearInputCantidad(idFila) {
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'form-control form-control-sm';
+        input.id = `cantidad_${idFila}`;
+        input.step = '1';
+        input.min = '1';
+        input.value = '1';
+        input.required = true;
+        return input;
+    },
+
+    /**
+     * Crea input de número de serie
+     */
+    crearInputSerie(idFila) {
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control form-control-sm';
+        input.id = `serie_${idFila}`;
+        input.placeholder = 'Número de serie (opcional)';
+        return input;
+    },
+
+    /**
+     * Crea select de estado físico
+     */
+    crearSelectEstado(idFila) {
+        const select = document.createElement('select');
+        select.className = 'form-select form-select-sm';
+        select.id = `estado_fisico_${idFila}`;
+        select.innerHTML = `
+            <option value="">Seleccione...</option>
+            <option value="EXCELENTE">Excelente</option>
+            <option value="BUENO">Bueno</option>
+            <option value="REGULAR">Regular</option>
+            <option value="MALO">Malo</option>
+        `;
+        return select;
+    },
+
+    /**
+     * Crea botón de eliminar
+     */
+    crearBotonEliminar(idFila) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-sm btn-danger';
+        btn.innerHTML = '<i class="ri-delete-bin-line"></i>';
+        btn.addEventListener('click', () => this.eliminarFila(idFila));
+        return btn;
+    },
+
+    /**
+     * Elimina una fila de la tabla
+     */
+    eliminarFila(idFila) {
+        const fila = document.getElementById(`fila_${idFila}`);
+        if (fila) {
+            fila.remove();
         }
 
-        // Contar filas reales en tbody
-        const numFilas = tbody.querySelectorAll('tr').length;
-
-        console.log('Actualizando visualización. Filas en tabla:', numFilas, 'Bienes seleccionados:', bienesSeleccionados.length);
-
-        // Buscar el contenedor de la tabla
-        const tabla = document.getElementById('tabla-bienes');
-        const tablaContainer = tabla ? tabla.parentElement : null;
-
-        if (numFilas === 0) {
-            // No hay bienes: ocultar tabla, mostrar mensaje
-            if (tablaContainer) tablaContainer.style.display = 'none';
-            sinBienes.style.display = 'block';
-        } else {
-            // Hay bienes: mostrar tabla, ocultar mensaje
-            if (tablaContainer) tablaContainer.style.display = 'block';
-            sinBienes.style.display = 'none';
+        // Si no quedan filas, mostrar mensaje
+        const tbody = document.getElementById('bienesBody');
+        if (tbody && tbody.children.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="text-center text-muted">
+                        No hay bienes agregados. Haga clic en "Agregar Bien" para comenzar.
+                    </td>
+                </tr>
+            `;
         }
-    }
+    },
 
     /**
      * Valida y envía el formulario
-     * @param {Event} e - Evento submit
      */
-    function validarYEnviarFormulario(e) {
+    validarYEnviarFormulario(e) {
         e.preventDefault();
 
-        // Validar que haya al menos un bien
-        if (bienesSeleccionados.length === 0) {
-            mostrarAlerta('Debe agregar al menos un bien a la entrega', 'warning');
-            return false;
-        }
-
         const detalles = [];
-        const tbody = document.getElementById('tbody-bienes');
-        const filas = tbody.querySelectorAll('tr');
+        const tbody = document.getElementById('bienesBody');
 
-        let todasValidas = true;
-
-        filas.forEach((fila, index) => {
-            const bienId = parseInt(fila.dataset.bienId);
-            const inputCantidad = fila.querySelector('.input-cantidad');
-            const inputObservaciones = fila.querySelector('.input-observaciones');
-
-            if (!inputCantidad) return;
-
-            const cantidad = parseInt(inputCantidad.value);
-            const pendiente = parseFloat(inputCantidad.dataset.pendiente) || 0;
-
-            // Validaciones
-            if (!cantidad || cantidad <= 0) {
-                todasValidas = false;
-                inputCantidad.classList.add('is-invalid');
-                return;
-            }
-
-            if (pendiente > 0 && cantidad > pendiente) {
-                todasValidas = false;
-                inputCantidad.classList.add('is-invalid');
-                mostrarAlerta(`La cantidad (${cantidad}) excede la cantidad pendiente (${pendiente})`, 'danger');
-                return;
-            }
-
-            inputCantidad.classList.remove('is-invalid');
-
-            // Agregar a detalles
-            detalles.push({
-                equipo_id: bienId,
-                cantidad: cantidad,
-                observaciones: inputObservaciones.value || null
-            });
-        });
-
-        if (!todasValidas) {
-            mostrarAlerta('Por favor corrija los errores en el formulario', 'warning');
+        // Validar que haya bienes
+        if (!tbody || tbody.children.length === 0 || tbody.children[0].cells.length === 1) {
+            alert('Debe agregar al menos un bien a la entrega.');
             return false;
         }
 
-        if (detalles.length === 0) {
-            mostrarAlerta('Debe agregar al menos un bien a la entrega', 'warning');
-            return false;
+        // Recorrer filas y construir array de detalles
+        for (let i = 0; i < this.contadorFilas; i++) {
+            const fila = document.getElementById(`fila_${i}`);
+            if (!fila) continue;
+
+            const selectActivo = document.getElementById(`activo_${i}`);
+            const inputCantidad = document.getElementById(`cantidad_${i}`);
+
+            if (!selectActivo || !selectActivo.value) {
+                alert('Seleccione un activo/bien en todas las filas.');
+                return false;
+            }
+
+            if (!inputCantidad || !inputCantidad.value || parseInt(inputCantidad.value) <= 0) {
+                alert('Ingrese una cantidad válida en todas las filas.');
+                return false;
+            }
+
+            // Obtener detalle_solicitud_id si existe
+            const detalleSolicitudId = fila.dataset.detalleSolicitudId ? parseInt(fila.dataset.detalleSolicitudId) : null;
+
+            detalles.push({
+                equipo_id: parseInt(selectActivo.value),
+                cantidad: parseInt(inputCantidad.value),
+                detalle_solicitud_id: detalleSolicitudId
+            });
         }
 
         // Guardar JSON en campo oculto
@@ -445,35 +369,22 @@
         // Enviar formulario
         e.target.submit();
         return true;
-    }
+    },
 
     /**
-     * Muestra una alerta temporal
-     * @param {string} mensaje - Mensaje a mostrar
-     * @param {string} tipo - Tipo de alerta (success, warning, danger, info)
+     * Escapa HTML para prevenir XSS
      */
-    function mostrarAlerta(mensaje, tipo = 'info') {
-        const alerta = document.createElement('div');
-        alerta.className = `alert alert-${tipo} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
-        alerta.style.zIndex = '9999';
-        alerta.innerHTML = `
-            ${mensaje}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-
-        document.body.appendChild(alerta);
-
-        // Auto-cerrar después de 5 segundos
-        setTimeout(() => {
-            alerta.remove();
-        }, 5000);
+    escapeHtml(unsafe) {
+        if (!unsafe) return '';
+        return unsafe
+            .toString()
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
     }
+};
 
-    // Inicializar cuando el DOM esté listo
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', inicializar);
-    } else {
-        inicializar();
-    }
-
-})();
+// Exportar para uso global
+window.EntregaBienes = EntregaBienes;
