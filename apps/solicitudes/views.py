@@ -1390,3 +1390,82 @@ class EstadoSolicitudDeleteView(BaseAuditedViewMixin, DeleteView):
         self.log_action(self.object, request)
 
         return redirect(self.success_url)
+
+
+# ==================== IMPORTACION EXCEL PARA MANTENEDORES ====================
+
+from apps.bodega.services_importacion_excel import ImportacionExcelService
+from django.http import JsonResponse, HttpResponse
+from django.contrib.auth.decorators import login_required
+
+
+@login_required
+def tipo_solicitud_descargar_plantilla(request):
+    """Vista para descargar plantilla Excel de tipos de solicitud."""
+    contenido = ImportacionExcelService.generar_plantilla_tipos_solicitud()
+    response = HttpResponse(contenido, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_tipos_solicitud.xlsx"'
+    return response
+
+
+@login_required
+def tipo_solicitud_importar_excel(request):
+    """Vista para importar tipos de solicitud desde Excel."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+    if 'archivo' not in request.FILES:
+        return JsonResponse({'error': 'No se proporciono archivo'}, status=400)
+    archivo = request.FILES['archivo']
+    es_valido, mensaje_error = ImportacionExcelService.validar_archivo_excel(archivo)
+    if not es_valido:
+        return JsonResponse({'error': mensaje_error}, status=400)
+    try:
+        creadas, actualizadas, errores = ImportacionExcelService.importar_tipos_solicitud(archivo, request.user)
+        mensaje = f"Importacion completada: {creadas} tipos creados, {actualizadas} actualizados"
+        if errores:
+            mensaje += f". Errores: {len(errores)}"
+        return JsonResponse({
+            'success': True,
+            'mensaje': mensaje,
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'errores': errores[:10]
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'Error al importar: {str(e)}'}, status=500)
+
+
+@login_required
+def estado_solicitud_descargar_plantilla(request):
+    """Vista para descargar plantilla Excel de estados de solicitud."""
+    contenido = ImportacionExcelService.generar_plantilla_estados_solicitud()
+    response = HttpResponse(contenido, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_estados_solicitud.xlsx"'
+    return response
+
+
+@login_required
+def estado_solicitud_importar_excel(request):
+    """Vista para importar estados de solicitud desde Excel."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+    if 'archivo' not in request.FILES:
+        return JsonResponse({'error': 'No se proporciono archivo'}, status=400)
+    archivo = request.FILES['archivo']
+    es_valido, mensaje_error = ImportacionExcelService.validar_archivo_excel(archivo)
+    if not es_valido:
+        return JsonResponse({'error': mensaje_error}, status=400)
+    try:
+        creadas, actualizadas, errores = ImportacionExcelService.importar_estados_solicitud(archivo, request.user)
+        mensaje = f"Importacion completada: {creadas} estados creados, {actualizadas} actualizados"
+        if errores:
+            mensaje += f". Errores: {len(errores)}"
+        return JsonResponse({
+            'success': True,
+            'mensaje': mensaje,
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'errores': errores[:10]
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'Error al importar: {str(e)}'}, status=500)

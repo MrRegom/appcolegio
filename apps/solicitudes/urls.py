@@ -39,10 +39,14 @@ urlpatterns = [
     path('tipos/crear/', views.TipoSolicitudCreateView.as_view(), name='tipo_solicitud_crear'),
     path('tipos/<int:pk>/editar/', views.TipoSolicitudUpdateView.as_view(), name='tipo_solicitud_editar'),
     path('tipos/<int:pk>/eliminar/', views.TipoSolicitudDeleteView.as_view(), name='tipo_solicitud_eliminar'),
+    path('tipos/importar/plantilla/', views.tipo_solicitud_descargar_plantilla, name='tipo_solicitud_descargar_plantilla'),
+    path('tipos/importar/', views.tipo_solicitud_importar_excel, name='tipo_solicitud_importar_excel'),
 
     # ==================== MANTENEDORES: ESTADOS DE SOLICITUD ====================
     path('estados/', views.EstadoSolicitudListView.as_view(), name='estado_solicitud_lista'),
     path('estados/crear/', views.EstadoSolicitudCreateView.as_view(), name='estado_solicitud_crear'),
     path('estados/<int:pk>/editar/', views.EstadoSolicitudUpdateView.as_view(), name='estado_solicitud_editar'),
     path('estados/<int:pk>/eliminar/', views.EstadoSolicitudDeleteView.as_view(), name='estado_solicitud_eliminar'),
+    path('estados/importar/plantilla/', views.estado_solicitud_descargar_plantilla, name='estado_solicitud_descargar_plantilla'),
+    path('estados/importar/', views.estado_solicitud_importar_excel, name='estado_solicitud_importar_excel'),
 ]

@@ -10,6 +10,9 @@
                     <h4 class="mb-sm-0">{{ titulo }}</h4>
                     <div class="page-title-right">
                         {% if puede_crear %}
+                        <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#modalImportarEstadoRecepcion">
+                            <i class="ri-upload-line"></i> Importar
+                        </button>
                         <a href="{% url 'compras:estado_recepcion_crear' %}" class="btn btn-primary">
                             <i class="ri-add-line"></i> Nuevo Estado
                         </a>
@@ -88,4 +91,6 @@
         </div>
     </div>
 </div>
+
+{% include 'partials/modal_importar_excel.html' with nombre_modal='EstadoRecepcion' titulo='Estados de Recepcion' url_descargar_plantilla='compras:estado_recepcion_descargar_plantilla' url_importar='compras:estado_recepcion_importar_excel' %}
 {% endblock %}

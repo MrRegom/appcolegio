@@ -10,6 +10,9 @@
                     <h4 class="mb-sm-0">{{ titulo }}</h4>
                     <div class="page-title-right">
                         {% if puede_crear %}
+                        <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#modalImportarOperacion">
+                            <i class="ri-upload-line"></i> Importar
+                        </button>
                         <a href="{% url 'bodega:operacion_crear' %}" class="btn btn-primary">
                             <i class="ri-add-line"></i> Nueva Operación
                         </a>
@@ -101,4 +104,6 @@
         </div>
     </div>
 </div>
+
+{% include 'partials/modal_importar_excel.html' with nombre_modal='Operacion' titulo='Operaciones' url_descargar_plantilla='bodega:operacion_descargar_plantilla' url_importar='bodega:operacion_importar_excel' %}
 {% endblock %}

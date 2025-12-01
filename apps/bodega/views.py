@@ -20,7 +20,7 @@ from django.views.generic import (
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponse
 from django.shortcuts import redirect
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
@@ -48,6 +48,7 @@ from .services import (
     CategoriaService, ArticuloService, MovimientoService,
     EntregaArticuloService, EntregaBienService
 )
+from .services_importacion_excel import ImportacionExcelService
 
 
 # ==================== MENÚ PRINCIPAL ====================
@@ -1756,3 +1757,127 @@ class TipoMovimientoDeleteView(BaseAuditedViewMixin, DeleteView):
         self.log_action(self.object, request)
 
         return redirect(self.success_url)
+
+
+# ==================== IMPORTACION EXCEL PARA MANTENEDORES ====================
+
+
+@login_required
+def marca_descargar_plantilla(request):
+    """Vista para descargar plantilla Excel de marcas."""
+    contenido = ImportacionExcelService.generar_plantilla_marcas()
+    
+    response = HttpResponse(
+        contenido,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="plantilla_marcas.xlsx"'
+    return response
+
+
+@login_required
+def marca_importar_excel(request):
+    """Vista para importar marcas desde Excel."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+    
+    if 'archivo' not in request.FILES:
+        return JsonResponse({'error': 'No se proporciono archivo'}, status=400)
+    
+    archivo = request.FILES['archivo']
+    
+    # Validar archivo
+    es_valido, mensaje_error = ImportacionExcelService.validar_archivo_excel(archivo)
+    if not es_valido:
+        return JsonResponse({'error': mensaje_error}, status=400)
+    
+    try:
+        creadas, actualizadas, errores = ImportacionExcelService.importar_marcas(archivo, request.user)
+        
+        mensaje = f"Importacion completada: {creadas} marcas creadas, {actualizadas} actualizadas"
+        if errores:
+            mensaje += f". Errores: {len(errores)}"
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': mensaje,
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'errores': errores[:10]  # Limitar a 10 errores
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'Error al importar: {str(e)}'}, status=500)
+
+
+# Operaciones
+@login_required
+def operacion_descargar_plantilla(request):
+    """Vista para descargar plantilla Excel de operaciones."""
+    contenido = ImportacionExcelService.generar_plantilla_operaciones()
+    response = HttpResponse(contenido, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_operaciones.xlsx"'
+    return response
+
+
+@login_required
+def operacion_importar_excel(request):
+    """Vista para importar operaciones desde Excel."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+    if 'archivo' not in request.FILES:
+        return JsonResponse({'error': 'No se proporciono archivo'}, status=400)
+    archivo = request.FILES['archivo']
+    es_valido, mensaje_error = ImportacionExcelService.validar_archivo_excel(archivo)
+    if not es_valido:
+        return JsonResponse({'error': mensaje_error}, status=400)
+    try:
+        creadas, actualizadas, errores = ImportacionExcelService.importar_operaciones(archivo, request.user)
+        mensaje = f"Importacion completada: {creadas} operaciones creadas, {actualizadas} actualizadas"
+        if errores:
+            mensaje += f". Errores: {len(errores)}"
+        return JsonResponse({
+            'success': True,
+            'mensaje': mensaje,
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'errores': errores[:10]
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'Error al importar: {str(e)}'}, status=500)
+
+
+# Tipos de Movimiento
+@login_required
+def tipo_movimiento_descargar_plantilla(request):
+    """Vista para descargar plantilla Excel de tipos de movimiento."""
+    contenido = ImportacionExcelService.generar_plantilla_tipos_movimiento()
+    response = HttpResponse(contenido, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_tipos_movimiento.xlsx"'
+    return response
+
+
+@login_required
+def tipo_movimiento_importar_excel(request):
+    """Vista para importar tipos de movimiento desde Excel."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+    if 'archivo' not in request.FILES:
+        return JsonResponse({'error': 'No se proporciono archivo'}, status=400)
+    archivo = request.FILES['archivo']
+    es_valido, mensaje_error = ImportacionExcelService.validar_archivo_excel(archivo)
+    if not es_valido:
+        return JsonResponse({'error': mensaje_error}, status=400)
+    try:
+        creadas, actualizadas, errores = ImportacionExcelService.importar_tipos_movimiento(archivo, request.user)
+        mensaje = f"Importacion completada: {creadas} tipos creados, {actualizadas} actualizados"
+        if errores:
+            mensaje += f". Errores: {len(errores)}"
+        return JsonResponse({
+            'success': True,
+            'mensaje': mensaje,
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'errores': errores[:10]
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'Error al importar: {str(e)}'}, status=500)

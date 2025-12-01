@@ -52,6 +52,8 @@ urlpatterns = [
     path('mantenedores/marcas/crear/', views.MarcaCreateView.as_view(), name='marca_crear'),
     path('mantenedores/marcas/<int:pk>/editar/', views.MarcaUpdateView.as_view(), name='marca_editar'),
     path('mantenedores/marcas/<int:pk>/eliminar/', views.MarcaDeleteView.as_view(), name='marca_eliminar'),
+    path('mantenedores/marcas/importar/plantilla/', views.marca_descargar_plantilla, name='marca_descargar_plantilla'),
+    path('mantenedores/marcas/importar/', views.marca_importar_excel, name='marca_importar_excel'),
 
     # Operaciones
     path('mantenedores/operaciones/', views.OperacionListView.as_view(), name='operacion_lista'),
@@ -64,4 +66,10 @@ urlpatterns = [
     path('mantenedores/tipos-movimiento/crear/', views.TipoMovimientoCreateView.as_view(), name='tipo_movimiento_crear'),
     path('mantenedores/tipos-movimiento/<int:pk>/editar/', views.TipoMovimientoUpdateView.as_view(), name='tipo_movimiento_editar'),
     path('mantenedores/tipos-movimiento/<int:pk>/eliminar/', views.TipoMovimientoDeleteView.as_view(), name='tipo_movimiento_eliminar'),
+    path('mantenedores/tipos-movimiento/importar/plantilla/', views.tipo_movimiento_descargar_plantilla, name='tipo_movimiento_descargar_plantilla'),
+    path('mantenedores/tipos-movimiento/importar/', views.tipo_movimiento_importar_excel, name='tipo_movimiento_importar_excel'),
+    
+    # Operaciones - Importacion
+    path('mantenedores/operaciones/importar/plantilla/', views.operacion_descargar_plantilla, name='operacion_descargar_plantilla'),
+    path('mantenedores/operaciones/importar/', views.operacion_importar_excel, name='operacion_importar_excel'),
 ]
