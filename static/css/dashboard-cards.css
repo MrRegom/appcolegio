@@ -1,0 +1,314 @@
+/**
+ * Dashboard Cards CSS
+ * 
+ * Estilos para las cards del dashboard principal.
+ * Separacion de responsabilidades: solo presentacion visual.
+ */
+
+/* ============================================
+   CARDS PRINCIPALES DEL DASHBOARD
+   ============================================ */
+
+.dashboard-stat-card {
+    border-radius: 16px;
+    border: 2px solid #e1e5e9;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.06);
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    animation: cardFadeInUp 0.6s ease-out forwards;
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.dashboard-stat-card .card-body {
+    padding: 1rem 1.25rem !important;
+}
+
+.dashboard-stat-card:nth-child(1) { animation-delay: 0.1s; }
+.dashboard-stat-card:nth-child(2) { animation-delay: 0.2s; }
+.dashboard-stat-card:nth-child(3) { animation-delay: 0.3s; }
+.dashboard-stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+@keyframes cardFadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dashboard-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, transparent 0%, currentColor 50%, transparent 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.dashboard-stat-card:hover::before {
+    opacity: 0.6;
+}
+
+.dashboard-stat-card:hover {
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1);
+    border-color: currentColor;
+}
+
+.dashboard-stat-primary {
+    color: #405189;
+}
+
+.dashboard-stat-success {
+    color: #0ab39c;
+}
+
+.dashboard-stat-info {
+    color: #299cdb;
+}
+
+.dashboard-stat-warning {
+    color: #f7b84b;
+}
+
+.dashboard-stat-danger {
+    color: #f06548;
+}
+
+.dashboard-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0.9;
+    transition: all 0.3s ease;
+}
+
+/* Colores institucionales para los iconos */
+.dashboard-stat-primary .dashboard-stat-icon {
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    color: #ffffff;
+}
+
+.dashboard-stat-success .dashboard-stat-icon {
+    background: linear-gradient(135deg, #0ab39c 0%, #10d9c4 100%);
+    color: #ffffff;
+}
+
+.dashboard-stat-info .dashboard-stat-icon {
+    background: linear-gradient(135deg, #299cdb 0%, #4db8f0 100%);
+    color: #ffffff;
+}
+
+.dashboard-stat-warning .dashboard-stat-icon {
+    background: linear-gradient(135deg, #D4AF37 0%, #f4d03f 100%);
+    color: #1e3a8a;
+}
+
+.dashboard-stat-danger .dashboard-stat-icon {
+    background: linear-gradient(135deg, #f06548 0%, #ff8a7a 100%);
+    color: #ffffff;
+}
+
+.dashboard-stat-card:hover .dashboard-stat-icon {
+    transform: scale(1.1) rotate(5deg);
+    opacity: 1;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.dashboard-stat-trend {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, currentColor 0%, rgba(0, 0, 0, 0.3) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 0.5rem !important;
+}
+
+.dashboard-stat-card:hover .dashboard-stat-value {
+    background: linear-gradient(135deg, currentColor 0%, rgba(0, 0, 0, 0.5) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Efecto de brillo al hover */
+.dashboard-stat-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transform: rotate(45deg);
+    transition: all 0.6s ease;
+    opacity: 0;
+    z-index: 1;
+}
+
+.dashboard-stat-card:hover::after {
+    opacity: 1;
+    animation: shine 0.8s ease;
+}
+
+@keyframes shine {
+    0% {
+        transform: translateX(-100%) translateY(-100%) rotate(45deg);
+    }
+    100% {
+        transform: translateX(100%) translateY(100%) rotate(45deg);
+    }
+}
+
+/* Mejorar graficos sparkline - mas compactos */
+.dashboard-stat-card .apex-charts {
+    margin-top: 0.5rem;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+    height: 50px !important;
+}
+
+.dashboard-stat-card:hover .apex-charts {
+    opacity: 1;
+}
+
+/* Reducir espacio entre elementos */
+.dashboard-stat-card .d-flex.justify-content-between {
+    margin-bottom: 0.75rem !important;
+}
+
+/* Estilos para cards clickeables (dentro de links) */
+a .dashboard-stat-card {
+    text-decoration: none;
+    color: inherit;
+}
+
+a:hover .dashboard-stat-card {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+a:active .dashboard-stat-card {
+    transform: translateY(-2px);
+}
+
+/* Links de cards clickeables */
+.dashboard-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Cards clickeables - cursor y transicion */
+.dashboard-stat-card.clickeable {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+/* Titulos de las cards */
+.dashboard-stat-title {
+    letter-spacing: 0.5px;
+    font-size: 0.7rem;
+}
+
+/* Titulo de bienvenida con color dorado */
+.text-gold {
+    color: #D4AF37;
+}
+
+/* ============================================================
+   Actividades Recientes - Card compacta
+   ============================================================ */
+
+/* Card compacta para actividades recientes */
+.actividades-recientes-compacta {
+    height: auto;
+    min-height: 200px;
+    max-height: 280px;
+}
+
+/* Contenedor con scroll para actividades */
+.actividades-recientes-container {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Ajustar espaciado de items en timeline */
+.actividades-recientes-compacta .activity-timeline-2 li {
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.actividades-recientes-compacta .activity-timeline-2 li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+/* Reducir tamano de texto en actividades */
+.actividades-recientes-compacta .card-title {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+}
+
+.actividades-recientes-compacta h6 {
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+}
+
+.actividades-recientes-compacta p.text-muted {
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.actividades-recientes-compacta small.text-muted {
+    font-size: 0.7rem;
+}
+
+/* Asegurar que el boton "Ver Mas" siempre sea visible */
+.actividades-recientes-compacta .card-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: white;
+    border-bottom: 1px solid #e9ecef;
+    padding: 0.75rem 1rem;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+
+@media (max-width: 768px) {
+    .dashboard-stat-card {
+        margin-bottom: 1rem;
+    }
+    
+    .dashboard-stat-value {
+        font-size: 1.5rem;
+    }
+}
