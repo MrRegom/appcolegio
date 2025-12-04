@@ -35,6 +35,7 @@ urlpatterns = [
     path('solicitudes/', include('apps.solicitudes.urls')),
     path('reportes/', include('apps.reportes.urls')),
     path('bajas-inventario/', include('apps.bajas_inventario.urls')),
+    path('gestores/', include('apps.inventario.urls')),
 
     # Gestión de usuarios y permisos
     path('usuarios/', include('apps.accounts.urls')),

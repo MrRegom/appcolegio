@@ -1,0 +1,78 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box">
+                    <h4 class="mb-sm-0">{{ titulo }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="alert alert-warning" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="ri-alert-line"></i> Confirmar Eliminación
+                            </h5>
+                            <p class="mb-0">
+                                ¿Está seguro que desea eliminar la unidad de medida <strong>{{ unidad.nombre }}</strong> ({{ unidad.codigo }})?
+                            </p>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-body">
+                                <h6 class="card-title">Información de la Unidad de Medida</h6>
+                                <table class="table table-borderless mb-0">
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row" style="width: 200px;">Código:</th>
+                                            <td>{{ unidad.codigo }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Nombre:</th>
+                                            <td>{{ unidad.nombre }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Símbolo:</th>
+                                            <td><code>{{ unidad.simbolo }}</code></td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Estado:</th>
+                                            <td>
+                                                {% if unidad.activo %}
+                                                    <span class="badge bg-success">Activo</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactivo</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="ri-delete-bin-line"></i> Sí, Eliminar
+                                </button>
+                            </form>
+                            <a href="{% url 'bodega:lista_unidades' %}" class="btn btn-secondary">
+                                <i class="ri-arrow-left-line"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

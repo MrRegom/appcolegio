@@ -9,19 +9,10 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.views.generic import TemplateView
-from .models import (
-    Taller, TipoEquipo, Equipo, MantenimientoEquipo,
-    Marca, Modelo, NombreArticulo, SectorInventario
-)
-from .forms import (
-    TallerForm, TipoEquipoForm, EquipoForm, MantenimientoEquipoForm,
-    BodegaForm, EstadoOrdenCompraForm, EstadoRecepcionForm, ProvenienciaForm, DepartamentoForm,
-    MarcaForm, ModeloForm, NombreArticuloForm, SectorInventarioForm
-)
-from apps.bodega.models import Bodega
-from apps.compras.models import EstadoOrdenCompra, EstadoRecepcion
-from apps.activos.models import Proveniencia
-from apps.solicitudes.models import Departamento
+
+# NOTA: Los modelos Taller, Marca, Modelo fueron migrados a apps.activos
+# Los modelos TipoEquipo, Equipo, MantenimientoEquipo fueron eliminados
+# Las importaciones se hacen localmente en cada función cuando se necesitan
 
 
 # ==================== TALLERES ====================
@@ -367,17 +358,15 @@ def mantenimiento_create(request, equipo_id):
 @login_required
 def menu_gestores(request):
     """Menú principal de gestores con estadísticas"""
-    from apps.bodega.models import Articulo, Categoria as CategoriaBodega
-    from apps.activos.models import CategoriaActivo, UnidadMedida, EstadoActivo
+    from apps.bodega.models import Articulo, Categoria as CategoriaBodega, Bodega
+    from apps.activos.models import CategoriaActivo, EstadoActivo
     from apps.compras.models import Proveedor
     
     try:
         stats = {
-            'total_bodegas': Bodega.objects.filter(eliminado=False).count(),
+            'total_bodegas': Bodega.objects.filter(eliminado=False).count() if hasattr(Bodega, 'objects') else 0,
             'total_categorias_bodega': CategoriaBodega.objects.filter(eliminado=False).count(),
             'total_categorias_activos': CategoriaActivo.objects.filter(eliminado=False).count(),
-            'total_talleres': Taller.objects.filter(eliminado=False).count(),
-            'total_equipos': Equipo.objects.filter(eliminado=False).count(),
             'total_proveedores': Proveedor.objects.filter(activo=True).count(),
         }
     except Exception:
@@ -386,8 +375,6 @@ def menu_gestores(request):
             'total_bodegas': 0,
             'total_categorias_bodega': 0,
             'total_categorias_activos': 0,
-            'total_talleres': 0,
-            'total_equipos': 0,
             'total_proveedores': 0,
         }
     
