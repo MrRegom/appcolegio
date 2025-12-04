@@ -3,6 +3,10 @@
 
 {% block title %}{{ titulo }}{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/modulo-cards.css' %}" rel="stylesheet" type="text/css">
+{% endblock extra_css %}
+
 {% block content %}
 <div class="page-content">
     <div class="container-fluid">
@@ -32,25 +36,27 @@
         {% endif %}
 
         <!-- Menú principal con Cards -->
-        <div class="row">
+        <div class="row mb-4">
             <div class="col-12">
-                <h5 class="mb-3 text-muted">Seleccione una opción:</h5>
-            </div>
-        </div>
-
-        <div class="row">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="ri-menu-line me-2"></i>Seleccione una opción:
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
             <!-- Card 1: Gestión de Solicitudes -->
             {% if permisos.puede_gestionar %}
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">GESTIÓN</h5>
-                            <a href="{% url 'solicitudes:lista_solicitudes' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-info">
+                        <i class="ri-file-list-2-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">GESTIÓN</h6>
+                        <p class="modulo-card-desc">Gestione todas las solicitudes del sistema</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'solicitudes:lista_solicitudes' %}" class="btn btn-sm btn-info">
                                 <i class="ri-list-check align-bottom me-1"></i> Ver Solicitudes
                             </a>
@@ -62,16 +68,15 @@
 
             <!-- Card 2: Solicitud de Artículos -->
             {% if permisos.puede_crear %}
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">SOLICITUD ARTÍCULOS</h5>
-                            <a href="{% url 'solicitudes:crear_solicitud_articulos' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-warning">
+                        <i class="ri-file-add-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">SOLICITUD ARTÍCULOS</h6>
+                        <p class="modulo-card-desc">Cree solicitudes de artículos de bodega</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'solicitudes:crear_solicitud_articulos' %}" class="btn btn-sm btn-warning">
                                 <i class="ri-add-line align-bottom me-1"></i> Nueva Solicitud
                             </a>
@@ -81,16 +86,15 @@
             </div>
 
             <!-- Card 3: Solicitud de Bienes (Activos) -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">SOLICITUD BIENES</h5>
-                            <a href="{% url 'solicitudes:crear_solicitud_bienes' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-primary">
+                        <i class="ri-file-add-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">SOLICITUD BIENES</h6>
+                        <p class="modulo-card-desc">Cree solicitudes de bienes/activos fijos</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'solicitudes:crear_solicitud_bienes' %}" class="btn btn-sm btn-primary">
                                 <i class="ri-add-line align-bottom me-1"></i> Nueva Solicitud
                             </a>
@@ -101,19 +105,22 @@
             {% endif %}
 
             <!-- Card 4: Mis Solicitudes -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">MIS SOLICITUDES</h5>
-                            <a href="{% url 'solicitudes:mis_solicitudes' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-success">
+                        <i class="ri-user-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">MIS SOLICITUDES</h6>
+                        <p class="modulo-card-desc">Visualice y gestione sus solicitudes</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'solicitudes:mis_solicitudes' %}" class="btn btn-sm btn-success">
                                 <i class="ri-file-user-line align-bottom me-1"></i> Ver Mis Solicitudes
                             </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
                         </div>
                     </div>
                 </div>
@@ -122,24 +129,26 @@
 
         <!-- Sección de Configuración/Mantenedores -->
         {% if permisos.puede_gestionar_mantenedores %}
-        <div class="row mt-4">
+        <div class="row mb-4">
             <div class="col-12">
-                <h5 class="mb-3 text-muted">Configuración:</h5>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- Card: Tipos de Solicitud -->
-            <div class="col-lg-3 col-sm-6">
                 <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="ri-settings-3-line me-2"></i>Configuración:
+                        </h5>
+                    </div>
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">TIPOS DE SOLICITUD</h5>
-                            <a href="{% url 'solicitudes:tipo_solicitud_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+                        <div class="row g-3">
+            <!-- Card: Tipos de Solicitud -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-primary">
+                        <i class="ri-folder-settings-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">TIPOS DE SOLICITUD</h6>
+                        <p class="modulo-card-desc">Gestione los tipos de solicitud</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'solicitudes:tipo_solicitud_lista' %}" class="btn btn-sm btn-outline-primary">
                                 <i class="ri-settings-3-line align-bottom me-1"></i> Gestionar Tipos
                             </a>
@@ -149,19 +158,22 @@
             </div>
 
             <!-- Card: Estados de Solicitud -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ESTADOS DE SOLICITUD</h5>
-                            <a href="{% url 'solicitudes:estado_solicitud_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-success">
+                        <i class="ri-file-list-3-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">ESTADOS DE SOLICITUD</h6>
+                        <p class="modulo-card-desc">Gestione los estados de solicitud</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'solicitudes:estado_solicitud_lista' %}" class="btn btn-sm btn-outline-success">
                                 <i class="ri-list-settings-line align-bottom me-1"></i> Gestionar Estados
                             </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
                         </div>
                     </div>
                 </div>
