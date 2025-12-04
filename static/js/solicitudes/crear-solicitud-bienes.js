@@ -25,8 +25,18 @@
         // Event listeners
         setupEventListeners();
 
-        // Actualizar visualización inicial
-        actualizarVisualizacionBienes();
+        // Configurar estado inicial: ocultar tabla y mostrar empty state
+        const tabla = document.getElementById('tabla-bienes');
+        const sinBienes = document.getElementById('sin-bienes');
+        if (tabla && sinBienes) {
+            if (bienesSeleccionados.length === 0) {
+                tabla.style.display = 'none';
+                sinBienes.style.display = 'block';
+            } else {
+                tabla.style.display = 'table';
+                sinBienes.style.display = 'none';
+            }
+        }
     }
 
     /**
@@ -101,6 +111,23 @@
         };
 
         bienesSeleccionados.push(bien);
+        
+        // Eliminar empty state INMEDIATAMENTE antes de agregar la fila
+        const sinBienes = document.getElementById('sin-bienes');
+        if (sinBienes && sinBienes.parentNode) {
+            sinBienes.remove();
+        }
+        
+        // Asegurar que la tabla esté visible
+        const tabla = document.getElementById('tabla-bienes');
+        const tablaContainer = tabla ? tabla.closest('.table-responsive') : null;
+        if (tabla) {
+            tabla.style.cssText = 'display: table !important;';
+        }
+        if (tablaContainer) {
+            tablaContainer.style.cssText = 'display: block !important;';
+        }
+        
         agregarFilaBien(bien);
 
         // Cerrar modal
@@ -111,9 +138,6 @@
         document.querySelectorAll('#tbody-lista-bienes tr').forEach(tr => {
             tr.style.display = '';
         });
-
-        // Actualizar visualización
-        actualizarVisualizacionBienes();
     }
 
     /**
@@ -122,6 +146,24 @@
      */
     function agregarFilaBien(bien) {
         const tbody = document.getElementById('tbody-bienes');
+        if (!tbody) return;
+        
+        // ELIMINAR empty state del DOM si existe (más efectivo que ocultarlo)
+        const sinBienes = document.getElementById('sin-bienes');
+        if (sinBienes && sinBienes.parentNode) {
+            sinBienes.remove();
+        }
+        
+        // Asegurar que la tabla esté visible
+        const tabla = document.getElementById('tabla-bienes');
+        const tablaContainer = tabla ? tabla.closest('.table-responsive') : null;
+        if (tabla) {
+            tabla.style.cssText = 'display: table !important;';
+        }
+        if (tablaContainer) {
+            tablaContainer.style.cssText = 'display: block !important;';
+        }
+        
         const fila = document.createElement('tr');
         fila.dataset.bienId = bien.id;
         fila.dataset.filaId = contadorFilas;
@@ -188,13 +230,36 @@
         const tbody = document.getElementById('tbody-bienes');
         const sinBienes = document.getElementById('sin-bienes');
         const tabla = document.getElementById('tabla-bienes');
+        const tablaContainer = tabla ? tabla.closest('.table-responsive') : null;
+        const cardBody = tabla ? tabla.closest('.card-body') : null;
 
-        if (bienesSeleccionados.length === 0) {
+        if (!tbody || !tabla) {
+            return;
+        }
+
+        // Contar filas reales en el tbody (no solo el array)
+        const filasReales = tbody.querySelectorAll('tr').length;
+
+        if (filasReales === 0 || bienesSeleccionados.length === 0) {
+            // Mostrar empty state (recrearlo si fue eliminado)
+            if (!sinBienes && cardBody) {
+                const nuevoSinBienes = document.createElement('div');
+                nuevoSinBienes.id = 'sin-bienes';
+                nuevoSinBienes.className = 'text-center text-muted py-4';
+                nuevoSinBienes.innerHTML = '<i class="ri-inbox-line" style="font-size: 3rem;"></i><p class="mb-0">No hay bienes agregados. Haga clic en "Agregar Bien" para comenzar.</p>';
+                cardBody.appendChild(nuevoSinBienes);
+            } else if (sinBienes) {
+                sinBienes.style.cssText = 'display: block !important;';
+            }
+            if (tablaContainer) tablaContainer.style.display = 'none';
             tabla.style.display = 'none';
-            sinBienes.style.display = 'block';
         } else {
-            tabla.style.display = 'table';
-            sinBienes.style.display = 'none';
+            // Eliminar empty state si existe
+            if (sinBienes && sinBienes.parentNode) {
+                sinBienes.remove();
+            }
+            if (tablaContainer) tablaContainer.style.cssText = 'display: block !important;';
+            tabla.style.cssText = 'display: table !important;';
         }
     }
 

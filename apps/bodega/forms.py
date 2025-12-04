@@ -544,6 +544,20 @@ class EntregaArticuloForm(forms.ModelForm):
             raise ValidationError('El motivo de la entrega es obligatorio.')
         return motivo
 
+    def clean_recibido_por(self):
+        """Validar que recibido_por no sea vacío."""
+        recibido_por = self.cleaned_data.get('recibido_por')
+        if not recibido_por:
+            raise ValidationError('Debe seleccionar el usuario que recibirá los artículos.')
+        return recibido_por
+
+    def clean_bodega_origen(self):
+        """Validar que bodega_origen no sea vacío."""
+        bodega_origen = self.cleaned_data.get('bodega_origen')
+        if not bodega_origen:
+            raise ValidationError('Debe seleccionar la bodega de origen.')
+        return bodega_origen
+
 
 class EntregaBienForm(forms.ModelForm):
     """Formulario para crear entregas de bienes/activos."""
@@ -632,6 +646,13 @@ class EntregaBienForm(forms.ModelForm):
         if not motivo:
             raise ValidationError('El motivo de la entrega es obligatorio.')
         return motivo
+
+    def clean_recibido_por(self):
+        """Validar que recibido_por no sea vacío."""
+        recibido_por = self.cleaned_data.get('recibido_por')
+        if not recibido_por:
+            raise ValidationError('Debe seleccionar el usuario que recibirá los bienes.')
+        return recibido_por
 
 # ==================== FORMULARIOS DE MANTENEDORES ====================
 

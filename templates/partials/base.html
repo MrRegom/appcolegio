@@ -159,10 +159,49 @@
         window.dispatchEvent(new Event('resize'));
 
         // Mostrar modal de mensajes automáticamente si existen mensajes
+        // EXCEPTO mensajes de login/logout
         {% if messages %}
         document.addEventListener('DOMContentLoaded', function() {
-            var mensajesModal = new bootstrap.Modal(document.getElementById('mensajesModal'));
-            mensajesModal.show();
+            var modalElement = document.getElementById('mensajesModal');
+            if (!modalElement) return;
+            
+            // Obtener todos los mensajes del modal
+            var mensajes = modalElement.querySelectorAll('.modal-body p');
+            var tieneMensajesValidos = false;
+            
+            // Textos a filtrar (mensajes de login/logout)
+            var textosFiltrados = [
+                'inició sesión',
+                'cerró sesión',
+                'Ha iniciado sesión',
+                'Ha cerrado sesión',
+                'inicio sesion',
+                'cerro sesion'
+            ];
+            
+            // Verificar si hay mensajes que NO sean de login/logout
+            mensajes.forEach(function(mensaje) {
+                var textoMensaje = mensaje.textContent.toLowerCase();
+                var esMensajeLoginLogout = textosFiltrados.some(function(texto) {
+                    return textoMensaje.includes(texto.toLowerCase());
+                });
+                
+                if (!esMensajeLoginLogout) {
+                    tieneMensajesValidos = true;
+                } else {
+                    // Ocultar el mensaje de login/logout del modal
+                    mensaje.closest('.mb-2').style.display = 'none';
+                }
+            });
+            
+            // Solo mostrar el modal si hay mensajes válidos
+            if (tieneMensajesValidos) {
+                var mensajesModal = new bootstrap.Modal(modalElement);
+                mensajesModal.show();
+            } else {
+                // Si solo hay mensajes de login/logout, ocultar todo el modal
+                modalElement.style.display = 'none';
+            }
         });
         {% endif %}
         </script>

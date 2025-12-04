@@ -1,165 +1,303 @@
 {% extends 'partials/base.html' %}
 {% load static %}
 
+{% block title %}{{ titulo }}{% endblock %}
+
 {% block content %}
 <div class="page-content">
     <div class="container-fluid">
+        <!-- start page title -->
         <div class="row">
             <div class="col-12">
-                <div class="page-title-box">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
                     <h4 class="mb-sm-0">{{ titulo }}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard_analytics' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'bodega:menu_bodega' %}">Bodega</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'bodega:entrega_bien_lista' %}">Entregas de Bienes</a></li>
+                            <li class="breadcrumb-item active">Registrar Entrega</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
         </div>
+        <!-- end page title -->
 
-        <div class="row">
-            <div class="col-lg-12">
-                <form method="post" id="formEntregaBien">
-                    {% csrf_token %}
+        <form method="post" id="formEntregaBien">
+            {% csrf_token %}
 
+            <div class="row">
+                <!-- Solicitud Asociada (Opcional) -->
+                <div class="col-lg-6">
                     <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Datos de la Entrega</h5>
+                        <div class="card-header bg-primary-subtle">
+                            <h5 class="card-title mb-0 text-primary">
+                                <i class="ri-file-list-3-line align-middle me-1"></i> Solicitud Asociada (Opcional)
+                            </h5>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
+                            <div class="row g-3">
+                                <div class="col-md-12">
                                     <label for="{{ form.solicitud.id_for_label }}" class="form-label">
                                         {{ form.solicitud.label }}
                                     </label>
                                     {{ form.solicitud }}
                                     {% if form.solicitud.errors %}
-                                    <div class="text-danger">{{ form.solicitud.errors }}</div>
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.solicitud.errors }}
+                                        </div>
                                     {% endif %}
-                                    <small class="form-text text-muted">Si selecciona una solicitud, se cargarán automáticamente los bienes de la solicitud</small>
+                                    <small class="text-muted">
+                                        <i class="ri-information-line"></i> Si selecciona una solicitud, los bienes se cargarán automáticamente
+                                    </small>
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
+                            <!-- Información de solicitud cargada -->
+                            <div id="infoSolicitud" class="alert alert-info border-0 mt-3 d-none" role="alert">
+                                <strong><i class="ri-information-line me-2"></i>Información de Solicitud:</strong>
+                                <div id="datosSolicitud" class="mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motivo y Observaciones -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="ri-message-3-line align-middle me-1"></i> Motivo y Observaciones
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <label for="{{ form.motivo.id_for_label }}" class="form-label">
+                                        {{ form.motivo.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.motivo }}
+                                    {% if form.motivo.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.motivo.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-12">
+                                    <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                                        {{ form.observaciones.label }}
+                                    </label>
+                                    {{ form.observaciones }}
+                                    {% if form.observaciones.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.observaciones.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Datos de la Entrega -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="ri-archive-line align-middle me-1"></i> Datos de la Entrega
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-12">
                                     <label for="{{ form.tipo.id_for_label }}" class="form-label">
-                                        {{ form.tipo.label }} *
+                                        {{ form.tipo.label }} <span class="text-danger">*</span>
                                     </label>
                                     {{ form.tipo }}
                                     {% if form.tipo.errors %}
-                                    <div class="text-danger">{{ form.tipo.errors }}</div>
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.tipo.errors }}
+                                        </div>
                                     {% endif %}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                                <div class="col-md-6 mb-3">
+                <!-- Información de Destino -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="ri-user-location-line align-middle me-1"></i> Información de Destino
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-12">
                                     <label for="{{ form.recibido_por.id_for_label }}" class="form-label">
-                                        {{ form.recibido_por.label }} *
+                                        {{ form.recibido_por.label }} <span class="text-danger">*</span>
                                     </label>
                                     {{ form.recibido_por }}
                                     {% if form.recibido_por.errors %}
-                                    <div class="text-danger">{{ form.recibido_por.errors }}</div>
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.recibido_por.errors }}
+                                        </div>
                                     {% endif %}
-                                    <small class="form-text text-muted">Usuario que recibirá los bienes</small>
+                                    <small class="text-muted">Usuario que recibirá los bienes</small>
                                 </div>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
+                                <div class="col-md-12">
                                     <label for="{{ form.departamento_destino.id_for_label }}" class="form-label">
                                         {{ form.departamento_destino.label }}
                                     </label>
                                     {{ form.departamento_destino }}
                                     {% if form.departamento_destino.errors %}
-                                    <div class="text-danger">{{ form.departamento_destino.errors }}</div>
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.departamento_destino.errors }}
+                                        </div>
                                     {% endif %}
-                                    <small class="form-text text-muted">Departamento o área destino (opcional)</small>
+                                    <small class="text-muted">Departamento o área destino</small>
                                 </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.motivo.id_for_label }}" class="form-label">
-                                    {{ form.motivo.label }} *
-                                </label>
-                                {{ form.motivo }}
-                                {% if form.motivo.errors %}
-                                <div class="text-danger">{{ form.motivo.errors }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.observaciones.id_for_label }}" class="form-label">
-                                    {{ form.observaciones.label }}
-                                </label>
-                                {{ form.observaciones }}
-                                {% if form.observaciones.errors %}
-                                <div class="text-danger">{{ form.observaciones.errors }}</div>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="card mt-3">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Bienes/Activos a Entregar</h5>
-                            <button type="button" class="btn btn-sm btn-success" id="btnAgregarBien">
-                                <i class="ri-add-line"></i> Agregar Bien
-                            </button>
+            <!-- Bienes a Entregar -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ri-inbox-line align-middle me-1"></i> Bienes/Activos a Entregar
+                                </h5>
+                                <button type="button" class="btn btn-sm btn-primary" id="btn-agregar-bien">
+                                    <i class="ri-add-line"></i> Agregar Bien
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <div class="table-responsive">
-                                <table class="table table-bordered" id="tablaBienes">
-                                    <thead>
+                            <div class="table-responsive" style="display: none;">
+                                <table class="table table-nowrap" id="tabla-bienes">
+                                    <thead class="table-light">
                                         <tr>
-                                            <th width="45%">Activo/Bien</th>
-                                            <th width="25%">Solicitado</th>
-                                            <th width="20%">Cantidad a Despachar</th>
-                                            <th width="10%">Acciones</th>
+                                            <th style="width: 30%">Bien/Activo <span class="text-danger">*</span></th>
+                                            <th style="width: 15%">Categoría</th>
+                                            <th style="width: 15%">Cant. Solicitada</th>
+                                            <th style="width: 15%">Cant. a Despachar <span class="text-danger">*</span></th>
+                                            <th style="width: 15%">Observaciones</th>
+                                            <th style="width: 10%" class="text-center">Acción</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="bienesBody">
-                                        <tr>
-                                            <td colspan="4" class="text-center text-muted">
-                                                No hay bienes agregados. Haga clic en "Agregar Bien" para comenzar.
-                                            </td>
-                                        </tr>
+                                    <tbody id="tbody-bienes">
+                                        <!-- Las filas se agregarán dinámicamente vía JavaScript -->
                                     </tbody>
                                 </table>
                             </div>
+
+                            <div id="sin-bienes" class="text-center text-muted py-4">
+                                <i class="ri-inbox-line" style="font-size: 3rem;"></i>
+                                <p class="mb-0">No hay bienes agregados. Haga clic en "Agregar Bien" para comenzar.</p>
+                            </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <input type="hidden" name="detalles" id="detallesJson">
+            <!-- Campo oculto para JSON de detalles -->
+            <input type="hidden" name="detalles" id="detallesJson">
 
-                    <div class="mt-4">
+            <!-- Botones -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="text-end">
+                        <a href="{% url 'bodega:entrega_bien_lista' %}" class="btn btn-light">
+                            <i class="ri-close-line"></i> Cancelar
+                        </a>
                         <button type="submit" class="btn btn-primary">
                             <i class="ri-save-line"></i> Registrar Entrega
                         </button>
-                        <a href="{% url 'bodega:entrega_bien_lista' %}" class="btn btn-secondary">
-                            <i class="ri-arrow-left-line"></i> Cancelar
-                        </a>
                     </div>
-                </form>
+                </div>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<!-- Modal para seleccionar bien -->
+<div class="modal fade" id="modalBien" tabindex="-1" aria-labelledby="modalBienLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalBienLabel">Seleccionar Bien/Activo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Buscar Bien/Activo</label>
+                    <input type="text" class="form-control" id="buscar-bien" placeholder="Buscar por código o nombre...">
+                </div>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-hover">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Código</th>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                                <th>Estado</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-lista-bienes">
+                            {% for activo in activos %}
+                            <tr data-bien-id="{{ activo.id }}"
+                                data-bien-codigo="{{ activo.codigo }}"
+                                data-bien-nombre="{{ activo.nombre }}"
+                                data-bien-categoria="{{ activo.categoria.nombre|default:'-' }}"
+                                data-bien-estado="{{ activo.estado.nombre|default:'Disponible' }}">
+                                <td><code>{{ activo.codigo }}</code></td>
+                                <td>{{ activo.nombre }}</td>
+                                <td>{{ activo.categoria.nombre|default:'-' }}</td>
+                                <td>
+                                    <span class="badge bg-success">{{ activo.estado.nombre|default:'Disponible' }}</span>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-success btn-seleccionar-bien">
+                                        <i class="ri-check-line"></i> Seleccionar
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<script src="{% static 'js/bodega/entrega-bienes.js' %}"></script>
+{% block extra_js %}
 <script>
-// Inicializar módulo al cargar el DOM
-document.addEventListener('DOMContentLoaded', function() {
-    const activos = [
-        {% for activo in activos %}
-        {
-            id: {{ activo.id }},
-            nombre: "{{ activo.nombre|escapejs }}",
-            categoria: "{{ activo.categoria.nombre|default:'-'|escapejs }}",
-            codigo: "{{ activo.codigo|escapejs }}"
-        }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    ];
-
-    // Inicializar el módulo
-    if (typeof EntregaBienes !== 'undefined') {
-        EntregaBienes.init(activos);
-    } else {
-        console.error('EntregaBienes module not loaded');
-    }
-});
+// Datos de bienes disponibles para JavaScript
+const BIENES_DISPONIBLES = [
+    {% for activo in activos %}
+    {
+        id: {{ activo.id }},
+        codigo: "{{ activo.codigo|escapejs }}",
+        nombre: "{{ activo.nombre|escapejs }}",
+        categoria: "{{ activo.categoria.nombre|default:'-'|escapejs }}",
+        estado: "{{ activo.estado.nombre|default:'Disponible'|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
 </script>
+<script src="{% static 'js/bodega/entrega-bienes.js' %}"></script>
 {% endblock %}

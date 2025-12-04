@@ -474,6 +474,40 @@ class OperacionRepository:
         ).order_by('codigo')
 
     @staticmethod
+    def get_entrada() -> Optional[Operacion]:
+        """
+        Obtiene una operación de tipo ENTRADA activa.
+
+        Returns:
+            Primera operación de entrada activa o None
+        """
+        try:
+            return Operacion.objects.filter(
+                tipo='ENTRADA',
+                eliminado=False,
+                activo=True
+            ).first()
+        except Operacion.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_salida() -> Optional[Operacion]:
+        """
+        Obtiene una operación de tipo SALIDA activa.
+
+        Returns:
+            Primera operación de salida activa o None
+        """
+        try:
+            return Operacion.objects.filter(
+                tipo='SALIDA',
+                eliminado=False,
+                activo=True
+            ).first()
+        except Operacion.DoesNotExist:
+            return None
+
+    @staticmethod
     def search(query: str) -> QuerySet[Operacion]:
         """
         Búsqueda de operaciones por código o nombre.
@@ -720,7 +754,23 @@ class EstadoEntregaRepository:
     def get_inicial() -> Optional[EstadoEntrega]:
         """Obtiene el estado inicial de entrega."""
         try:
-            return EstadoEntrega.objects.get(es_inicial=True, eliminado=False)
+            return EstadoEntrega.objects.filter(es_inicial=True, eliminado=False, activo=True).first()
+        except EstadoEntrega.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_despachado() -> Optional[EstadoEntrega]:
+        """Obtiene el estado 'Despachado'."""
+        try:
+            return EstadoEntrega.objects.filter(codigo='DESPACHADO', eliminado=False, activo=True).first()
+        except EstadoEntrega.DoesNotExist:
+            return None
+
+    @staticmethod
+    def get_despacho_parcial() -> Optional[EstadoEntrega]:
+        """Obtiene el estado 'Despacho Parcial'."""
+        try:
+            return EstadoEntrega.objects.filter(codigo='DESPACHO_PARCIAL', eliminado=False, activo=True).first()
         except EstadoEntrega.DoesNotExist:
             return None
 

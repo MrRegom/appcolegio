@@ -145,9 +145,17 @@ const EntregaBienes = {
         const tbody = document.getElementById('bienesBody');
         if (!tbody) return;
 
-        // Limpiar fila vacía si existe
-        if (tbody.children.length === 1 && tbody.children[0].cells.length === 1) {
-            tbody.innerHTML = '';
+        // Limpiar fila vacia si existe (empty state)
+        if (tbody.children.length > 0) {
+            const primeraFila = tbody.children[0];
+            // Verificar si es el mensaje de empty state (1 celda con colspan)
+            if (primeraFila.cells.length === 1) {
+                const primeraCelda = primeraFila.cells[0];
+                const colspan = primeraCelda.colSpan || parseInt(primeraCelda.getAttribute('colspan') || '0');
+                if (colspan > 1) {
+                    tbody.innerHTML = '';
+                }
+            }
         }
 
         const fila = tbody.insertRow();

@@ -1,183 +1,317 @@
 {% extends 'partials/base.html' %}
 {% load static %}
 
+{% block title %}{{ titulo }}{% endblock %}
+
 {% block content %}
 <div class="page-content">
     <div class="container-fluid">
+        <!-- start page title -->
         <div class="row">
             <div class="col-12">
-                <div class="page-title-box">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
                     <h4 class="mb-sm-0">{{ titulo }}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard_analytics' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'bodega:menu_bodega' %}">Bodega</a></li>
+                            <li class="breadcrumb-item"><a href="{% url 'bodega:entrega_articulo_lista' %}">Entregas de Artículos</a></li>
+                            <li class="breadcrumb-item active">Registrar Entrega</li>
+                        </ol>
+                    </div>
                 </div>
             </div>
         </div>
+        <!-- end page title -->
 
-        <div class="row">
-            <div class="col-lg-12">
-                <form method="post" id="formEntregaArticulo">
-                    {% csrf_token %}
+        <form method="post" id="formEntregaArticulo">
+            {% csrf_token %}
 
+            <div class="row">
+                <!-- Solicitud Asociada (Opcional) -->
+                <div class="col-lg-6">
                     <div class="card">
-                        <div class="card-header">
-                            <h5 class="card-title mb-0">Datos de la Entrega</h5>
+                        <div class="card-header bg-primary-subtle">
+                            <h5 class="card-title mb-0 text-primary">
+                                <i class="ri-file-list-3-line align-middle me-1"></i> Solicitud Asociada (Opcional)
+                            </h5>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-12 mb-3">
+                            <div class="row g-3">
+                                <div class="col-md-12">
                                     <label for="{{ form.solicitud.id_for_label }}" class="form-label">
-                                        <i class="ri-file-list-line"></i> {{ form.solicitud.label }}
+                                        {{ form.solicitud.label }}
                                     </label>
                                     {{ form.solicitud }}
                                     {% if form.solicitud.errors %}
-                                    <div class="text-danger">{{ form.solicitud.errors }}</div>
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.solicitud.errors }}
+                                        </div>
                                     {% endif %}
-                                    <small class="form-text text-muted">
-                                        <i class="ri-information-line"></i> Si selecciona una solicitud, los artículos aprobados se cargarán automáticamente
+                                    <small class="text-muted">
+                                        <i class="ri-information-line"></i> Si selecciona una solicitud, los artículos se cargarán automáticamente
                                     </small>
                                 </div>
                             </div>
 
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.bodega_origen.id_for_label }}" class="form-label">
-                                        {{ form.bodega_origen.label }} *
+                            <!-- Información de solicitud cargada -->
+                            <div id="infoSolicitud" class="alert alert-info border-0 mt-3 d-none" role="alert">
+                                <strong><i class="ri-information-line me-2"></i>Información de Solicitud:</strong>
+                                <div id="datosSolicitud" class="mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Motivo y Observaciones -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="ri-message-3-line align-middle me-1"></i> Motivo y Observaciones
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <label for="{{ form.motivo.id_for_label }}" class="form-label">
+                                        {{ form.motivo.label }} <span class="text-danger">*</span>
                                     </label>
-                                    {{ form.bodega_origen }}
-                                    {% if form.bodega_origen.errors %}
-                                    <div class="text-danger">{{ form.bodega_origen.errors }}</div>
+                                    {{ form.motivo }}
+                                    {% if form.motivo.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.motivo.errors }}
+                                        </div>
                                     {% endif %}
                                 </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label for="{{ form.tipo.id_for_label }}" class="form-label">
-                                        {{ form.tipo.label }} *
+                                <div class="col-md-12">
+                                    <label for="{{ form.observaciones.id_for_label }}" class="form-label">
+                                        {{ form.observaciones.label }}
                                     </label>
-                                    {{ form.tipo }}
-                                    {% if form.tipo.errors %}
-                                    <div class="text-danger">{{ form.tipo.errors }}</div>
+                                    {{ form.observaciones }}
+                                    {% if form.observaciones.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.observaciones.errors }}
+                                        </div>
                                     {% endif %}
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
+            <div class="row">
+                <!-- Datos de Bodega -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="ri-archive-line align-middle me-1"></i> Datos de Bodega
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-12">
+                                    <label for="{{ form.bodega_origen.id_for_label }}" class="form-label">
+                                        {{ form.bodega_origen.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.bodega_origen }}
+                                    {% if form.bodega_origen.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.bodega_origen.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-12">
+                                    <label for="{{ form.tipo.id_for_label }}" class="form-label">
+                                        {{ form.tipo.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.tipo }}
+                                    {% if form.tipo.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.tipo.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información de Destino -->
+                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="ri-user-location-line align-middle me-1"></i> Información de Destino
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3">
+                                <div class="col-md-12">
                                     <label for="{{ form.recibido_por.id_for_label }}" class="form-label">
-                                        {{ form.recibido_por.label }} *
+                                        {{ form.recibido_por.label }} <span class="text-danger">*</span>
                                     </label>
                                     {{ form.recibido_por }}
                                     {% if form.recibido_por.errors %}
-                                    <div class="text-danger">{{ form.recibido_por.errors }}</div>
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.recibido_por.errors }}
+                                        </div>
                                     {% endif %}
-                                    <small class="form-text text-muted">Usuario que recibirá los artículos</small>
+                                    <small class="text-muted">Usuario que recibirá los artículos</small>
                                 </div>
-
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-12">
                                     <label for="{{ form.departamento_destino.id_for_label }}" class="form-label">
                                         {{ form.departamento_destino.label }}
                                     </label>
                                     {{ form.departamento_destino }}
                                     {% if form.departamento_destino.errors %}
-                                    <div class="text-danger">{{ form.departamento_destino.errors }}</div>
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.departamento_destino.errors }}
+                                        </div>
                                     {% endif %}
-                                    <small class="form-text text-muted">Departamento o área destino (opcional)</small>
+                                    <small class="text-muted">Departamento o área destino</small>
                                 </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.motivo.id_for_label }}" class="form-label">
-                                    {{ form.motivo.label }} *
-                                </label>
-                                {{ form.motivo }}
-                                {% if form.motivo.errors %}
-                                <div class="text-danger">{{ form.motivo.errors }}</div>
-                                {% endif %}
-                            </div>
-
-                            <div class="mb-3">
-                                <label for="{{ form.observaciones.id_for_label }}" class="form-label">
-                                    {{ form.observaciones.label }}
-                                </label>
-                                {{ form.observaciones }}
-                                {% if form.observaciones.errors %}
-                                <div class="text-danger">{{ form.observaciones.errors }}</div>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <div class="card mt-3">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="card-title mb-0">Artículos a Entregar</h5>
-                            <button type="button" class="btn btn-sm btn-success" id="btnAgregarArticulo">
-                                <i class="ri-add-line"></i> Agregar Artículo
-                            </button>
+            <!-- Artículos a Entregar -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">
+                                    <i class="ri-inbox-line align-middle me-1"></i> Artículos a Entregar
+                                </h5>
+                                <button type="button" class="btn btn-sm btn-primary" id="btn-agregar-articulo">
+                                    <i class="ri-add-line"></i> Agregar Artículo
+                                </button>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <div id="infoSolicitud" class="alert alert-info d-none" role="alert">
-                                <strong><i class="ri-information-line"></i> Información de Solicitud:</strong>
-                                <div id="datosSolicitud"></div>
-                            </div>
-                            <div class="table-responsive">
-                                <table class="table table-bordered" id="tablaArticulos">
-                                    <thead>
+                            <div class="table-responsive" style="display: none;">
+                                <table class="table table-nowrap" id="tabla-articulos">
+                                    <thead class="table-light">
                                         <tr>
-                                            <th>Artículo</th>
-                                            <th>Stock Disponible</th>
-                                            <th>Cantidad a Entregar</th>
-                                            <th>Lote (opcional)</th>
-                                            <th>Acciones</th>
+                                            <th style="width: 25%">Artículo <span class="text-danger">*</span></th>
+                                            <th style="width: 12%">Stock Disponible</th>
+                                            <th style="width: 12%">Cant. Solicitada</th>
+                                            <th style="width: 12%">Cant. a Despachar <span class="text-danger">*</span></th>
+                                            <th style="width: 8%">Lote</th>
+                                            <th style="width: 21%">Observaciones</th>
+                                            <th style="width: 10%" class="text-center">Acción</th>
                                         </tr>
                                     </thead>
-                                    <tbody id="articulosBody">
-                                        <tr>
-                                            <td colspan="5" class="text-center text-muted">
-                                                No hay artículos agregados. Seleccione una solicitud o haga clic en "Agregar Artículo" para comenzar.
-                                            </td>
-                                        </tr>
+                                    <tbody id="tbody-articulos">
+                                        <!-- Las filas se agregarán dinámicamente vía JavaScript -->
                                     </tbody>
                                 </table>
                             </div>
+
+                            <div id="sin-articulos" class="text-center text-muted py-4">
+                                <i class="ri-inbox-line" style="font-size: 3rem;"></i>
+                                <p class="mb-0">No hay artículos agregados. Haga clic en "Agregar Artículo" para comenzar.</p>
+                            </div>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <input type="hidden" name="detalles" id="detallesJson">
+            <!-- Campo oculto para JSON de detalles -->
+            <input type="hidden" name="detalles" id="detallesJson">
 
-                    <div class="mt-4">
+            <!-- Botones -->
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="text-end">
+                        <a href="{% url 'bodega:entrega_articulo_lista' %}" class="btn btn-light">
+                            <i class="ri-close-line"></i> Cancelar
+                        </a>
                         <button type="submit" class="btn btn-primary">
                             <i class="ri-save-line"></i> Registrar Entrega
                         </button>
-                        <a href="{% url 'bodega:entrega_articulo_lista' %}" class="btn btn-secondary">
-                            <i class="ri-arrow-left-line"></i> Cancelar
-                        </a>
                     </div>
-                </form>
+                </div>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<!-- Modal para seleccionar artículo -->
+<div class="modal fade" id="modalArticulo" tabindex="-1" aria-labelledby="modalArticuloLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalArticuloLabel">Seleccionar Artículo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Buscar Artículo</label>
+                    <input type="text" class="form-control" id="buscar-articulo" placeholder="Buscar por código o nombre...">
+                </div>
+                <div class="table-responsive" style="max-height: 400px;">
+                    <table class="table table-hover">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th>Código</th>
+                                <th>Nombre</th>
+                                <th>Categoría</th>
+                                <th>Stock</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-lista-articulos">
+                            {% for articulo in articulos %}
+                            <tr data-articulo-id="{{ articulo.id }}"
+                                data-articulo-codigo="{{ articulo.codigo }}"
+                                data-articulo-nombre="{{ articulo.nombre }}"
+                                data-articulo-stock="{{ articulo.stock_actual|default:0 }}"
+                                data-articulo-unidad="{{ articulo.unidad_medida.simbolo|default:"unidad" }}">
+                                <td><code>{{ articulo.codigo }}</code></td>
+                                <td>{{ articulo.nombre }}</td>
+                                <td>{{ articulo.categoria.nombre }}</td>
+                                <td>
+                                    <span class="badge {% if articulo.stock_actual > articulo.stock_minimo %}bg-success{% elif articulo.stock_actual > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ articulo.stock_actual|default:0 }} {{ articulo.unidad_medida.simbolo|default:"unidad" }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-sm btn-success btn-seleccionar-articulo" {% if articulo.stock_actual <= 0 %}disabled{% endif %}>
+                                        <i class="ri-check-line"></i> Seleccionar
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<script src="{% static 'js/bodega/entrega-articulos.js' %}"></script>
+{% block extra_js %}
 <script>
-// Inicializar módulo al cargar el DOM
-document.addEventListener('DOMContentLoaded', function() {
-    const articulos = [
-        {% for articulo in articulos %}
-        {
-            id: {{ articulo.id }},
-            codigo: "{{ articulo.codigo|escapejs }}",
-            nombre: "{{ articulo.nombre|escapejs }}",
-            stock: parseFloat("{{ articulo.stock_actual|default:0 }}".replace(',', '.')),
-            unidad: "{{ articulo.unidad_medida.simbolo|default:"unidad"|escapejs }}"
-        }{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    ];
-
-    // Inicializar el módulo
-    if (typeof EntregaArticulos !== 'undefined') {
-        EntregaArticulos.init(articulos);
-    } else {
-        console.error('EntregaArticulos module not loaded');
-    }
-});
+// Datos de artículos disponibles para JavaScript
+const ARTICULOS_DISPONIBLES = [
+    {% for articulo in articulos %}
+    {
+        id: {{ articulo.id }},
+        codigo: "{{ articulo.codigo|escapejs }}",
+        nombre: "{{ articulo.nombre|escapejs }}",
+        stock: parseFloat("{{ articulo.stock_actual|default:0 }}"),
+        unidad: "{{ articulo.unidad_medida.simbolo|default:"unidad"|escapejs }}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+];
 </script>
+<script src="{% static 'js/bodega/entrega-articulos.js' %}"></script>
 {% endblock %}

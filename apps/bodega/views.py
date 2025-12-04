@@ -20,7 +20,7 @@ from django.views.generic import (
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse, HttpResponse
 from django.shortcuts import redirect
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
@@ -48,6 +48,7 @@ from .services import (
     CategoriaService, ArticuloService, MovimientoService,
     EntregaArticuloService, EntregaBienService
 )
+from apps.bodega.excel_services.importacion_excel import ImportacionExcelService
 
 
 # ==================== MENÚ PRINCIPAL ====================
@@ -817,6 +818,11 @@ class EntregaArticuloCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Cr
         - Actualización de cantidades despachadas en solicitudes
         """
         try:
+            # Validar que el usuario esté autenticado
+            if not self.request.user or not self.request.user.is_authenticated:
+                messages.error(self.request, 'Debe estar autenticado para registrar una entrega.')
+                return self.form_invalid(form)
+
             # Obtener detalles del request (deben ser enviados vía POST)
             import json
             detalles_json = self.request.POST.get('detalles', '[]')
@@ -829,12 +835,22 @@ class EntregaArticuloCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Cr
                 )
                 return self.form_invalid(form)
 
+            # Obtener usuario actual (puede ser de request o de middleware)
+            from apps.accounts.middleware import get_current_user
+            usuario_actual = self.request.user
+            if not usuario_actual or not usuario_actual.is_authenticated:
+                usuario_actual = get_current_user()
+
+            if not usuario_actual or not usuario_actual.is_authenticated:
+                messages.error(self.request, 'No se pudo identificar el usuario actual.')
+                return self.form_invalid(form)
+
             # Delegar a EntregaArticuloService
             service = EntregaArticuloService()
             entrega = service.crear_entrega(
                 bodega_origen=form.cleaned_data['bodega_origen'],
                 tipo=form.cleaned_data['tipo'],
-                entregado_por=self.request.user,
+                entregado_por=usuario_actual,
                 recibido_por=form.cleaned_data['recibido_por'],
                 motivo=form.cleaned_data['motivo'],
                 detalles=detalles,
@@ -870,12 +886,11 @@ class EntregaArticuloCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Cr
         """Agrega datos al contexto."""
         context = super().get_context_data(**kwargs)
         context['titulo'] = 'Registrar Entrega de Artículos'
-        # Artículos disponibles para entrega (con stock > 0)
+        # Artículos disponibles para entrega
         context['articulos'] = Articulo.objects.filter(
             activo=True,
-            eliminado=False,
-            stock_actual__gt=0
-        ).select_related('categoria').order_by('codigo')
+            eliminado=False
+        ).select_related('categoria', 'unidad_medida').order_by('codigo')
         return context
 
 
@@ -981,6 +996,11 @@ class EntregaBienCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Create
         - Creación atómica de entrega con detalles
         """
         try:
+            # Validar que el usuario esté autenticado
+            if not self.request.user or not self.request.user.is_authenticated:
+                messages.error(self.request, 'Debe estar autenticado para registrar una entrega.')
+                return self.form_invalid(form)
+
             # Obtener detalles del request (deben ser enviados vía POST)
             import json
             detalles_json = self.request.POST.get('detalles', '[]')
@@ -993,11 +1013,21 @@ class EntregaBienCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, Create
                 )
                 return self.form_invalid(form)
 
+            # Obtener usuario actual (puede ser de request o de middleware)
+            from apps.accounts.middleware import get_current_user
+            usuario_actual = self.request.user
+            if not usuario_actual or not usuario_actual.is_authenticated:
+                usuario_actual = get_current_user()
+
+            if not usuario_actual or not usuario_actual.is_authenticated:
+                messages.error(self.request, 'No se pudo identificar el usuario actual.')
+                return self.form_invalid(form)
+
             # Delegar a EntregaBienService
             service = EntregaBienService()
             entrega = service.crear_entrega(
                 tipo=form.cleaned_data['tipo'],
-                entregado_por=self.request.user,
+                entregado_por=usuario_actual,
                 recibido_por=form.cleaned_data['recibido_por'],
                 motivo=form.cleaned_data['motivo'],
                 detalles=detalles,
@@ -1727,3 +1757,127 @@ class TipoMovimientoDeleteView(BaseAuditedViewMixin, DeleteView):
         self.log_action(self.object, request)
 
         return redirect(self.success_url)
+
+
+# ==================== IMPORTACION EXCEL PARA MANTENEDORES ====================
+
+
+@login_required
+def marca_descargar_plantilla(request):
+    """Vista para descargar plantilla Excel de marcas."""
+    contenido = ImportacionExcelService.generar_plantilla_marcas()
+    
+    response = HttpResponse(
+        contenido,
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="plantilla_marcas.xlsx"'
+    return response
+
+
+@login_required
+def marca_importar_excel(request):
+    """Vista para importar marcas desde Excel."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+    
+    if 'archivo' not in request.FILES:
+        return JsonResponse({'error': 'No se proporciono archivo'}, status=400)
+    
+    archivo = request.FILES['archivo']
+    
+    # Validar archivo
+    es_valido, mensaje_error = ImportacionExcelService.validar_archivo_excel(archivo)
+    if not es_valido:
+        return JsonResponse({'error': mensaje_error}, status=400)
+    
+    try:
+        creadas, actualizadas, errores = ImportacionExcelService.importar_marcas(archivo, request.user)
+        
+        mensaje = f"Importacion completada: {creadas} marcas creadas, {actualizadas} actualizadas"
+        if errores:
+            mensaje += f". Errores: {len(errores)}"
+        
+        return JsonResponse({
+            'success': True,
+            'mensaje': mensaje,
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'errores': errores[:10]  # Limitar a 10 errores
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'Error al importar: {str(e)}'}, status=500)
+
+
+# Operaciones
+@login_required
+def operacion_descargar_plantilla(request):
+    """Vista para descargar plantilla Excel de operaciones."""
+    contenido = ImportacionExcelService.generar_plantilla_operaciones()
+    response = HttpResponse(contenido, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_operaciones.xlsx"'
+    return response
+
+
+@login_required
+def operacion_importar_excel(request):
+    """Vista para importar operaciones desde Excel."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+    if 'archivo' not in request.FILES:
+        return JsonResponse({'error': 'No se proporciono archivo'}, status=400)
+    archivo = request.FILES['archivo']
+    es_valido, mensaje_error = ImportacionExcelService.validar_archivo_excel(archivo)
+    if not es_valido:
+        return JsonResponse({'error': mensaje_error}, status=400)
+    try:
+        creadas, actualizadas, errores = ImportacionExcelService.importar_operaciones(archivo, request.user)
+        mensaje = f"Importacion completada: {creadas} operaciones creadas, {actualizadas} actualizadas"
+        if errores:
+            mensaje += f". Errores: {len(errores)}"
+        return JsonResponse({
+            'success': True,
+            'mensaje': mensaje,
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'errores': errores[:10]
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'Error al importar: {str(e)}'}, status=500)
+
+
+# Tipos de Movimiento
+@login_required
+def tipo_movimiento_descargar_plantilla(request):
+    """Vista para descargar plantilla Excel de tipos de movimiento."""
+    contenido = ImportacionExcelService.generar_plantilla_tipos_movimiento()
+    response = HttpResponse(contenido, content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="plantilla_tipos_movimiento.xlsx"'
+    return response
+
+
+@login_required
+def tipo_movimiento_importar_excel(request):
+    """Vista para importar tipos de movimiento desde Excel."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Metodo no permitido'}, status=405)
+    if 'archivo' not in request.FILES:
+        return JsonResponse({'error': 'No se proporciono archivo'}, status=400)
+    archivo = request.FILES['archivo']
+    es_valido, mensaje_error = ImportacionExcelService.validar_archivo_excel(archivo)
+    if not es_valido:
+        return JsonResponse({'error': mensaje_error}, status=400)
+    try:
+        creadas, actualizadas, errores = ImportacionExcelService.importar_tipos_movimiento(archivo, request.user)
+        mensaje = f"Importacion completada: {creadas} tipos creados, {actualizadas} actualizados"
+        if errores:
+            mensaje += f". Errores: {len(errores)}"
+        return JsonResponse({
+            'success': True,
+            'mensaje': mensaje,
+            'creadas': creadas,
+            'actualizadas': actualizadas,
+            'errores': errores[:10]
+        })
+    except Exception as e:
+        return JsonResponse({'error': f'Error al importar: {str(e)}'}, status=500)
