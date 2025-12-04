@@ -418,3 +418,141 @@ class PermissionForm(forms.ModelForm):
         return codename
 
 
+# ========== FORMULARIOS DE ORGANIZACIÓN ==========
+
+# Imports de modelos de Organización
+from apps.activos.models import Ubicacion, Taller
+from apps.solicitudes.models import Area, Departamento
+
+
+class UbicacionForm(forms.ModelForm):
+    """Formulario para crear y editar ubicaciones físicas."""
+    
+    class Meta:
+        model = Ubicacion
+        fields = ['codigo', 'nombre', 'descripcion', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(
+                attrs={'class': 'form-control', 'placeholder': 'Ej: UB001'}
+            ),
+            'nombre': forms.TextInput(
+                attrs={'class': 'form-control', 'placeholder': 'Ej: Oficina Principal'}
+            ),
+            'descripcion': forms.Textarea(
+                attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción de la ubicación...'}
+            ),
+            'activo': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+        }
+
+
+class TallerForm(forms.ModelForm):
+    """Formulario para crear y editar talleres de servicio."""
+    
+    class Meta:
+        model = Taller
+        fields = ['codigo', 'nombre', 'descripcion', 'ubicacion', 'responsable', 'observaciones', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(
+                attrs={'class': 'form-control', 'placeholder': 'Ej: TALL01'}
+            ),
+            'nombre': forms.TextInput(
+                attrs={'class': 'form-control', 'placeholder': 'Ej: Taller de Mantenimiento'}
+            ),
+            'descripcion': forms.Textarea(
+                attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción del taller...'}
+            ),
+            'ubicacion': forms.TextInput(
+                attrs={'class': 'form-control', 'placeholder': 'Ubicación física del taller'}
+            ),
+            'responsable': forms.Select(
+                attrs={'class': 'form-select'}
+            ),
+            'observaciones': forms.Textarea(
+                attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Observaciones...'}
+            ),
+            'activo': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['responsable'].queryset = User.objects.filter(
+            is_active=True
+        ).order_by('username')
+        self.fields['responsable'].required = False
+
+
+class AreaForm(forms.ModelForm):
+    """Formulario para crear y editar áreas."""
+    
+    class Meta:
+        model = Area
+        fields = ['codigo', 'nombre', 'descripcion', 'departamento', 'responsable', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(
+                attrs={'class': 'form-control', 'placeholder': 'Ej: AREA001'}
+            ),
+            'nombre': forms.TextInput(
+                attrs={'class': 'form-control', 'placeholder': 'Ej: Área de Tecnología'}
+            ),
+            'descripcion': forms.Textarea(
+                attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción del área...'}
+            ),
+            'departamento': forms.Select(
+                attrs={'class': 'form-select'}
+            ),
+            'responsable': forms.Select(
+                attrs={'class': 'form-select'}
+            ),
+            'activo': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from apps.solicitudes.models import Departamento
+        self.fields['departamento'].queryset = Departamento.objects.filter(
+            eliminado=False
+        ).order_by('codigo')
+        self.fields['responsable'].queryset = User.objects.filter(
+            is_active=True
+        ).order_by('username')
+        self.fields['responsable'].required = False
+
+
+class DepartamentoForm(forms.ModelForm):
+    """Formulario para crear y editar departamentos."""
+    
+    class Meta:
+        model = Departamento
+        fields = ['codigo', 'nombre', 'descripcion', 'responsable', 'activo']
+        widgets = {
+            'codigo': forms.TextInput(
+                attrs={'class': 'form-control', 'placeholder': 'Ej: DEP001'}
+            ),
+            'nombre': forms.TextInput(
+                attrs={'class': 'form-control', 'placeholder': 'Ej: Departamento de Tecnología'}
+            ),
+            'descripcion': forms.Textarea(
+                attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción del departamento...'}
+            ),
+            'responsable': forms.Select(
+                attrs={'class': 'form-select'}
+            ),
+            'activo': forms.CheckboxInput(
+                attrs={'class': 'form-check-input'}
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['responsable'].queryset = User.objects.filter(
+            is_active=True
+        ).order_by('username')
+        self.fields['responsable'].required = False
+
+
