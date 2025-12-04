@@ -20,16 +20,26 @@ from core.utils import registrar_log_auditoria
 
 # ========== MENÚ PRINCIPAL ==========
 
-class MenuUsuariosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
-    """Vista del menú principal de gestión de usuarios"""
-    template_name = 'account/gestion_usuarios/menu_usuarios.html'
+class MenuAdministracionView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView):
+    """
+    Vista del menú principal de Administración.
+    
+    Incluye dos secciones:
+    1. Administración de Usuarios (Usuarios, Roles/Grupos, Permisos)
+    2. Organización (Ubicación, Talleres, Área, Departamentos)
+    """
+    template_name = 'account/menu_administracion.html'
     permission_required = 'auth.view_user'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        
+        # Importar modelos de Organización
+        from apps.activos.models import Ubicacion, Taller
+        from apps.solicitudes.models import Area, Departamento
 
-        # Estadísticas
-        context['stats'] = {
+        # Estadísticas - Administración de Usuarios
+        context['stats_usuarios'] = {
             'total_usuarios': User.objects.count(),
             'usuarios_activos': User.objects.filter(is_active=True).count(),
             'usuarios_staff': User.objects.filter(is_staff=True).count(),
@@ -37,8 +47,16 @@ class MenuUsuariosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView
             'total_permisos': Permission.objects.count(),
         }
 
-        # Permisos del usuario actual
-        context['permisos'] = {
+        # Estadísticas - Organización
+        context['stats_organizacion'] = {
+            'total_ubicaciones': Ubicacion.objects.filter(eliminado=False).count(),
+            'total_talleres': Taller.objects.filter(eliminado=False).count(),
+            'total_areas': Area.objects.filter(eliminado=False).count(),
+            'total_departamentos': Departamento.objects.filter(eliminado=False).count(),
+        }
+
+        # Permisos del usuario actual - Administración de Usuarios
+        context['permisos_usuarios'] = {
             'puede_crear_usuarios': self.request.user.has_perm('auth.add_user'),
             'puede_editar_usuarios': self.request.user.has_perm('auth.change_user'),
             'puede_eliminar_usuarios': self.request.user.has_perm('auth.delete_user'),
@@ -46,7 +64,15 @@ class MenuUsuariosView(LoginRequiredMixin, PermissionRequiredMixin, TemplateView
             'puede_gestionar_permisos': self.request.user.has_perm('auth.view_permission'),
         }
 
-        context['titulo'] = 'Gestión de Usuarios y Permisos'
+        # Permisos del usuario actual - Organización
+        context['permisos_organizacion'] = {
+            'puede_gestionar_ubicacion': self.request.user.has_perm('activos.view_ubicacion'),
+            'puede_gestionar_taller': self.request.user.has_perm('activos.view_taller'),
+            'puede_gestionar_area': self.request.user.has_perm('solicitudes.view_area'),
+            'puede_gestionar_departamento': self.request.user.has_perm('solicitudes.view_departamento'),
+        }
+
+        context['titulo'] = 'Administración'
 
         return context
 
@@ -742,3 +768,409 @@ def eliminar_permiso(request, pk):
     }
 
     return render(request, 'account/gestion_usuarios/eliminar_permiso.html', context)
+
+
+# ========== GESTIÓN DE ORGANIZACIÓN ==========
+# Vistas CRUD para Ubicación, Talleres, Área, Departamentos
+
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.urls import reverse_lazy
+from django.db.models import Q
+from core.mixins import (
+    BaseAuditedViewMixin, AtomicTransactionMixin, SoftDeleteMixin,
+    PaginatedListMixin
+)
+from .forms import UbicacionForm, TallerForm, AreaForm, DepartamentoForm
+
+
+# ==================== VISTAS DE UBICACIÓN ====================
+
+class UbicacionListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """Vista para listar ubicaciones con paginación y filtros."""
+    from apps.activos.models import Ubicacion
+    model = Ubicacion
+    template_name = 'account/organizacion/ubicacion/lista.html'
+    context_object_name = 'ubicaciones'
+    permission_required = 'activos.view_ubicacion'
+    paginate_by = 25
+
+    def get_queryset(self):
+        """Retorna ubicaciones no eliminadas con búsqueda."""
+        queryset = super().get_queryset().filter(eliminado=False)
+
+        # Búsqueda por query string
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query) |
+                Q(descripcion__icontains=query)
+            )
+
+        return queryset.order_by('codigo')
+
+    def get_context_data(self, **kwargs):
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Ubicaciones'
+        context['query'] = self.request.GET.get('q', '')
+        context['puede_crear'] = self.request.user.has_perm('activos.add_ubicacion')
+        return context
+
+
+class UbicacionCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, CreateView):
+    """Vista para crear una nueva ubicación."""
+    from apps.activos.models import Ubicacion
+    model = Ubicacion
+    form_class = UbicacionForm
+    template_name = 'account/organizacion/ubicacion/form.html'
+    permission_required = 'activos.add_ubicacion'
+    success_url = reverse_lazy('accounts:ubicacion_lista')
+    audit_action = 'CREAR'
+    audit_description_template = 'Ubicación creada: {obj.codigo} - {obj.nombre}'
+    success_message = 'Ubicación "{obj.nombre}" creada exitosamente.'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Ubicación'
+        context['action'] = 'Crear'
+        return context
+
+
+class UbicacionUpdateView(BaseAuditedViewMixin, AtomicTransactionMixin, UpdateView):
+    """Vista para actualizar una ubicación existente."""
+    from apps.activos.models import Ubicacion
+    model = Ubicacion
+    form_class = UbicacionForm
+    template_name = 'account/organizacion/ubicacion/form.html'
+    permission_required = 'activos.change_ubicacion'
+    success_url = reverse_lazy('accounts:ubicacion_lista')
+    audit_action = 'ACTUALIZAR'
+    audit_description_template = 'Ubicación actualizada: {obj.codigo} - {obj.nombre}'
+    success_message = 'Ubicación "{obj.nombre}" actualizada exitosamente.'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Ubicación: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        return context
+
+
+class UbicacionDeleteView(BaseAuditedViewMixin, SoftDeleteMixin, DeleteView):
+    """Vista para eliminar (soft delete) una ubicación."""
+    from apps.activos.models import Ubicacion
+    model = Ubicacion
+    template_name = 'account/organizacion/ubicacion/eliminar.html'
+    permission_required = 'activos.delete_ubicacion'
+    success_url = reverse_lazy('accounts:ubicacion_lista')
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Ubicación eliminada: {obj.codigo} - {obj.nombre}'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Ubicación: {self.object.nombre}'
+        return context
+
+
+# ==================== VISTAS DE TALLER ====================
+
+class TallerListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """Vista para listar talleres con paginación y filtros."""
+    from apps.activos.models import Taller
+    model = Taller
+    template_name = 'account/organizacion/taller/lista.html'
+    context_object_name = 'talleres'
+    permission_required = 'activos.view_taller'
+    paginate_by = 25
+
+    def get_queryset(self):
+        """Retorna talleres no eliminados con búsqueda."""
+        queryset = super().get_queryset().filter(eliminado=False).select_related('responsable')
+
+        # Búsqueda por query string
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query) |
+                Q(descripcion__icontains=query) |
+                Q(ubicacion__icontains=query)
+            )
+
+        return queryset.order_by('codigo')
+
+    def get_context_data(self, **kwargs):
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Talleres'
+        context['query'] = self.request.GET.get('q', '')
+        context['puede_crear'] = self.request.user.has_perm('activos.add_taller')
+        return context
+
+
+class TallerCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, CreateView):
+    """Vista para crear un nuevo taller."""
+    from apps.activos.models import Taller
+    model = Taller
+    form_class = TallerForm
+    template_name = 'account/organizacion/taller/form.html'
+    permission_required = 'activos.add_taller'
+    success_url = reverse_lazy('accounts:taller_lista')
+    audit_action = 'CREAR'
+    audit_description_template = 'Taller creado: {obj.codigo} - {obj.nombre}'
+    success_message = 'Taller "{obj.nombre}" creado exitosamente.'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Taller'
+        context['action'] = 'Crear'
+        return context
+
+
+class TallerUpdateView(BaseAuditedViewMixin, AtomicTransactionMixin, UpdateView):
+    """Vista para actualizar un taller existente."""
+    from apps.activos.models import Taller
+    model = Taller
+    form_class = TallerForm
+    template_name = 'account/organizacion/taller/form.html'
+    permission_required = 'activos.change_taller'
+    success_url = reverse_lazy('accounts:taller_lista')
+    audit_action = 'ACTUALIZAR'
+    audit_description_template = 'Taller actualizado: {obj.codigo} - {obj.nombre}'
+    success_message = 'Taller "{obj.nombre}" actualizado exitosamente.'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Taller: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        return context
+
+
+class TallerDeleteView(BaseAuditedViewMixin, SoftDeleteMixin, DeleteView):
+    """Vista para eliminar (soft delete) un taller."""
+    from apps.activos.models import Taller
+    model = Taller
+    template_name = 'account/organizacion/taller/eliminar.html'
+    permission_required = 'activos.delete_taller'
+    success_url = reverse_lazy('accounts:taller_lista')
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Taller eliminado: {obj.codigo} - {obj.nombre}'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Taller: {self.object.nombre}'
+        return context
+
+
+# ==================== VISTAS DE ÁREA ====================
+
+class AreaListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """Vista para listar áreas con paginación y filtros."""
+    from apps.solicitudes.models import Area
+    model = Area
+    template_name = 'account/organizacion/area/lista.html'
+    context_object_name = 'areas'
+    permission_required = 'solicitudes.view_area'
+    paginate_by = 25
+
+    def get_queryset(self):
+        """Retorna áreas no eliminadas con búsqueda."""
+        queryset = super().get_queryset().filter(eliminado=False).select_related('departamento', 'responsable')
+
+        # Búsqueda por query string
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query) |
+                Q(descripcion__icontains=query)
+            )
+
+        # Filtro por departamento
+        departamento_id = self.request.GET.get('departamento', '')
+        if departamento_id:
+            queryset = queryset.filter(departamento_id=departamento_id)
+
+        return queryset.order_by('codigo')
+
+    def get_context_data(self, **kwargs):
+        """Agrega datos adicionales al contexto."""
+        from apps.solicitudes.models import Departamento
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Áreas'
+        context['query'] = self.request.GET.get('q', '')
+        context['departamento_id'] = self.request.GET.get('departamento', '')
+        context['departamentos'] = Departamento.objects.filter(eliminado=False).order_by('codigo')
+        context['puede_crear'] = self.request.user.has_perm('solicitudes.add_area')
+        return context
+
+
+class AreaCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, CreateView):
+    """Vista para crear una nueva área."""
+    from apps.solicitudes.models import Area
+    model = Area
+    form_class = AreaForm
+    template_name = 'account/organizacion/area/form.html'
+    permission_required = 'solicitudes.add_area'
+    success_url = reverse_lazy('accounts:area_lista')
+    audit_action = 'CREAR'
+    audit_description_template = 'Área creada: {obj.codigo} - {obj.nombre}'
+    success_message = 'Área "{obj.nombre}" creada exitosamente.'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Área'
+        context['action'] = 'Crear'
+        return context
+
+
+class AreaUpdateView(BaseAuditedViewMixin, AtomicTransactionMixin, UpdateView):
+    """Vista para actualizar un área existente."""
+    from apps.solicitudes.models import Area
+    model = Area
+    form_class = AreaForm
+    template_name = 'account/organizacion/area/form.html'
+    permission_required = 'solicitudes.change_area'
+    success_url = reverse_lazy('accounts:area_lista')
+    audit_action = 'ACTUALIZAR'
+    audit_description_template = 'Área actualizada: {obj.codigo} - {obj.nombre}'
+    success_message = 'Área "{obj.nombre}" actualizada exitosamente.'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Área: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        return context
+
+
+class AreaDeleteView(BaseAuditedViewMixin, SoftDeleteMixin, DeleteView):
+    """Vista para eliminar (soft delete) un área."""
+    from apps.solicitudes.models import Area
+    model = Area
+    template_name = 'account/organizacion/area/eliminar.html'
+    permission_required = 'solicitudes.delete_area'
+    success_url = reverse_lazy('accounts:area_lista')
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Área eliminada: {obj.codigo} - {obj.nombre}'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Área: {self.object.nombre}'
+        # Verificar si tiene relaciones
+        context['tiene_solicitudes'] = hasattr(self.object, 'solicitudes') and self.object.solicitudes.filter(eliminado=False).exists()
+        return context
+
+
+# ==================== VISTAS DE DEPARTAMENTO ====================
+
+class DepartamentoListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+    """Vista para listar departamentos con paginación y filtros."""
+    from apps.solicitudes.models import Departamento
+    model = Departamento
+    template_name = 'account/organizacion/departamento/lista.html'
+    context_object_name = 'departamentos'
+    permission_required = 'solicitudes.view_departamento'
+    paginate_by = 25
+
+    def get_queryset(self):
+        """Retorna departamentos no eliminados con búsqueda."""
+        queryset = super().get_queryset().filter(eliminado=False).select_related('responsable')
+
+        # Búsqueda por query string
+        query = self.request.GET.get('q', '').strip()
+        if query:
+            queryset = queryset.filter(
+                Q(codigo__icontains=query) |
+                Q(nombre__icontains=query) |
+                Q(descripcion__icontains=query)
+            )
+
+        return queryset.order_by('codigo')
+
+    def get_context_data(self, **kwargs):
+        """Agrega datos adicionales al contexto."""
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Departamentos'
+        context['query'] = self.request.GET.get('q', '')
+        context['puede_crear'] = self.request.user.has_perm('solicitudes.add_departamento')
+        return context
+
+
+class DepartamentoCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, CreateView):
+    """Vista para crear un nuevo departamento."""
+    from apps.solicitudes.models import Departamento
+    model = Departamento
+    form_class = DepartamentoForm
+    template_name = 'account/organizacion/departamento/form.html'
+    permission_required = 'solicitudes.add_departamento'
+    success_url = reverse_lazy('accounts:departamento_lista')
+    audit_action = 'CREAR'
+    audit_description_template = 'Departamento creado: {obj.codigo} - {obj.nombre}'
+    success_message = 'Departamento "{obj.nombre}" creado exitosamente.'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = 'Crear Departamento'
+        context['action'] = 'Crear'
+        return context
+
+
+class DepartamentoUpdateView(BaseAuditedViewMixin, AtomicTransactionMixin, UpdateView):
+    """Vista para actualizar un departamento existente."""
+    from apps.solicitudes.models import Departamento
+    model = Departamento
+    form_class = DepartamentoForm
+    template_name = 'account/organizacion/departamento/form.html'
+    permission_required = 'solicitudes.change_departamento'
+    success_url = reverse_lazy('accounts:departamento_lista')
+    audit_action = 'ACTUALIZAR'
+    audit_description_template = 'Departamento actualizado: {obj.codigo} - {obj.nombre}'
+    success_message = 'Departamento "{obj.nombre}" actualizado exitosamente.'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Editar Departamento: {self.object.nombre}'
+        context['action'] = 'Actualizar'
+        return context
+
+
+class DepartamentoDeleteView(BaseAuditedViewMixin, SoftDeleteMixin, DeleteView):
+    """Vista para eliminar (soft delete) un departamento."""
+    from apps.solicitudes.models import Departamento
+    model = Departamento
+    template_name = 'account/organizacion/departamento/eliminar.html'
+    permission_required = 'solicitudes.delete_departamento'
+    success_url = reverse_lazy('accounts:departamento_lista')
+    audit_action = 'ELIMINAR'
+    audit_description_template = 'Departamento eliminado: {obj.codigo} - {obj.nombre}'
+
+    def get_queryset(self):
+        return super().get_queryset().filter(eliminado=False)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['titulo'] = f'Eliminar Departamento: {self.object.nombre}'
+        # Verificar si tiene áreas relacionadas
+        context['tiene_areas'] = self.object.areas.filter(eliminado=False).exists()
+        return context
