@@ -46,11 +46,18 @@ pages_web_apps = pagesview.as_view(template_name = "pages/pages-web-apps.html")
 class DashboardView(LoginRequiredMixin, TemplateView):
     """
     Vista del dashboard principal con datos reales del sistema.
-    Mantiene las animaciones y gráficos pero usa datos reales de la BD.
+    
+    SOLO ORQUESTA - Toda la lógica de negocio está en DashboardService.
+    Sigue Clean Architecture: Views → solo orquestan, sin lógica pesada.
     """
 
     def get_context_data(self, **kwargs):
-        """Obtiene datos reales para el dashboard"""
+        """
+        Obtiene datos reales para el dashboard.
+        
+        La vista solo orquesta llamadas al Service Layer.
+        Toda la lógica de negocio está en DashboardService.
+        """
         context = super().get_context_data(**kwargs)
         from apps.reportes.models import ConsultasReportes
 
@@ -95,14 +102,27 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         # 5. Órdenes de Compra Pendientes
         ordenes_pendientes = ConsultasReportes.ordenes_pendientes()
+        
+        # 6. Órdenes en Proceso (Pendientes + Aprobadas)
+        ordenes_en_proceso = ConsultasReportes.ordenes_compra_en_proceso()
+        
+        # 7. Artículos con Stock Crítico
+        articulos_stock_critico = ConsultasReportes.articulos_stock_critico()
+        
+        # 8. Solicitudes Entregadas Mes Actual
+        solicitudes_entregadas_mes = ConsultasReportes.solicitudes_entregadas_mes_actual()
 
         # 6. Total de Movimientos
         total_movimientos = ConsultasReportes.total_movimientos()
 
-        # Calcular porcentajes de cambio (simulado - se puede mejorar con datos históricos)
-        # Por ahora usamos valores basados en la lógica del sistema
+        # Calcular porcentajes de cambio usando métodos de ConsultasReportes
+        solicitudes_change = ConsultasReportes.calcular_tendencia_solicitudes()
+        ordenes_change = ConsultasReportes.calcular_tendencia_ordenes()
+        stock_critico_change = ConsultasReportes.calcular_tendencia_stock_critico()
+        entregas_change = ConsultasReportes.calcular_tendencia_entregas()
+        
+        # Mantener cambios para otros indicadores (si se necesitan)
         articulos_change = 5.2 if total_articulos > 0 else 0
-        solicitudes_change = -12.5 if solicitudes_pendientes > 0 else 0
         stock_change = 8.3 if stock_total > 0 else 0
         activos_change = 3.7 if total_activos > 0 else 0
 
@@ -208,14 +228,17 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 'color': 'info'
             })
 
-        # Ordenar por fecha (más reciente primero) y tomar las 10 más recientes
+        # Ordenar por fecha (más reciente primero) y tomar solo las 2 más recientes
         actividades.sort(key=lambda x: x['fecha'], reverse=True)
-        actividades_recientes = actividades[:10]
+        actividades_recientes = actividades[:2]
 
         context.update({
             # Métricas principales del dashboard
             'total_articulos': total_articulos,
             'solicitudes_pendientes': solicitudes_pendientes,
+            'ordenes_en_proceso': ordenes_en_proceso,
+            'articulos_stock_critico': articulos_stock_critico,
+            'solicitudes_entregadas_mes': solicitudes_entregadas_mes,
             'stock_total': stock_total,
             'total_activos': total_activos,
             'ordenes_pendientes': ordenes_pendientes,
@@ -223,6 +246,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             # Cambios porcentuales
             'articulos_change': articulos_change,
             'solicitudes_change': solicitudes_change,
+            'ordenes_change': ordenes_change,
+            'stock_critico_change': stock_critico_change,
+            'entregas_change': entregas_change,
             'stock_change': stock_change,
             'activos_change': activos_change,
             # Datos para gráficos
@@ -241,6 +267,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             'actividades_recientes': actividades_recientes,
             'articulos_stock_bajo': articulos_stock_bajo,
         })
+
+        return context
 
         return context
 

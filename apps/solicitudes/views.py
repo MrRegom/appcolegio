@@ -1394,7 +1394,7 @@ class EstadoSolicitudDeleteView(BaseAuditedViewMixin, DeleteView):
 
 # ==================== IMPORTACION EXCEL PARA MANTENEDORES ====================
 
-from apps.bodega.services_importacion_excel import ImportacionExcelService
+from apps.bodega.excel_services.importacion_excel import ImportacionExcelService
 from django.http import JsonResponse, HttpResponse
 from django.contrib.auth.decorators import login_required
 

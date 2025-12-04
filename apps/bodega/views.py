@@ -48,7 +48,7 @@ from .services import (
     CategoriaService, ArticuloService, MovimientoService,
     EntregaArticuloService, EntregaBienService
 )
-from .services_importacion_excel import ImportacionExcelService
+from apps.bodega.excel_services.importacion_excel import ImportacionExcelService
 
 
 # ==================== MENÚ PRINCIPAL ====================

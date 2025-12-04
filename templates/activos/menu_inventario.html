@@ -3,6 +3,10 @@
 
 {% block title %}{{ titulo }}{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/modulo-cards.css' %}" rel="stylesheet" type="text/css">
+{% endblock extra_css %}
+
 {% block content %}
 <div class="page-content">
     <div class="container-fluid">
@@ -32,204 +36,205 @@
         {% endif %}
 
         <!-- Sección: Gestión Principal -->
-        <div class="row">
+        <div class="row mb-4">
             <div class="col-12">
-                <h5 class="mb-3 text-muted">
-                    <i class="ri-function-line me-2"></i>Gestión Principal
-                </h5>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- Card: Activos -->
-            <div class="col-lg-3 col-sm-6">
                 <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="ri-function-line me-2"></i>Gestión Principal
+                        </h5>
+                    </div>
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ACTIVOS</h5>
-                            <a href="{% url 'activos:lista_activos' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            {% if permisos.puede_crear %}
-                            <a href="{% url 'activos:crear_activo' %}" class="btn btn-sm btn-warning">
-                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Activo
-                            </a>
+                        <div class="row g-3">
+                            <!-- Card: Activos -->
+                            <div class="col-lg-3 col-sm-6">
+                                <div class="modulo-card">
+                                    <div class="modulo-card-icon modulo-card-icon-warning">
+                                        <i class="ri-archive-line"></i>
+                                    </div>
+                                    <div class="modulo-card-content">
+                                        <h6 class="modulo-card-title">ACTIVOS</h6>
+                                        <p class="modulo-card-desc">Gestione el inventario de activos fijos</p>
+                                        <div class="modulo-card-actions d-grid gap-2">
+                                            {% if permisos.puede_crear %}
+                                            <a href="{% url 'activos:crear_activo' %}" class="btn btn-sm btn-warning">
+                                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Activo
+                                            </a>
+                                            {% endif %}
+                                            <a href="{% url 'activos:lista_activos' %}" class="btn btn-sm btn-outline-warning">
+                                                <i class="ri-list-check align-bottom me-1"></i> Ver Activos
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card: Movimientos -->
+                            {% if permisos.puede_movimientos %}
+                            <div class="col-lg-3 col-sm-6">
+                                <div class="modulo-card">
+                                    <div class="modulo-card-icon modulo-card-icon-secondary">
+                                        <i class="ri-exchange-line"></i>
+                                    </div>
+                                    <div class="modulo-card-content">
+                                        <h6 class="modulo-card-title">MOVIMIENTOS</h6>
+                                        <p class="modulo-card-desc">Gestione los movimientos de activos</p>
+                                        <div class="modulo-card-actions d-grid gap-2">
+                                            <a href="{% url 'activos:registrar_movimiento' %}" class="btn btn-sm btn-secondary">
+                                                <i class="ri-add-circle-line align-bottom me-1"></i> Registrar
+                                            </a>
+                                            <a href="{% url 'activos:lista_movimientos' %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="ri-list-check align-bottom me-1"></i> Ver Historial
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             {% endif %}
-                            <a href="{% url 'activos:lista_activos' %}" class="btn btn-sm btn-outline-warning">
-                                <i class="ri-list-check align-bottom me-1"></i> Ver Activos
-                            </a>
                         </div>
                     </div>
                 </div>
             </div>
-
-            <!-- Card: Movimientos -->
-            {% if permisos.puede_movimientos %}
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">MOVIMIENTOS</h5>
-                            <a href="{% url 'activos:lista_movimientos' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'activos:registrar_movimiento' %}" class="btn btn-sm btn-secondary">
-                                <i class="ri-add-circle-line align-bottom me-1"></i> Registrar
-                            </a>
-                            <a href="{% url 'activos:lista_movimientos' %}" class="btn btn-sm btn-outline-secondary">
-                                <i class="ri-list-check align-bottom me-1"></i> Ver Historial
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
         </div>
 
         <!-- Sección: Mantenedores/Catálogos -->
-        <div class="row mt-4">
+        <div class="row mb-4">
             <div class="col-12">
-                <h5 class="mb-3 text-muted">
-                    <i class="ri-settings-3-line me-2"></i>Mantenedores y Catálogos
-                </h5>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- Card: Categorías -->
-            {% if permisos.puede_categorias %}
-            <div class="col-lg-3 col-sm-6">
                 <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">CATEGORÍAS</h5>
-                            <a href="{% url 'activos:lista_categorias' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'activos:lista_categorias' %}" class="btn btn-sm btn-outline-success">
-                                <i class="ri-folder-line align-bottom me-1"></i> Ver Categorías
-                            </a>
-                        </div>
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="ri-settings-3-line me-2"></i>Mantenedores y Catálogos
+                        </h5>
                     </div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Card: Estados -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ESTADOS</h5>
-                            <a href="{% url 'activos:lista_estados' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'activos:lista_estados' %}" class="btn btn-sm btn-outline-primary">
-                                <i class="ri-flag-line align-bottom me-1"></i> Ver Estados
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        <div class="row g-3">
+                            <!-- Card: Categorías -->
+                            {% if permisos.puede_categorias %}
+                            <div class="col-lg-3 col-sm-6">
+                                <div class="modulo-card">
+                                    <div class="modulo-card-icon modulo-card-icon-success">
+                                        <i class="ri-folder-line"></i>
+                                    </div>
+                                    <div class="modulo-card-content">
+                                        <h6 class="modulo-card-title">CATEGORÍAS</h6>
+                                        <p class="modulo-card-desc">Gestione las categorías de activos</p>
+                                        <div class="modulo-card-actions d-grid gap-2">
+                                            <a href="{% url 'activos:lista_categorias' %}" class="btn btn-sm btn-outline-success">
+                                                <i class="ri-folder-line align-bottom me-1"></i> Ver Categorías
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
 
-            <!-- Card: Ubicaciones -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">UBICACIONES</h5>
-                            <a href="{% url 'activos:lista_ubicaciones' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'activos:lista_ubicaciones' %}" class="btn btn-sm btn-outline-info">
-                                <i class="ri-map-pin-line align-bottom me-1"></i> Ver Ubicaciones
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            <!-- Card: Estados -->
+                            <div class="col-lg-3 col-sm-6">
+                                <div class="modulo-card">
+                                    <div class="modulo-card-icon modulo-card-icon-primary">
+                                        <i class="ri-flag-line"></i>
+                                    </div>
+                                    <div class="modulo-card-content">
+                                        <h6 class="modulo-card-title">ESTADOS</h6>
+                                        <p class="modulo-card-desc">Gestione los estados de activos</p>
+                                        <div class="modulo-card-actions d-grid gap-2">
+                                            <a href="{% url 'activos:lista_estados' %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="ri-flag-line align-bottom me-1"></i> Ver Estados
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-            <!-- Card: Talleres -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">TALLERES</h5>
-                            <a href="{% url 'activos:lista_talleres' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'activos:lista_talleres' %}" class="btn btn-sm btn-outline-warning">
-                                <i class="ri-tools-line align-bottom me-1"></i> Ver Talleres
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            <!-- Card: Ubicaciones -->
+                            <div class="col-lg-3 col-sm-6">
+                                <div class="modulo-card">
+                                    <div class="modulo-card-icon modulo-card-icon-info">
+                                        <i class="ri-map-pin-line"></i>
+                                    </div>
+                                    <div class="modulo-card-content">
+                                        <h6 class="modulo-card-title">UBICACIONES</h6>
+                                        <p class="modulo-card-desc">Gestione las ubicaciones físicas</p>
+                                        <div class="modulo-card-actions d-grid gap-2">
+                                            <a href="{% url 'activos:lista_ubicaciones' %}" class="btn btn-sm btn-outline-info">
+                                                <i class="ri-map-pin-line align-bottom me-1"></i> Ver Ubicaciones
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-            <!-- Card: Proveniencias -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">PROVENIENCIAS</h5>
-                            <a href="{% url 'activos:lista_proveniencias' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'activos:lista_proveniencias' %}" class="btn btn-sm btn-outline-secondary">
-                                <i class="ri-inbox-line align-bottom me-1"></i> Ver Proveniencias
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            <!-- Card: Talleres -->
+                            <div class="col-lg-3 col-sm-6">
+                                <div class="modulo-card">
+                                    <div class="modulo-card-icon modulo-card-icon-warning">
+                                        <i class="ri-tools-line"></i>
+                                    </div>
+                                    <div class="modulo-card-content">
+                                        <h6 class="modulo-card-title">TALLERES</h6>
+                                        <p class="modulo-card-desc">Gestione los talleres de servicio</p>
+                                        <div class="modulo-card-actions d-grid gap-2">
+                                            <a href="{% url 'activos:lista_talleres' %}" class="btn btn-sm btn-outline-warning">
+                                                <i class="ri-tools-line align-bottom me-1"></i> Ver Talleres
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-            <!-- Card: Marcas -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">MARCAS</h5>
-                            <a href="{% url 'activos:lista_marcas' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'activos:lista_marcas' %}" class="btn btn-sm btn-outline-dark">
-                                <i class="ri-price-tag-3-line align-bottom me-1"></i> Ver Marcas
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                            <!-- Card: Proveniencias -->
+                            <div class="col-lg-3 col-sm-6">
+                                <div class="modulo-card">
+                                    <div class="modulo-card-icon modulo-card-icon-secondary">
+                                        <i class="ri-inbox-line"></i>
+                                    </div>
+                                    <div class="modulo-card-content">
+                                        <h6 class="modulo-card-title">PROVENIENCIAS</h6>
+                                        <p class="modulo-card-desc">Gestione las proveniencias de activos</p>
+                                        <div class="modulo-card-actions d-grid gap-2">
+                                            <a href="{% url 'activos:lista_proveniencias' %}" class="btn btn-sm btn-outline-secondary">
+                                                <i class="ri-inbox-line align-bottom me-1"></i> Ver Proveniencias
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-            <!-- Card: Tipos de Movimiento -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">TIPOS MOVIMIENTO</h5>
-                            <a href="{% url 'activos:lista_tipos_movimiento' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'activos:lista_tipos_movimiento' %}" class="btn btn-sm btn-outline-danger">
-                                <i class="ri-exchange-line align-bottom me-1"></i> Ver Tipos
-                            </a>
+                            <!-- Card: Marcas -->
+                            <div class="col-lg-3 col-sm-6">
+                                <div class="modulo-card">
+                                    <div class="modulo-card-icon modulo-card-icon-dark">
+                                        <i class="ri-price-tag-3-line"></i>
+                                    </div>
+                                    <div class="modulo-card-content">
+                                        <h6 class="modulo-card-title">MARCAS</h6>
+                                        <p class="modulo-card-desc">Gestione las marcas de activos</p>
+                                        <div class="modulo-card-actions d-grid gap-2">
+                                            <a href="{% url 'activos:lista_marcas' %}" class="btn btn-sm btn-outline-dark">
+                                                <i class="ri-price-tag-3-line align-bottom me-1"></i> Ver Marcas
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card: Tipos de Movimiento -->
+                            <div class="col-lg-3 col-sm-6">
+                                <div class="modulo-card">
+                                    <div class="modulo-card-icon modulo-card-icon-danger">
+                                        <i class="ri-exchange-line"></i>
+                                    </div>
+                                    <div class="modulo-card-content">
+                                        <h6 class="modulo-card-title">TIPOS MOVIMIENTO</h6>
+                                        <p class="modulo-card-desc">Gestione los tipos de movimiento</p>
+                                        <div class="modulo-card-actions d-grid gap-2">
+                                            <a href="{% url 'activos:lista_tipos_movimiento' %}" class="btn btn-sm btn-outline-danger">
+                                                <i class="ri-exchange-line align-bottom me-1"></i> Ver Tipos
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

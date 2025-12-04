@@ -3,6 +3,10 @@
 
 {% block title %}{{ titulo }}{% endblock %}
 
+{% block extra_css %}
+<link href="{% static 'css/modulo-cards.css' %}" rel="stylesheet" type="text/css">
+{% endblock extra_css %}
+
 {% block content %}
 <div class="page-content">
     <div class="container-fluid">
@@ -23,25 +27,27 @@
         <!-- end page title -->
 
         <!-- Menú principal con Cards -->
-        <div class="row">
+        <div class="row mb-4">
             <div class="col-12">
-                <h5 class="mb-3 text-muted">Seleccione una opción:</h5>
-            </div>
-        </div>
-
-        <div class="row">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="ri-menu-line me-2"></i>Seleccione una opción:
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
             <!-- Card 1: Categorías -->
             {% if permisos.puede_crear_categoria %}
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">CATEGORÍAS</h5>
-                            <a href="{% url 'bodega:categoria_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-primary">
+                        <i class="ri-folder-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">CATEGORÍAS</h6>
+                        <p class="modulo-card-desc">Gestione las categorías de artículos de bodega</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'bodega:categoria_crear' %}" class="btn btn-sm btn-primary">
                                 <i class="ri-add-line align-bottom me-1"></i> Nueva Categoría
                             </a>
@@ -55,16 +61,15 @@
             {% endif %}
 
             <!-- Card 2: Artículos -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ARTÍCULOS</h5>
-                            <a href="{% url 'bodega:articulo_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-info">
+                        <i class="ri-archive-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">ARTÍCULOS</h6>
+                        <p class="modulo-card-desc">Gestione el inventario de artículos de bodega</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             {% if permisos.puede_crear_articulo %}
                             <a href="{% url 'bodega:articulo_crear' %}" class="btn btn-sm btn-info">
                                 <i class="ri-add-line align-bottom me-1"></i> Nuevo Artículo
@@ -79,16 +84,15 @@
             </div>
 
             <!-- Card 3: Entregas de Artículos -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ENTREGAS ARTÍCULOS</h5>
-                            <a href="{% url 'bodega:entrega_articulo_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-success">
+                        <i class="ri-truck-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">ENTREGAS ARTÍCULOS</h6>
+                        <p class="modulo-card-desc">Gestione las entregas formales de artículos</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             {% if permisos.puede_gestionar %}
                             <a href="{% url 'bodega:entrega_articulo_crear' %}" class="btn btn-sm btn-success">
                                 <i class="ri-add-line align-bottom me-1"></i> Nueva Entrega
@@ -103,16 +107,15 @@
             </div>
 
             <!-- Card 4: Movimientos -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">MOVIMIENTOS</h5>
-                            <a href="{% url 'bodega:movimiento_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-secondary">
+                        <i class="ri-exchange-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">MOVIMIENTOS</h6>
+                        <p class="modulo-card-desc">Gestione los movimientos de inventario</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             {% if permisos.puede_crear_movimiento %}
                             <a href="{% url 'bodega:movimiento_crear' %}" class="btn btn-sm btn-secondary">
                                 <i class="ri-add-line align-bottom me-1"></i> Nuevo Movimiento
@@ -127,16 +130,15 @@
             </div>
 
             <!-- Card 5: Entregas de Bienes -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ENTREGAS BIENES</h5>
-                            <a href="{% url 'bodega:entrega_bien_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-warning">
+                        <i class="ri-handbag-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">ENTREGAS BIENES</h6>
+                        <p class="modulo-card-desc">Gestione las entregas formales de bienes</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             {% if permisos.puede_gestionar %}
                             <a href="{% url 'bodega:entrega_bien_crear' %}" class="btn btn-sm btn-warning">
                                 <i class="ri-add-line align-bottom me-1"></i> Nueva Entrega
@@ -149,27 +151,33 @@
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Sección de Mantenedores -->
-        <div class="row mt-4">
-            <div class="col-12">
-                <h5 class="mb-3 text-muted">Mantenedores:</h5>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <div class="row">
-            <!-- Card 6: Marcas -->
-            <div class="col-lg-3 col-sm-6">
+        <!-- Sección de Mantenedores -->
+        <div class="row mb-4">
+            <div class="col-12">
                 <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="ri-settings-3-line me-2"></i>Mantenedores:
+                        </h5>
+                    </div>
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">MARCAS</h5>
-                            <a href="{% url 'bodega:marca_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+                        <div class="row g-3">
+            <!-- Card 6: Marcas -->
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-primary">
+                        <i class="ri-price-tag-3-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">MARCAS</h6>
+                        <p class="modulo-card-desc">Gestione las marcas de los artículos</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'bodega:marca_crear' %}" class="btn btn-sm btn-primary">
                                 <i class="ri-add-line align-bottom me-1"></i> Nueva Marca
                             </a>
@@ -182,16 +190,15 @@
             </div>
 
             <!-- Card 7: Operaciones -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">OPERACIONES</h5>
-                            <a href="{% url 'bodega:operacion_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-info">
+                        <i class="ri-settings-3-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">OPERACIONES</h6>
+                        <p class="modulo-card-desc">Gestione las operaciones de bodega</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'bodega:operacion_crear' %}" class="btn btn-sm btn-info">
                                 <i class="ri-add-line align-bottom me-1"></i> Nueva Operación
                             </a>
@@ -204,16 +211,15 @@
             </div>
 
             <!-- Card 8: Tipos de Movimiento -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">TIPOS MOVIMIENTO</h5>
-                            <a href="{% url 'bodega:tipo_movimiento_lista' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-success">
+                        <i class="ri-arrow-left-right-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">TIPOS MOVIMIENTO</h6>
+                        <p class="modulo-card-desc">Gestione los tipos de movimiento de inventario</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'bodega:tipo_movimiento_crear' %}" class="btn btn-sm btn-success">
                                 <i class="ri-add-line align-bottom me-1"></i> Nuevo Tipo
                             </a>
@@ -226,22 +232,25 @@
             </div>
 
             <!-- Card 9: Unidades de Medida -->
-            <div class="col-lg-3 col-sm-6">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">UNIDADES MEDIDA</h5>
-                            <a href="{% url 'bodega:lista_unidades' %}" class="text-muted">
-                                <i class="ri-arrow-right-up-line fs-sm"></i>
-                            </a>
-                        </div>
-                        <div class="d-grid gap-2">
+            <div class="col-lg-3 col-sm-6 mb-4">
+                <div class="modulo-card">
+                    <div class="modulo-card-icon modulo-card-icon-secondary">
+                        <i class="ri-ruler-line"></i>
+                    </div>
+                    <div class="modulo-card-content">
+                        <h6 class="modulo-card-title">UNIDADES MEDIDA</h6>
+                        <p class="modulo-card-desc">Gestione las unidades de medida de artículos</p>
+                        <div class="modulo-card-actions d-grid gap-2">
                             <a href="{% url 'bodega:unidad_crear' %}" class="btn btn-sm btn-secondary">
                                 <i class="ri-add-line align-bottom me-1"></i> Nueva Unidad
                             </a>
                             <a href="{% url 'bodega:lista_unidades' %}" class="btn btn-sm btn-outline-secondary">
                                 <i class="ri-list-check align-bottom me-1"></i> Ver Unidades
                             </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
                         </div>
                     </div>
                 </div>

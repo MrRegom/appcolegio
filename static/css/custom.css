@@ -751,19 +751,37 @@ svg {
 }
 */
 
-/* Variable personalizada para el fondo del wrapper */
+/* Variable personalizada para el fondo del wrapper - CONTRASTE MEJORADO */
 :root {
   --tb-menu-wrapper-bg: #f8f9fa !important;
-  --tb-menu-wrapper-pattern-color: rgba(0, 0, 0, 0.05) !important;
+  /* Aumentado de 0.05 a 0.12 para más contraste profesional */
+  --tb-menu-wrapper-pattern-color: rgba(0, 0, 0, 0.12) !important;
 }
 
-/* Asegurar que el patrón SVG tenga colores compatibles con gris claro */
+/* Asegurar que el patrón SVG tenga más contraste */
 .wrapper-images svg path[stroke] {
-  stroke: rgba(0, 0, 0, 0.08) !important;
+  stroke: rgba(0, 0, 0, 0.15) !important; /* Aumentado de 0.08 a 0.15 */
 }
 
 .wrapper-images svg path[fill] {
-  fill: rgba(0, 0, 0, 0.05) !important;
+  fill: rgba(0, 0, 0, 0.12) !important; /* Aumentado de 0.05 a 0.12 */
+}
+
+/* Asegurar que el wrapper quede detrás de las cards */
+#layout-wrapper .wrapper-images {
+  z-index: 0 !important; /* Patrón detrás de todo */
+}
+
+/* Asegurar que las cards queden encima del patrón */
+.modulo-card {
+  position: relative;
+  z-index: 1 !important; /* Cards encima del patrón */
+}
+
+/* También para las cards de reportes */
+.reporte-card {
+  position: relative;
+  z-index: 1 !important;
 }
 
 /* Header específico con overlay gris claro elegante */
