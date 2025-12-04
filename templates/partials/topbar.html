@@ -122,89 +122,9 @@
 
                             <!-- Menú de Gestores - CRUD de catálogos -->
                             <li class="nav-item">
-                                <a class="nav-link menu-link collapsed" href="#sidebarGestores"
-                                    data-bs-toggle="collapse" role="button" aria-expanded="false"
-                                    aria-controls="sidebarGestores">
+                                <a class="nav-link menu-link" href="{% url 'inventario:menu_gestores' %}">
                                     <i class="ri-settings-3-line"></i> <span data-key="t-gestores">Gestores</span>
                                 </a>
-                                <div class="collapse menu-dropdown" id="sidebarGestores">
-                                    <ul class="nav nav-sm flex-column">
-                                        <li class="nav-item">
-                                            <a class="nav-link collapsed" href="#gestoresInventario" data-bs-toggle="collapse"
-                                                role="button" aria-expanded="false" aria-controls="gestoresInventario">
-                                                <i class="ri-clipboard-line"></i> <span>Inventario</span>
-                                            </a>
-                                            <div class="collapse menu-dropdown" id="gestoresInventario">
-                                                <ul class="nav nav-sm flex-column">
-                                                    <li class="nav-item">
-                                                        <a href="{% url 'bodega:articulo_lista' %}" class="nav-link">Artículos</a>
-                                                    </li>
-                                                    <li class="nav-item">
-                                                        <a href="{% url 'bodega:categoria_lista' %}" class="nav-link">Categorías (Bodega)</a>
-                                                    </li>
-                                                    <li class="nav-item">
-                                                        <a href="{% url 'activos:lista_categorias' %}" class="nav-link">Categorías (Activos)</a>
-                                                    </li>
-                                                    <!-- Bodegas: Vista no implementada, línea eliminada -->
-                                                    <li class="nav-item">
-                                                        <a href="{% url 'bodega:lista_unidades' %}" class="nav-link">Unidades de Medida</a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link collapsed" href="#gestoresOrganizacion" data-bs-toggle="collapse"
-                                                role="button" aria-expanded="false" aria-controls="gestoresOrganizacion">
-                                                <i class="ri-building-line"></i> <span>Organización</span>
-                                            </a>
-                                            <div class="collapse menu-dropdown" id="gestoresOrganizacion">
-                                                <ul class="nav nav-sm flex-column">
-                                                    <!-- Departamentos: Vista no implementada en solicitudes -->
-                                                    <!-- Talleres migrado a activos - TODO: crear vista en activos -->
-                                                    <li class="nav-item">
-                                                        <a href="{% url 'activos:lista_ubicaciones' %}" class="nav-link">Ubicaciones</a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </li>
-                                        <li class="nav-item">
-                                            <a class="nav-link collapsed" href="#gestoresConfiguracion" data-bs-toggle="collapse"
-                                                role="button" aria-expanded="false" aria-controls="gestoresConfiguracion">
-                                                <i class="ri-settings-line"></i> <span>Configuración</span>
-                                            </a>
-                                            <div class="collapse menu-dropdown" id="gestoresConfiguracion">
-                                                <ul class="nav nav-sm flex-column">
-                                                    <li class="nav-item">
-                                                        <a href="{% url 'activos:lista_estados' %}" class="nav-link">Estados de Activo</a>
-                                                    </li>
-                                                    <!-- Estados Orden Compra y Recepción: Vistas no implementadas en compras -->
-                                                    <li class="nav-item">
-                                                        <a href="{% url 'bodega:movimiento_lista' %}" class="nav-link">Tipos de Movimiento</a>
-                                                    </li>
-                                                    <li class="nav-item">
-                                                        <a href="{% url 'activos:lista_tipos_movimiento' %}" class="nav-link">Tipos Mov. Activo</a>
-                                                    </li>
-                                                    <!-- Proveniencias: Vista no implementada en activos -->
-                                                </ul>
-                                            </div>
-                                        </li>
-                                        <!-- Marcas migrado a activos (Modelo eliminado, ahora es CharField) -->
-                                        <!-- Equipos eliminado, reemplazado por Activos -->
-                                        <li class="nav-item">
-                                            <a class="nav-link collapsed" href="#gestoresProveedores" data-bs-toggle="collapse"
-                                                role="button" aria-expanded="false" aria-controls="gestoresProveedores">
-                                                <i class="ri-user-line"></i> <span>Proveedores</span>
-                                            </a>
-                                            <div class="collapse menu-dropdown" id="gestoresProveedores">
-                                                <ul class="nav nav-sm flex-column">
-                                                    <li class="nav-item">
-                                                        <a href="{% url 'compras:proveedor_lista' %}" class="nav-link">Proveedores</a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </li>
-                                    </ul>
-                                </div>
                             </li>
 
                             <!-- Menú de Administración - Ya está arriba como enlace directo, eliminado el dropdown duplicado -->

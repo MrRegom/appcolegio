@@ -5,11 +5,12 @@ IMPORTANTE: Los modelos y vistas de este módulo fueron migrados a apps.activos
 """
 
 from django.urls import path
+from . import views
 
 app_name = 'inventario'
 
 urlpatterns = [
-    # Todas las vistas fueron migradas a apps.activos
-    # Para gestionar Marca, Taller, usar el módulo de activos
+    # Menú principal de gestores
+    path('', views.menu_gestores, name='menu_gestores'),
 ]
 
