@@ -113,6 +113,13 @@
                                 </a>
                             </li>
 
+                            <!-- Menú de Administración - Enlace directo al menú con Cards -->
+                            <li class="nav-item">
+                                <a class="nav-link menu-link" href="{% url 'accounts:menu_administracion' %}">
+                                    <i class="ri-settings-3-line"></i> <span data-key="t-administracion">Administración</span>
+                                </a>
+                            </li>
+
                             <!-- Menú de Gestores - CRUD de catálogos -->
                             <li class="nav-item">
                                 <a class="nav-link menu-link collapsed" href="#sidebarGestores"
@@ -200,47 +207,7 @@
                                 </div>
                             </li>
 
-                            <!-- Menú de Administración - Gestión de Usuarios, Grupos y Permisos -->
-                            {% if perms.auth.view_user or perms.auth.view_group or perms.auth.view_permission %}
-                            <li class="menu-title"><span data-key="t-admin">Administración</span></li>
-                            <li class="nav-item">
-                                <a class="nav-link menu-link collapsed" href="#sidebarUsuarios"
-                                    data-bs-toggle="collapse" role="button" aria-expanded="false"
-                                    aria-controls="sidebarUsuarios">
-                                    <i class="ri-shield-user-line"></i> <span data-key="t-gestion-usuarios">Gestión de Usuarios</span>
-                                </a>
-                                <div class="collapse menu-dropdown" id="sidebarUsuarios">
-                                    <ul class="nav nav-sm flex-column">
-                                        <li class="nav-item">
-                                            <a href="{% url 'accounts:menu_usuarios' %}" class="nav-link">
-                                                <i class="ri-dashboard-line"></i> Dashboard
-                                            </a>
-                                        </li>
-                                        {% if perms.auth.view_user %}
-                                        <li class="nav-item">
-                                            <a href="{% url 'accounts:lista_usuarios' %}" class="nav-link">
-                                                <i class="ri-user-line"></i> Usuarios
-                                            </a>
-                                        </li>
-                                        {% endif %}
-                                        {% if perms.auth.view_group %}
-                                        <li class="nav-item">
-                                            <a href="{% url 'accounts:lista_grupos' %}" class="nav-link">
-                                                <i class="ri-group-line"></i> Roles/Grupos
-                                            </a>
-                                        </li>
-                                        {% endif %}
-                                        {% if perms.auth.view_permission %}
-                                        <li class="nav-item">
-                                            <a href="{% url 'accounts:lista_permisos' %}" class="nav-link">
-                                                <i class="ri-shield-keyhole-line"></i> Permisos
-                                            </a>
-                                        </li>
-                                        {% endif %}
-                                    </ul>
-                                </div>
-                            </li>
-                            {% endif %}
+                            <!-- Menú de Administración - Ya está arriba como enlace directo, eliminado el dropdown duplicado -->
 
 
                         </ul>

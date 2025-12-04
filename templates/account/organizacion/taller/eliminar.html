@@ -1,0 +1,40 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box">
+                    <h4 class="mb-sm-0">{{ titulo }}</h4>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="alert alert-warning" role="alert">
+                            <i class="ri-alert-line"></i> ¿Está seguro que desea eliminar este taller?
+                        </div>
+                        <p><strong>Código:</strong> {{ object.codigo }}</p>
+                        <p><strong>Nombre:</strong> {{ object.nombre }}</p>
+                        <form method="post" class="mt-4">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">
+                                <i class="ri-delete-bin-line"></i> Sí, Eliminar
+                            </button>
+                            <a href="{% url 'accounts:taller_lista' %}" class="btn btn-secondary">
+                                <i class="ri-arrow-left-line"></i> Cancelar
+                            </a>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
