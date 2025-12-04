@@ -1,0 +1,257 @@
+{% extends 'partials/base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container-fluid">
+        <!-- start page title -->
+        <div class="row">
+            <div class="col-12">
+                <div class="page-title-box d-sm-flex align-items-center justify-content-between">
+                    <h4 class="mb-sm-0">{{ titulo }}</h4>
+                    <div class="page-title-right">
+                        <ol class="breadcrumb m-0">
+                            <li class="breadcrumb-item"><a href="{% url 'dashboard_analytics' %}">Dashboard</a></li>
+                            <li class="breadcrumb-item active">Administración</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- end page title -->
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Sección 1: Administración de Usuarios -->
+        <div class="row">
+            <div class="col-12">
+                <h5 class="mb-3 text-muted">Administración de Usuarios:</h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Card 1: Gestión de Usuarios -->
+            {% if permisos_usuarios.puede_crear_usuarios or permisos_usuarios.puede_editar_usuarios %}
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">USUARIOS</h5>
+                            <a href="{% url 'accounts:lista_usuarios' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            {% if permisos_usuarios.puede_crear_usuarios %}
+                            <a href="{% url 'accounts:crear_usuario' %}" class="btn btn-sm btn-primary">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Usuario
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'accounts:lista_usuarios' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="ri-list-check align-bottom me-1"></i> Ver Usuarios
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Card 2: Gestión de Roles -->
+            {% if permisos_usuarios.puede_gestionar_grupos %}
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ROLES/GRUPOS</h5>
+                            <a href="{% url 'accounts:lista_grupos' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'accounts:crear_grupo' %}" class="btn btn-sm btn-warning">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Rol
+                            </a>
+                            <a href="{% url 'accounts:lista_grupos' %}" class="btn btn-sm btn-outline-warning">
+                                <i class="ri-list-check align-bottom me-1"></i> Ver Roles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Card 3: Gestión de Permisos -->
+            {% if permisos_usuarios.puede_gestionar_permisos %}
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">PERMISOS</h5>
+                            <a href="{% url 'accounts:lista_permisos' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'accounts:crear_permiso' %}" class="btn btn-sm btn-success">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Permiso
+                            </a>
+                            <a href="{% url 'accounts:lista_permisos' %}" class="btn btn-sm btn-outline-success">
+                                <i class="ri-shield-keyhole-line align-bottom me-1"></i> Ver Permisos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sección 2: Organización -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h5 class="mb-3 text-muted">Organización:</h5>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Card 4: Ubicación -->
+            {% if permisos_organizacion.puede_gestionar_ubicacion %}
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">UBICACIÓN</h5>
+                            <a href="{% url 'accounts:ubicacion_lista' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'accounts:ubicacion_crear' %}" class="btn btn-sm btn-info">
+                                <i class="ri-add-line align-bottom me-1"></i> Nueva Ubicación
+                            </a>
+                            <a href="{% url 'accounts:ubicacion_lista' %}" class="btn btn-sm btn-outline-info">
+                                <i class="ri-list-check align-bottom me-1"></i> Ver Ubicaciones
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Card 5: Talleres -->
+            {% if permisos_organizacion.puede_gestionar_taller %}
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">TALLERES</h5>
+                            <a href="{% url 'accounts:taller_lista' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'accounts:taller_crear' %}" class="btn btn-sm btn-secondary">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Taller
+                            </a>
+                            <a href="{% url 'accounts:taller_lista' %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="ri-list-check align-bottom me-1"></i> Ver Talleres
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Card 6: Área -->
+            {% if permisos_organizacion.puede_gestionar_area %}
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">ÁREA</h5>
+                            <a href="{% url 'accounts:area_lista' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'accounts:area_crear' %}" class="btn btn-sm btn-success">
+                                <i class="ri-add-line align-bottom me-1"></i> Nueva Área
+                            </a>
+                            <a href="{% url 'accounts:area_lista' %}" class="btn btn-sm btn-outline-success">
+                                <i class="ri-list-check align-bottom me-1"></i> Ver Áreas
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Card 7: Departamentos -->
+            {% if permisos_organizacion.puede_gestionar_departamento %}
+            <div class="col-lg-3 col-sm-6">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-semibold mb-0" style="font-size: 1rem; letter-spacing: 0.5px; color: #323130;">DEPARTAMENTOS</h5>
+                            <a href="{% url 'accounts:departamento_lista' %}" class="text-muted">
+                                <i class="ri-arrow-right-up-line fs-sm"></i>
+                            </a>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <a href="{% url 'accounts:departamento_crear' %}" class="btn btn-sm btn-primary">
+                                <i class="ri-add-line align-bottom me-1"></i> Nuevo Departamento
+                            </a>
+                            <a href="{% url 'accounts:departamento_lista' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="ri-list-check align-bottom me-1"></i> Ver Departamentos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Información adicional -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-none">
+                    <div class="card-body">
+                        <div class="alert alert-info border-0 mb-0" role="alert">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <i class="ri-information-line fs-16 align-middle"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="alert-heading">Información del Módulo</h6>
+                                    <p class="mb-0">
+                                        <strong>Administración de Usuarios:</strong> 
+                                        {{ stats_usuarios.total_usuarios }} usuarios registrados 
+                                        ({{ stats_usuarios.usuarios_activos }} activos), 
+                                        {{ stats_usuarios.total_grupos }} roles y 
+                                        {{ stats_usuarios.total_permisos }} permisos configurados.
+                                        <br>
+                                        <strong>Organización:</strong> 
+                                        {{ stats_organizacion.total_ubicaciones }} ubicaciones, 
+                                        {{ stats_organizacion.total_talleres }} talleres, 
+                                        {{ stats_organizacion.total_areas }} áreas y 
+                                        {{ stats_organizacion.total_departamentos }} departamentos.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
