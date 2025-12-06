@@ -12,17 +12,30 @@ Este archivo implementa todas las vistas usando CBVs siguiendo SOLID y DRY:
 from typing import Any
 from django.db.models import QuerySet, Q
 from django.urls import reverse_lazy
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.views.generic import (
-    TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView
+    TemplateView, ListView, DetailView, CreateView, UpdateView, DeleteView, View
 )
 from core.mixins import (
     BaseAuditedViewMixin, AtomicTransactionMixin, SoftDeleteMixin,
     PaginatedListMixin, FilteredListMixin
 )
 from core.utils import registrar_log_auditoria
+from .mixins import (
+    GestionSolicitudesPermissionMixin,
+    AprobarSolicitudesPermissionMixin,
+    RechazarSolicitudesPermissionMixin,
+    DespacharSolicitudesPermissionMixin,
+    CrearSolicitudArticulosPermissionMixin,
+    CrearSolicitudBienesPermissionMixin,
+    VerSolicitudesArticulosPermissionMixin,
+    VerSolicitudesBienesPermissionMixin,
+    MisSolicitudesPermissionMixin,
+    EditarMisSolicitudesPermissionMixin,
+    EliminarMisSolicitudesPermissionMixin,
+)
 from .models import Solicitud, TipoSolicitud, EstadoSolicitud, DetalleSolicitud, HistorialSolicitud
 from .forms import (
     SolicitudForm, DetalleSolicitudArticuloFormSet, DetalleSolicitudActivoFormSet,
@@ -77,12 +90,29 @@ class MenuSolicitudesView(BaseAuditedViewMixin, TemplateView):
             'total_estados_solicitud': estado_repo.get_all().count(),
         }
 
-        # Permisos del usuario
+        # Permisos del usuario (usando nuevos permisos personalizados)
         context['permisos'] = {
-            'puede_crear': user.has_perm('solicitudes.add_solicitud'),
-            'puede_aprobar': user.has_perm('solicitudes.aprobar_solicitud'),
-            'puede_gestionar': user.has_perm('solicitudes.change_solicitud'),
-            # Permisos para mantenedores (mostrar si tiene permisos de ver o cambiar)
+            # Permisos de gestión
+            'puede_gestionar': user.has_perm('solicitudes.gestionar_solicitudes'),
+            'puede_aprobar': user.has_perm('solicitudes.aprobar_solicitudes'),
+            'puede_rechazar': user.has_perm('solicitudes.rechazar_solicitudes'),
+            'puede_despachar': user.has_perm('solicitudes.despachar_solicitudes'),
+            'puede_ver_todas': user.has_perm('solicitudes.ver_todas_solicitudes'),
+
+            # Permisos de solicitud de artículos
+            'puede_crear_articulos': user.has_perm('solicitudes.crear_solicitud_articulos'),
+            'puede_ver_solicitudes_articulos': user.has_perm('solicitudes.ver_solicitudes_articulos'),
+
+            # Permisos de solicitud de bienes
+            'puede_crear_bienes': user.has_perm('solicitudes.crear_solicitud_bienes'),
+            'puede_ver_solicitudes_bienes': user.has_perm('solicitudes.ver_solicitudes_bienes'),
+
+            # Permisos de mis solicitudes
+            'puede_ver_mis_solicitudes': user.has_perm('solicitudes.ver_mis_solicitudes'),
+            'puede_editar_mis_solicitudes': user.has_perm('solicitudes.editar_mis_solicitudes'),
+            'puede_eliminar_mis_solicitudes': user.has_perm('solicitudes.eliminar_mis_solicitudes'),
+
+            # Permisos para mantenedores
             'puede_gestionar_mantenedores': (
                 user.has_perm('solicitudes.view_tiposolicitud') or
                 user.has_perm('solicitudes.change_tiposolicitud') or
@@ -97,17 +127,16 @@ class MenuSolicitudesView(BaseAuditedViewMixin, TemplateView):
 
 # ==================== VISTAS DE SOLICITUDES GENERALES ====================
 
-class SolicitudListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+class SolicitudListView(GestionSolicitudesPermissionMixin, BaseAuditedViewMixin, PaginatedListMixin, ListView):
     """
-    Vista para listar todas las solicitudes con filtros.
+    Vista para listar todas las solicitudes con filtros (GESTIÓN).
 
-    Permisos: solicitudes.view_solicitud
+    Permisos: solicitudes.ver_todas_solicitudes o solicitudes.gestionar_solicitudes
     Filtros: Estado, tipo, fechas, búsqueda
     """
     model = Solicitud
     template_name = 'solicitudes/lista_solicitudes.html'
     context_object_name = 'solicitudes'
-    permission_required = 'solicitudes.view_solicitud'
     paginate_by = 25
     filter_form_class = FiltroSolicitudesForm
 
@@ -193,17 +222,22 @@ class SolicitudDetailView(BaseAuditedViewMixin, DetailView):
 
         return context
 
+    def get_template_names(self):
+        # Si la petición es AJAX o se solicita modal, devolver plantilla parcial
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or self.request.GET.get('modal') == '1':
+            return ['solicitudes/partials/modal_detalle.html']
+        return [self.template_name]
 
-class MisSolicitudesListView(BaseAuditedViewMixin, PaginatedListMixin, ListView):
+
+class MisSolicitudesListView(MisSolicitudesPermissionMixin, BaseAuditedViewMixin, PaginatedListMixin, ListView):
     """
-    Vista para ver las solicitudes del usuario actual.
+    Vista para ver las solicitudes del usuario actual (MIS SOLICITUDES).
 
-    Permisos: solicitudes.view_solicitud
+    Permisos: solicitudes.ver_mis_solicitudes
     """
     model = Solicitud
     template_name = 'solicitudes/mis_solicitudes.html'
     context_object_name = 'solicitudes'
-    permission_required = 'solicitudes.view_solicitud'
     paginate_by = 25
 
     def get_queryset(self) -> QuerySet:
@@ -303,18 +337,18 @@ class SolicitudCreateView(BaseAuditedViewMixin, AtomicTransactionMixin, CreateVi
             return self.form_invalid(form)
 
 
-class SolicitudUpdateView(BaseAuditedViewMixin, AtomicTransactionMixin, UpdateView):
+class SolicitudUpdateView(EditarMisSolicitudesPermissionMixin, BaseAuditedViewMixin, AtomicTransactionMixin, UpdateView):
     """
-    Vista para editar una solicitud existente.
+    Vista para editar una solicitud existente (MIS SOLICITUDES).
 
-    Permisos: solicitudes.change_solicitud
+    Permisos: solicitudes.editar_mis_solicitudes (si es el solicitante)
+             o solicitudes.editar_cualquier_solicitud (si es gestor)
     Auditoría: Registra acción EDITAR automáticamente
     Transacción atómica: Garantiza consistencia de datos
     """
     model = Solicitud
     form_class = SolicitudForm
     template_name = 'solicitudes/form_solicitud.html'
-    permission_required = 'solicitudes.change_solicitud'
 
     # Configuración de auditoría
     audit_action = 'EDITAR'
@@ -326,32 +360,6 @@ class SolicitudUpdateView(BaseAuditedViewMixin, AtomicTransactionMixin, UpdateVi
     def get_success_url(self) -> str:
         """Redirige al detalle de la solicitud editada."""
         return reverse_lazy('solicitudes:detalle_solicitud', kwargs={'pk': self.object.pk})
-
-    def get_queryset(self) -> QuerySet:
-        """Filtra solicitudes según permisos del usuario."""
-        queryset = super().get_queryset()
-
-        # Si no tiene permiso para editar cualquier solicitud, solo las propias
-        if not self.request.user.has_perm('solicitudes.change_any_solicitud'):
-            queryset = queryset.filter(solicitante=self.request.user)
-
-        return queryset
-
-    def get(self, request, *args, **kwargs):
-        """Verifica que la solicitud pueda ser editada."""
-        self.object = self.get_object()
-
-        # Verificar permisos de edición
-        if self.object.solicitante != request.user and not request.user.has_perm('solicitudes.change_any_solicitud'):
-            messages.error(request, 'No tiene permisos para editar esta solicitud.')
-            return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
-
-        # No permitir edición si ya fue aprobada o despachada
-        if self.object.estado.es_final:
-            messages.warning(request, 'No se puede editar una solicitud en estado final.')
-            return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
-
-        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs) -> dict:
         """Agrega formset y datos al contexto."""
@@ -376,34 +384,57 @@ class SolicitudUpdateView(BaseAuditedViewMixin, AtomicTransactionMixin, UpdateVi
 
         return context
 
+    def get_template_names(self):
+        # Si la petición es AJAX o se solicita modal, devolver plantilla parcial del formulario
+        if self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or self.request.GET.get('modal') == '1':
+            return ['solicitudes/partials/modal_form.html']
+        return [self.template_name]
+
     def form_valid(self, form):
-        """Procesa el formulario válido con formset."""
+        """Procesa el formulario válido con formset.
+
+        Si la petición es AJAX, devuelve el detalle actualizado renderizado en parcial
+        para que el frontend lo reemplace dentro del modal o cierre el modal.
+        """
         context = self.get_context_data()
         formset = context['formset']
 
         if formset.is_valid():
+            # Guardar manualmente para controlar la respuesta en AJAX
             form.save()
             formset.save()
 
-            # Continuar con el flujo normal (mensaje y redirección)
-            response = super().form_valid(form)
+            # Log de auditoría
             self.log_action(self.object, self.request)
-            return response
+
+            # Si es petición AJAX, devolver el detalle parcial para mostrar en modal
+            if self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or self.request.GET.get('modal') == '1':
+                # Construir contexto usando la DetailView para mantener consistencia
+                detalle_view = SolicitudDetailView()
+                detalle_view.request = self.request
+                detalle_view.object = self.object
+                detalle_context = detalle_view.get_context_data()
+                return render(self.request, 'solicitudes/partials/modal_detalle.html', detalle_context)
+
+            return super().form_valid(form)
         else:
+            # Si es AJAX, re-renderizar el formulario con errores para inyectarlo en el modal
+            if self.request.headers.get('x-requested-with') == 'XMLHttpRequest' or self.request.GET.get('modal') == '1':
+                return render(self.request, 'solicitudes/partials/modal_form.html', context)
             return self.form_invalid(form)
 
 
-class SolicitudDeleteView(BaseAuditedViewMixin, AtomicTransactionMixin, DeleteView):
+class SolicitudDeleteView(EliminarMisSolicitudesPermissionMixin, BaseAuditedViewMixin, AtomicTransactionMixin, DeleteView):
     """
-    Vista para eliminar una solicitud.
+    Vista para eliminar una solicitud (MIS SOLICITUDES).
 
-    Permisos: solicitudes.delete_solicitud
+    Permisos: solicitudes.eliminar_mis_solicitudes (si es el solicitante)
+             o solicitudes.eliminar_cualquier_solicitud (si es gestor)
     Auditoría: Registra acción ELIMINAR automáticamente
     Transacción atómica: Garantiza consistencia
     """
     model = Solicitud
     template_name = 'solicitudes/eliminar_solicitud.html'
-    permission_required = 'solicitudes.delete_solicitud'
     success_url = reverse_lazy('solicitudes:lista_solicitudes')
 
     # Configuración de auditoría
@@ -412,32 +443,6 @@ class SolicitudDeleteView(BaseAuditedViewMixin, AtomicTransactionMixin, DeleteVi
 
     # Mensaje de éxito
     success_message = 'Solicitud {obj.numero} eliminada exitosamente.'
-
-    def get_queryset(self) -> QuerySet:
-        """Filtra solicitudes según permisos del usuario."""
-        queryset = super().get_queryset()
-
-        # Si no tiene permiso para eliminar cualquier solicitud, solo las propias
-        if not self.request.user.has_perm('solicitudes.delete_any_solicitud'):
-            queryset = queryset.filter(solicitante=self.request.user)
-
-        return queryset
-
-    def get(self, request, *args, **kwargs):
-        """Verifica que la solicitud pueda ser eliminada."""
-        self.object = self.get_object()
-
-        # Verificar permisos de eliminación
-        if self.object.solicitante != request.user and not request.user.has_perm('solicitudes.delete_any_solicitud'):
-            messages.error(request, 'No tiene permisos para eliminar esta solicitud.')
-            return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
-
-        # Solo se pueden eliminar solicitudes en estado inicial
-        if not self.object.estado.es_inicial:
-            messages.warning(request, 'Solo se pueden eliminar solicitudes en estado inicial.')
-            return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
-
-        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs) -> dict:
         """Agrega datos al contexto."""
@@ -468,18 +473,17 @@ class SolicitudDeleteView(BaseAuditedViewMixin, AtomicTransactionMixin, DeleteVi
 
 # ==================== VISTAS DE WORKFLOW (APROBAR, RECHAZAR, DESPACHAR) ====================
 
-class SolicitudAprobarView(BaseAuditedViewMixin, AtomicTransactionMixin, DetailView):
+class SolicitudAprobarView(AprobarSolicitudesPermissionMixin, BaseAuditedViewMixin, AtomicTransactionMixin, DetailView):
     """
-    Vista para aprobar una solicitud.
+    Vista para aprobar una solicitud (GESTIÓN).
 
-    Permisos: solicitudes.aprobar_solicitud
+    Permisos: solicitudes.aprobar_solicitudes
     Auditoría: Registra acción APROBAR automáticamente
     Transacción atómica: Garantiza consistencia del workflow
     """
     model = Solicitud
     template_name = 'solicitudes/aprobar_solicitud.html'
     context_object_name = 'solicitud'
-    permission_required = 'solicitudes.aprobar_solicitud'
 
     # Configuración de auditoría
     audit_action = 'APROBAR'
@@ -555,168 +559,209 @@ class SolicitudAprobarView(BaseAuditedViewMixin, AtomicTransactionMixin, DetailV
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class SolicitudRechazarView(BaseAuditedViewMixin, AtomicTransactionMixin, DetailView):
+class SolicitudRechazarView(RechazarSolicitudesPermissionMixin, BaseAuditedViewMixin, AtomicTransactionMixin, View):
     """
-    Vista para rechazar una solicitud.
+    Vista para rechazar una solicitud (GESTIÓN).
 
-    Permisos: solicitudes.rechazar_solicitud
+    Permisos: solicitudes.rechazar_solicitudes
     Auditoría: Registra acción RECHAZAR automáticamente
     Transacción atómica: Garantiza consistencia del workflow
     """
-    model = Solicitud
-    template_name = 'solicitudes/rechazar_solicitud.html'
-    context_object_name = 'solicitud'
-    permission_required = 'solicitudes.rechazar_solicitud'
 
     # Configuración de auditoría
     audit_action = 'RECHAZAR'
     audit_description_template = 'Rechazó solicitud {obj.numero}'
 
-    def get_context_data(self, **kwargs) -> dict:
-        """Agrega formulario y datos al contexto."""
-        context = super().get_context_data(**kwargs)
-        context['titulo'] = f'Rechazar Solicitud {self.object.numero}'
+    def post(self, request, pk):
+        """Procesa el rechazo de la solicitud cambiando solo el estado."""
+        try:
+            solicitud = Solicitud.objects.get(pk=pk)
+        except Solicitud.DoesNotExist:
+            messages.error(request, 'Solicitud no encontrada.')
+            return redirect('solicitudes:lista_solicitudes')
 
-        if self.request.POST:
-            context['form'] = RechazarSolicitudForm(self.request.POST)
-        else:
-            context['form'] = RechazarSolicitudForm()
+        # Verificar que no esté finalizada
+        if solicitud.estado.es_final:
+            messages.warning(request, 'No se puede rechazar una solicitud finalizada.')
+            return redirect('solicitudes:detalle_solicitud', pk=solicitud.pk)
 
-        return context
-
-    def get(self, request, *args, **kwargs):
-        """Verifica que la solicitud pueda ser rechazada."""
-        self.object = self.get_object()
-
-        # Verificar que no esté ya procesada
-        if self.object.estado.es_final:
-            messages.warning(request, 'Esta solicitud ya fue procesada.')
-            return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
-
-        return super().get(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        """Procesa el rechazo de la solicitud usando SolicitudService."""
-        self.object = self.get_object()
-        form = RechazarSolicitudForm(request.POST)
-
-        if form.is_valid():
+        try:
             solicitud_service = SolicitudService()
 
-            try:
-                # Rechazar usando service
-                self.object = solicitud_service.rechazar_solicitud(
-                    solicitud=self.object,
-                    rechazador=request.user,
-                    motivo_rechazo=form.cleaned_data['motivo_rechazo']
-                )
+            # Cambiar estado a RECHAZAR
+            estado_rechazado = solicitud_service.estado_repo.get_by_codigo('RECHAZAR')
+            if not estado_rechazado:
+                raise ValidationError('No existe el estado RECHAZAR en el sistema')
 
-                # Log de auditoría
-                self.log_action(self.object, request)
+            # Cambiar estado usando el servicio genérico
+            solicitud = solicitud_service.cambiar_estado(
+                solicitud=solicitud,
+                nuevo_estado=estado_rechazado,
+                usuario=request.user,
+                observaciones=f'Rechazada por {request.user.get_full_name()}'
+            )
 
-                messages.success(request, f'Solicitud {self.object.numero} rechazada.')
-                return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
+            # Log de auditoría
+            self.log_action(solicitud, request)
 
-            except ValidationError as e:
-                error_msg = str(e.message_dict.get('__all__', [e])[0]) if hasattr(e, 'message_dict') else str(e)
-                messages.error(request, error_msg)
-                return self.render_to_response(self.get_context_data(form=form))
+            messages.success(request, f'Solicitud {solicitud.numero} rechazada exitosamente.')
 
-        # Si el formulario no es válido, mostrar errores
-        return self.render_to_response(self.get_context_data(form=form))
+        except ValidationError as e:
+            error_msg = str(e.message_dict.get('__all__', [e])[0]) if hasattr(e, 'message_dict') else str(e)
+            messages.error(request, error_msg)
+
+        # Si es petición AJAX/modal, devolver el partial actualizado
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('modal') == '1':
+            from .repositories import HistorialSolicitudRepository
+            historial_repo = HistorialSolicitudRepository()
+            context = {
+                'solicitud': solicitud,
+                'detalles': solicitud.detalles.filter(eliminado=False).select_related(
+                    'articulo', 'articulo__categoria', 'activo', 'activo__categoria'
+                ).order_by('id'),
+                'historial': historial_repo.filter_by_solicitud(solicitud)
+            }
+            return render(request, 'solicitudes/partials/modal_detalle.html', context)
+
+        return redirect('solicitudes:detalle_solicitud', pk=solicitud.pk)
 
 
-class SolicitudDespacharView(BaseAuditedViewMixin, AtomicTransactionMixin, DetailView):
+class SolicitudDespacharView(DespacharSolicitudesPermissionMixin, BaseAuditedViewMixin, AtomicTransactionMixin, View):
     """
-    Vista para despachar una solicitud.
+    Vista para despachar una solicitud (GESTIÓN).
 
-    Permisos: solicitudes.despachar_solicitud
+    Permisos: solicitudes.despachar_solicitudes
     Auditoría: Registra acción DESPACHAR automáticamente
     Transacción atómica: Garantiza consistencia del workflow
     """
-    model = Solicitud
-    template_name = 'solicitudes/despachar_solicitud.html'
-    context_object_name = 'solicitud'
-    permission_required = 'solicitudes.despachar_solicitud'
 
     # Configuración de auditoría
     audit_action = 'DESPACHAR'
     audit_description_template = 'Despachó solicitud {obj.numero}'
 
-    def get_context_data(self, **kwargs) -> dict:
-        """Agrega formulario y datos al contexto."""
-        context = super().get_context_data(**kwargs)
-        context['titulo'] = f'Despachar Solicitud {self.object.numero}'
+    def post(self, request, pk):
+        """Procesa el despacho de la solicitud cambiando el estado a Para Despachar."""
+        try:
+            solicitud = Solicitud.objects.get(pk=pk)
+        except Solicitud.DoesNotExist:
+            messages.error(request, 'Solicitud no encontrada.')
+            return redirect('solicitudes:lista_solicitudes')
 
-        if self.request.POST:
-            context['form'] = DespacharSolicitudForm(self.request.POST, solicitud=self.object)
-        else:
-            context['form'] = DespacharSolicitudForm(solicitud=self.object)
+        # Verificar que no esté finalizada
+        if solicitud.estado.es_final:
+            messages.warning(request, 'No se puede cambiar el estado de una solicitud finalizada.')
+            return redirect('solicitudes:detalle_solicitud', pk=solicitud.pk)
 
-        return context
-
-    def get(self, request, *args, **kwargs):
-        """Verifica que la solicitud pueda ser despachada."""
-        self.object = self.get_object()
-
-        # Verificar que esté aprobada
-        if not self.object.aprobador:
-            messages.warning(request, 'Solo se pueden despachar solicitudes aprobadas.')
-            return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
-
-        # Verificar que no esté ya despachada
-        if self.object.despachador:
-            messages.warning(request, 'Esta solicitud ya fue despachada.')
-            return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
-
-        return super().get(request, *args, **kwargs)
-
-    def post(self, request, *args, **kwargs):
-        """Procesa el despacho de la solicitud usando SolicitudService."""
-        self.object = self.get_object()
-        form = DespacharSolicitudForm(request.POST, solicitud=self.object)
-
-        if form.is_valid():
+        try:
             solicitud_service = SolicitudService()
 
-            # Preparar detalles despachados
-            detalles_despachados = []
-            for detalle in self.object.detalles.all():
-                field_name = f'cantidad_despachada_{detalle.id}'
-                if field_name in form.cleaned_data:
-                    detalles_despachados.append({
-                        'detalle_id': detalle.id,
-                        'cantidad_despachada': form.cleaned_data[field_name]
-                    })
+            # Cambiar estado a DESPACHAR (Para Despachar)
+            estado_despachar = solicitud_service.estado_repo.get_by_codigo('DESPACHAR')
+            if not estado_despachar:
+                raise ValidationError('No existe el estado DESPACHAR en el sistema')
 
-            try:
-                # Despachar usando service
-                self.object = solicitud_service.despachar_solicitud(
-                    solicitud=self.object,
-                    despachador=request.user,
-                    detalles_despachados=detalles_despachados,
-                    notas_despacho=form.cleaned_data.get('notas_despacho', '')
-                )
+            # Cambiar estado usando el servicio genérico
+            solicitud = solicitud_service.cambiar_estado(
+                solicitud=solicitud,
+                nuevo_estado=estado_despachar,
+                usuario=request.user,
+                observaciones=f'Marcada para despachar por {request.user.get_full_name()}'
+            )
 
-                # Log de auditoría
-                self.log_action(self.object, request)
+            # Log de auditoría
+            self.log_action(solicitud, request)
 
-                messages.success(request, f'Solicitud {self.object.numero} despachada exitosamente.')
-                return redirect('solicitudes:detalle_solicitud', pk=self.object.pk)
+            messages.success(request, f'Solicitud {solicitud.numero} marcada para despachar.')
 
-            except ValidationError as e:
-                error_msg = str(e.message_dict.get('__all__', [e])[0]) if hasattr(e, 'message_dict') else str(e)
-                messages.error(request, error_msg)
-                return self.render_to_response(self.get_context_data(form=form))
+        except ValidationError as e:
+            error_msg = str(e.message_dict.get('__all__', [e])[0]) if hasattr(e, 'message_dict') else str(e)
+            messages.error(request, error_msg)
 
-        # Si el formulario no es válido, mostrar errores
-        return self.render_to_response(self.get_context_data(form=form))
+        # Si es petición AJAX/modal, devolver el partial actualizado
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('modal') == '1':
+            from .repositories import HistorialSolicitudRepository
+            historial_repo = HistorialSolicitudRepository()
+            context = {
+                'solicitud': solicitud,
+                'detalles': solicitud.detalles.filter(eliminado=False).select_related(
+                    'articulo', 'articulo__categoria', 'activo', 'activo__categoria'
+                ).order_by('id'),
+                'historial': historial_repo.filter_by_solicitud(solicitud)
+            }
+            return render(request, 'solicitudes/partials/modal_detalle.html', context)
+
+        return redirect('solicitudes:detalle_solicitud', pk=solicitud.pk)
+
+
+class SolicitudComprarView(DespacharSolicitudesPermissionMixin, BaseAuditedViewMixin, AtomicTransactionMixin, View):
+    """
+    Vista para marcar una solicitud como comprada (en proceso de compra).
+
+    Permisos: solicitudes.despachar_solicitudes (mismo permiso que despachar)
+    Auditoría: Registra acción COMPRAR automáticamente
+    Transacción atómica: Garantiza consistencia del workflow
+    """
+
+    # Configuración de auditoría
+    audit_action = 'COMPRAR'
+    audit_description_template = 'Envió a compras la solicitud {obj.numero}'
+
+    def post(self, request, pk):
+        """Procesa el envío de la solicitud a compras usando SolicitudService."""
+        try:
+            solicitud = Solicitud.objects.get(pk=pk)
+        except Solicitud.DoesNotExist:
+            messages.error(request, 'Solicitud no encontrada.')
+            return redirect('solicitudes:lista_solicitudes')
+
+        # Verificar que no esté finalizada
+        if solicitud.estado.es_final:
+            messages.warning(request, 'No se puede enviar a compras una solicitud finalizada.')
+            return redirect('solicitudes:detalle_solicitud', pk=solicitud.pk)
+
+        try:
+            solicitud_service = SolicitudService()
+
+            # Marcar como comprada usando service
+            solicitud = solicitud_service.comprar_solicitud(
+                solicitud=solicitud,
+                comprador=request.user,
+                notas_compra=request.POST.get('notas_compra', '')
+            )
+
+            # Log de auditoría
+            self.log_action(solicitud, request)
+
+            messages.success(request, f'Solicitud {solicitud.numero} enviada a compras exitosamente.')
+
+        except ValidationError as e:
+            error_msg = str(e.message_dict.get('__all__', [e])[0]) if hasattr(e, 'message_dict') else str(e)
+            messages.error(request, error_msg)
+
+        # Si es petición AJAX/modal, devolver el partial actualizado
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('modal') == '1':
+            from .repositories import HistorialSolicitudRepository
+            historial_repo = HistorialSolicitudRepository()
+            context = {
+                'solicitud': solicitud,
+                'detalles': solicitud.detalles.filter(eliminado=False).select_related(
+                    'articulo', 'articulo__categoria', 'activo', 'activo__categoria'
+                ).order_by('id'),
+                'historial': historial_repo.filter_by_solicitud(solicitud)
+            }
+            return render(request, 'solicitudes/partials/modal_detalle.html', context)
+
+        return redirect('solicitudes:detalle_solicitud', pk=solicitud.pk)
 
 
 # ==================== VISTAS ESPECÍFICAS PARA ACTIVOS ====================
 
-class SolicitudActivoListView(SolicitudListView):
-    """Vista para listar solicitudes de activos/bienes."""
+class SolicitudActivoListView(VerSolicitudesBienesPermissionMixin, SolicitudListView):
+    """
+    Vista para listar solicitudes de activos/bienes (SOLICITUD BIENES).
+
+    Permisos: solicitudes.ver_solicitudes_bienes
+    """
     template_name = 'solicitudes/lista_solicitudes_activos.html'
 
     def get_queryset(self) -> QuerySet:
@@ -731,8 +776,12 @@ class SolicitudActivoListView(SolicitudListView):
         return context
 
 
-class SolicitudActivoCreateView(SolicitudCreateView):
-    """Vista para crear una nueva solicitud de bienes."""
+class SolicitudActivoCreateView(CrearSolicitudBienesPermissionMixin, SolicitudCreateView):
+    """
+    Vista para crear una nueva solicitud de bienes (SOLICITUD BIENES).
+
+    Permisos: solicitudes.crear_solicitud_bienes
+    """
     template_name = 'solicitudes/form_solicitud_bienes.html'
 
     def get_context_data(self, **kwargs) -> dict:
@@ -880,8 +929,12 @@ class SolicitudActivoUpdateView(SolicitudUpdateView):
 
 # ==================== VISTAS ESPECÍFICAS PARA ARTÍCULOS ====================
 
-class SolicitudArticuloListView(SolicitudListView):
-    """Vista para listar solicitudes de artículos."""
+class SolicitudArticuloListView(VerSolicitudesArticulosPermissionMixin, SolicitudListView):
+    """
+    Vista para listar solicitudes de artículos (SOLICITUD ARTÍCULOS).
+
+    Permisos: solicitudes.ver_solicitudes_articulos
+    """
     template_name = 'solicitudes/lista_solicitudes_articulos.html'
 
     def get_queryset(self) -> QuerySet:
@@ -896,8 +949,12 @@ class SolicitudArticuloListView(SolicitudListView):
         return context
 
 
-class SolicitudArticuloCreateView(SolicitudCreateView):
-    """Vista para crear una nueva solicitud de artículos."""
+class SolicitudArticuloCreateView(CrearSolicitudArticulosPermissionMixin, SolicitudCreateView):
+    """
+    Vista para crear una nueva solicitud de artículos (SOLICITUD ARTÍCULOS).
+
+    Permisos: solicitudes.crear_solicitud_articulos
+    """
     template_name = 'solicitudes/form_solicitud_articulos.html'
 
     def get_context_data(self, **kwargs) -> dict:

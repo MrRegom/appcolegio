@@ -102,7 +102,7 @@
                                         <th>Categoría</th>
                                         <th>Solicitante</th>
                                         <th>Área</th>
-                                        <th>Bodega</th>
+                                        <th>Departamento</th>
                                         <th>Estado</th>
                                         <th>Acciones</th>
                                     </tr>
@@ -135,8 +135,8 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if solicitud.bodega_origen %}
-                                                {{ solicitud.bodega_origen.nombre }}
+                                            {% if solicitud.departamento %}
+                                                {{ solicitud.departamento.nombre }}
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -152,33 +152,15 @@
                                         </td>
                                         <td>
                                             <div class="d-flex gap-1">
-                                                <a href="{% url 'solicitudes:detalle_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-primary" title="Ver Detalle">
-                                                    <i class="ri-eye-line"></i>
+                                                <a href="{% url 'solicitudes:detalle_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-primary solicitudes-modal-link" title="Ver Detalle" data-modal-title="Detalle Solicitud {{ solicitud.numero }}">
+                                                    <i class="ri-eye-line align-bottom me-1"></i> Ver
                                                 </a>
-                                                {% if perms.solicitudes.change_solicitud and solicitud.solicitante == user and not solicitud.estado.es_final %}
-                                                <a href="{% url 'solicitudes:editar_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-secondary" title="Editar">
-                                                    <i class="ri-edit-line"></i>
-                                                </a>
-                                                {% endif %}
-                                                {% if perms.solicitudes.delete_solicitud and solicitud.solicitante == user and solicitud.estado.es_inicial %}
-                                                <a href="{% url 'solicitudes:eliminar_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-danger" title="Eliminar">
-                                                    <i class="ri-delete-bin-line"></i>
-                                                </a>
-                                                {% endif %}
-                                                {% if perms.solicitudes.aprobar_solicitud and not solicitud.aprobador %}
-                                                <a href="{% url 'solicitudes:aprobar_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-success" title="Aprobar">
-                                                    <i class="ri-check-line"></i>
-                                                </a>
-                                                {% endif %}
-                                                {% if perms.solicitudes.rechazar_solicitud and not solicitud.estado.es_final %}
-                                                <a href="{% url 'solicitudes:rechazar_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-warning" title="Rechazar">
-                                                    <i class="ri-close-line"></i>
-                                                </a>
-                                                {% endif %}
-                                                {% if perms.solicitudes.despachar_solicitud and solicitud.aprobador and not solicitud.despachador %}
-                                                <a href="{% url 'solicitudes:despachar_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-info" title="Despachar">
-                                                    <i class="ri-truck-line"></i>
-                                                </a>
+                                                {% if perms.solicitudes.change_solicitud and not solicitud.estado.es_final %}
+                                                    {% if solicitud.estado.codigo == 'PENDIENTE' or solicitud.estado.nombre|lower == 'pendiente' %}
+                                                    <a href="{% url 'solicitudes:editar_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-secondary solicitudes-modal-link" title="Editar" data-modal-title="Editar Solicitud {{ solicitud.numero }}">
+                                                        <i class="ri-edit-line align-bottom me-1"></i> Editar
+                                                    </a>
+                                                    {% endif %}
                                                 {% endif %}
                                             </div>
                                         </td>
@@ -201,3 +183,9 @@
     </div>
 </div>
 {% endblock %}
+
+    {% include 'solicitudes/partials/modal_container.html' %}
+
+    {% block extra_js %}
+    <script src="{% static 'js/solicitudes_modal.js' %}"></script>
+    {% endblock %}

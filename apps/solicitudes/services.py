@@ -202,9 +202,9 @@ class SolicitudService:
         Raises:
             ValidationError: Si hay errores de validación
         """
-        # Validar que no esté ya aprobada
-        if solicitud.aprobador:
-            raise ValidationError('Esta solicitud ya fue aprobada')
+        # Validar que no esté finalizada
+        if solicitud.estado.es_final:
+            raise ValidationError('No se puede aprobar una solicitud finalizada')
 
         # Validar que tenga detalles
         detalles = self.detalle_repo.filter_by_solicitud(solicitud)
@@ -240,23 +240,24 @@ class SolicitudService:
         solicitud.fecha_aprobacion = timezone.now()
         solicitud.notas_aprobacion = notas_aprobacion
 
-        # Cambiar a estado aprobado
+        # Cambiar a estado aprobado (buscar el estado, puede no existir)
         estado_aprobado = self.estado_repo.get_by_codigo('APROBADA')
-        if not estado_aprobado:
-            raise ValidationError('No existe el estado APROBADA en el sistema')
+        if estado_aprobado:
+            estado_anterior = solicitud.estado
+            solicitud.estado = estado_aprobado
+            solicitud.save()
 
-        estado_anterior = solicitud.estado
-        solicitud.estado = estado_aprobado
-        solicitud.save()
-
-        # Registrar en historial
-        self.historial_repo.create(
-            solicitud=solicitud,
-            estado_anterior=estado_anterior,
-            estado_nuevo=estado_aprobado,
-            usuario=aprobador,
-            observaciones=f'Aprobada por {aprobador.get_full_name()}. {notas_aprobacion}'
-        )
+            # Registrar en historial
+            self.historial_repo.create(
+                solicitud=solicitud,
+                estado_anterior=estado_anterior,
+                estado_nuevo=estado_aprobado,
+                usuario=aprobador,
+                observaciones=f'Aprobada por {aprobador.get_full_name()}. {notas_aprobacion}'
+            )
+        else:
+            # Si no existe el estado APROBADA, solo guardar la información sin cambiar estado
+            solicitud.save()
 
         return solicitud
 
@@ -281,13 +282,17 @@ class SolicitudService:
         Raises:
             ValidationError: Si hay errores de validación
         """
+        # Validar que no esté finalizada
+        if solicitud.estado.es_final:
+            raise ValidationError('No se puede rechazar una solicitud finalizada')
+
         if not motivo_rechazo:
             raise ValidationError({'motivo_rechazo': 'Debe indicar el motivo del rechazo'})
 
         # Cambiar a estado rechazado
-        estado_rechazado = self.estado_repo.get_by_codigo('RECHAZADA')
+        estado_rechazado = self.estado_repo.get_by_codigo('RECHAZAR')
         if not estado_rechazado:
-            raise ValidationError('No existe el estado RECHAZADA en el sistema')
+            raise ValidationError('No existe el estado RECHAZAR en el sistema')
 
         estado_anterior = solicitud.estado
         solicitud.estado = estado_rechazado
@@ -328,13 +333,9 @@ class SolicitudService:
         Raises:
             ValidationError: Si hay errores de validación
         """
-        # Validar que esté aprobada
-        if not solicitud.aprobador:
-            raise ValidationError('Solo se pueden despachar solicitudes aprobadas')
-
-        # Validar que no esté ya despachada
-        if solicitud.despachador:
-            raise ValidationError('Esta solicitud ya fue despachada')
+        # Validar que no esté finalizada
+        if solicitud.estado.es_final:
+            raise ValidationError('No se puede despachar una solicitud finalizada')
 
         # Actualizar cantidades despachadas
         for detalle_data in detalles_despachados:
@@ -342,11 +343,17 @@ class SolicitudService:
             if detalle and detalle.solicitud.id == solicitud.id:
                 cantidad_despachada = Decimal(str(detalle_data['cantidad_despachada']))
 
-                # Validar que no exceda lo aprobado
-                if cantidad_despachada > detalle.cantidad_aprobada:
+                # Validar que no exceda lo solicitado
+                if cantidad_despachada > detalle.cantidad_solicitada:
                     raise ValidationError(
-                        f'La cantidad despachada para {detalle.activo.codigo} '
-                        f'excede la cantidad aprobada'
+                        f'La cantidad despachada para {detalle.producto_nombre} '
+                        f'excede la cantidad solicitada ({detalle.cantidad_solicitada})'
+                    )
+
+                # Validar que no sea negativa
+                if cantidad_despachada < 0:
+                    raise ValidationError(
+                        f'La cantidad despachada para {detalle.producto_nombre} no puede ser negativa'
                     )
 
                 detalle.cantidad_despachada = cantidad_despachada
@@ -422,6 +429,60 @@ class SolicitudService:
             estado_nuevo=estado_cancelado,
             usuario=usuario,
             observaciones=f'Cancelada por {usuario.get_full_name()}. Motivo: {motivo_cancelacion}'
+        )
+
+        return solicitud
+
+    @transaction.atomic
+    def comprar_solicitud(
+        self,
+        solicitud: Solicitud,
+        comprador: User,
+        notas_compra: str = ''
+    ) -> Solicitud:
+        """
+        Marca una solicitud como comprada (en proceso de compra).
+
+        Args:
+            solicitud: Solicitud a marcar como comprada
+            comprador: Usuario que realiza la compra
+            notas_compra: Notas sobre la compra
+
+        Returns:
+            Solicitud: Solicitud marcada como comprada
+
+        Raises:
+            ValidationError: Si hay errores de validación
+        """
+        # Validar que esté en estado que permita comprar
+        if solicitud.estado.es_final:
+            raise ValidationError('No se puede marcar como comprada una solicitud finalizada')
+
+        # Cambiar a estado comprar (en compras)
+        estado_comprar = self.estado_repo.get_by_codigo('COMPRAR')
+        if not estado_comprar:
+            raise ValidationError('No existe el estado COMPRAR en el sistema')
+
+        estado_anterior = solicitud.estado
+        solicitud.estado = estado_comprar
+
+        # Guardar notas de compra en observaciones
+        if notas_compra:
+            solicitud.observaciones = f'{solicitud.observaciones}\nCOMPRA: {notas_compra}' if solicitud.observaciones else f'COMPRA: {notas_compra}'
+
+        solicitud.save()
+
+        # Registrar en historial
+        observaciones_historial = f'Enviada a compras por {comprador.get_full_name()}'
+        if notas_compra:
+            observaciones_historial += f'. Notas: {notas_compra}'
+
+        self.historial_repo.create(
+            solicitud=solicitud,
+            estado_anterior=estado_anterior,
+            estado_nuevo=estado_comprar,
+            usuario=comprador,
+            observaciones=observaciones_historial
         )
 
         return solicitud

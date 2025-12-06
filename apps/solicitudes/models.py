@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Permission
 from django.db import models
 
 from apps.activos.models import Activo
@@ -452,12 +453,27 @@ class Solicitud(BaseModel):
         verbose_name_plural = 'Solicitudes'
         ordering = ['-fecha_solicitud', '-numero']
         permissions = [
-            ('aprobar_solicitud', 'Puede aprobar solicitudes'),
-            ('rechazar_solicitud', 'Puede rechazar solicitudes'),
-            ('despachar_solicitud', 'Puede despachar solicitudes'),
-            ('change_any_solicitud', 'Puede editar cualquier solicitud'),
-            ('delete_any_solicitud', 'Puede eliminar cualquier solicitud'),
-            ('ver_todas_solicitudes', 'Puede ver todas las solicitudes'),
+            # Permisos para GESTIÓN (Administración completa del módulo)
+            ('gestionar_solicitudes', 'Puede administrar completamente el módulo de solicitudes'),
+            ('aprobar_solicitudes', 'Puede aprobar solicitudes pendientes de aprobación'),
+            ('rechazar_solicitudes', 'Puede rechazar solicitudes y agregar observaciones'),
+            ('despachar_solicitudes', 'Puede despachar solicitudes aprobadas y registrar entregas'),
+            ('ver_todas_solicitudes', 'Puede visualizar todas las solicitudes del sistema'),
+            ('editar_cualquier_solicitud', 'Puede editar cualquier solicitud independiente del estado o solicitante'),
+            ('eliminar_cualquier_solicitud', 'Puede eliminar cualquier solicitud independiente del estado o solicitante'),
+
+            # Permisos para SOLICITUD DE ARTÍCULOS
+            ('crear_solicitud_articulos', 'Puede crear nuevas solicitudes de artículos de bodega'),
+            ('ver_solicitudes_articulos', 'Puede ver todas las solicitudes de artículos del sistema'),
+
+            # Permisos para SOLICITUD DE BIENES
+            ('crear_solicitud_bienes', 'Puede crear nuevas solicitudes de bienes/activos de inventario'),
+            ('ver_solicitudes_bienes', 'Puede ver todas las solicitudes de bienes/activos del sistema'),
+
+            # Permisos para MIS SOLICITUDES (Gestión de solicitudes propias)
+            ('ver_mis_solicitudes', 'Puede ver sus propias solicitudes creadas'),
+            ('editar_mis_solicitudes', 'Puede editar sus propias solicitudes en estado borrador o pendiente'),
+            ('eliminar_mis_solicitudes', 'Puede eliminar sus propias solicitudes en estado borrador'),
         ]
         indexes = [
             models.Index(fields=['numero']),
@@ -680,3 +696,64 @@ class HistorialSolicitud(BaseModel):
     def __str__(self) -> str:
         """Representación en cadena del registro de historial."""
         return f"{self.solicitud.numero} - {self.estado_nuevo.nombre} ({self.fecha_cambio})"
+
+
+class CategoriaPermiso(models.Model):
+    """
+    Categorización de permisos por módulo funcional.
+
+    Asocia cada permiso del módulo de solicitudes con su categoría/módulo
+    correspondiente para facilitar la organización en el sistema centralizado
+    de administración de permisos.
+
+    Principios aplicados:
+    - Single Responsibility: Solo maneja la categorización, no aspectos de UI
+    - DRY: Reutiliza Permission de Django sin duplicar información
+    - SOLID: Extensión sin modificación de tablas core
+
+    Attributes:
+        permiso: Relación 1-1 con Permission de Django
+        modulo: Categoría funcional del permiso
+        orden: Orden de visualización dentro del módulo
+    """
+
+    class Modulo(models.TextChoices):
+        """Módulos funcionales del sistema de solicitudes."""
+        GESTION = 'GESTION', 'Gestión'
+        SOLICITUD_ARTICULOS = 'SOLICITUD_ARTICULOS', 'Solicitud Artículos'
+        SOLICITUD_BIENES = 'SOLICITUD_BIENES', 'Solicitud Bienes'
+        MIS_SOLICITUDES = 'MIS_SOLICITUDES', 'Mis Solicitudes'
+        MANTENEDORES = 'MANTENEDORES', 'Mantenedores'
+
+    permiso = models.OneToOneField(
+        Permission,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name='categoria',
+        verbose_name='Permiso'
+    )
+    modulo = models.CharField(
+        max_length=50,
+        choices=Modulo.choices,
+        verbose_name='Módulo',
+        help_text='Módulo funcional al que pertenece el permiso',
+        db_index=True
+    )
+    orden = models.PositiveSmallIntegerField(
+        default=0,
+        verbose_name='Orden',
+        help_text='Orden de visualización dentro del módulo'
+    )
+
+    class Meta:
+        db_table = 'tba_solicitudes_permiso'
+        verbose_name = 'Categoría de Permiso'
+        verbose_name_plural = 'Categorías de Permisos'
+        ordering = ['modulo', 'orden']
+        indexes = [
+            models.Index(fields=['modulo', 'orden']),
+        ]
+
+    def __str__(self) -> str:
+        """Representación en cadena."""
+        return f"{self.get_modulo_display()} - {self.permiso.name}"

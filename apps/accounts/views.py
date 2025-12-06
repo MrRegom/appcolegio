@@ -464,13 +464,40 @@ def asignar_permisos_grupo(request, pk):
     else:
         form = GroupPermissionsForm(instance=grupo)
 
-    # Organizar permisos por app
+    # Importar CategoriaPermiso para permisos del módulo de solicitudes
+    try:
+        from apps.solicitudes.models import CategoriaPermiso
+        # Obtener mapeo de permisos a categorías
+        categorias_map = {
+            cat.permiso_id: cat
+            for cat in CategoriaPermiso.objects.select_related('permiso')
+        }
+    except ImportError:
+        categorias_map = {}
+
+    # Organizar permisos por app y categoría
     permisos_organizados = {}
     for permission in form.fields['permissions'].queryset:
         app_label = permission.content_type.app_label
+
+        # Determinar la categoría
+        if permission.id in categorias_map:
+            # Si tiene categoría definida, usar la categoría
+            categoria = categorias_map[permission.id]
+            categoria_nombre = categoria.get_modulo_display()
+            permission.categoria_obj = categoria  # Agregar para acceso en template
+        else:
+            # Si no tiene categoría, usar el nombre del modelo
+            categoria_nombre = permission.content_type.model.title()
+            permission.categoria_obj = None
+
         if app_label not in permisos_organizados:
-            permisos_organizados[app_label] = []
-        permisos_organizados[app_label].append(permission)
+            permisos_organizados[app_label] = {}
+
+        if categoria_nombre not in permisos_organizados[app_label]:
+            permisos_organizados[app_label][categoria_nombre] = []
+
+        permisos_organizados[app_label][categoria_nombre].append(permission)
 
     context = {
         'titulo': f'Asignar Permisos: {grupo.name}',
@@ -541,13 +568,40 @@ def asignar_permisos_usuario(request, pk):
     else:
         form = UserPermissionsForm(instance=usuario)
 
-    # Organizar permisos por app
+    # Importar CategoriaPermiso para permisos del módulo de solicitudes
+    try:
+        from apps.solicitudes.models import CategoriaPermiso
+        # Obtener mapeo de permisos a categorías
+        categorias_map = {
+            cat.permiso_id: cat
+            for cat in CategoriaPermiso.objects.select_related('permiso')
+        }
+    except ImportError:
+        categorias_map = {}
+
+    # Organizar permisos por app y categoría
     permisos_organizados = {}
     for permission in form.fields['user_permissions'].queryset:
         app_label = permission.content_type.app_label
+
+        # Determinar la categoría
+        if permission.id in categorias_map:
+            # Si tiene categoría definida, usar la categoría
+            categoria = categorias_map[permission.id]
+            categoria_nombre = categoria.get_modulo_display()
+            permission.categoria_obj = categoria  # Agregar para acceso en template
+        else:
+            # Si no tiene categoría, usar el nombre del modelo
+            categoria_nombre = permission.content_type.model.title()
+            permission.categoria_obj = None
+
         if app_label not in permisos_organizados:
-            permisos_organizados[app_label] = []
-        permisos_organizados[app_label].append(permission)
+            permisos_organizados[app_label] = {}
+
+        if categoria_nombre not in permisos_organizados[app_label]:
+            permisos_organizados[app_label][categoria_nombre] = []
+
+        permisos_organizados[app_label][categoria_nombre].append(permission)
 
     context = {
         'titulo': f'Asignar Permisos: {usuario.username}',
@@ -564,13 +618,21 @@ def asignar_permisos_usuario(request, pk):
 @login_required
 @permission_required('auth.view_permission', raise_exception=True)
 def lista_permisos(request):
-    """Listar todos los permisos del sistema organizados por app y modelo"""
+    """Listar permisos personalizados organizados por app y categoría"""
     # Obtener búsqueda y filtros
     buscar = request.GET.get('buscar', '')
     app_filter = request.GET.get('app', '')
 
-    # Obtener todos los permisos
-    permisos = Permission.objects.select_related('content_type').all()
+    # Obtener solo permisos personalizados (excluir add_, change_, delete_, view_)
+    permisos = Permission.objects.select_related('content_type').exclude(
+        codename__startswith='add_'
+    ).exclude(
+        codename__startswith='change_'
+    ).exclude(
+        codename__startswith='delete_'
+    ).exclude(
+        codename__startswith='view_'
+    )
 
     # Aplicar filtro de búsqueda
     if buscar:
@@ -585,22 +647,51 @@ def lista_permisos(request):
     if app_filter:
         permisos = permisos.filter(content_type__app_label=app_filter)
 
-    # Organizar permisos por app y modelo
+    # Importar CategoriaPermiso para permisos del módulo de solicitudes
+    try:
+        from apps.solicitudes.models import CategoriaPermiso
+        # Obtener mapeo de permisos a categorías
+        categorias_map = {
+            cat.permiso_id: cat
+            for cat in CategoriaPermiso.objects.select_related('permiso')
+        }
+    except ImportError:
+        categorias_map = {}
+
+    # Organizar permisos por app y categoría/modelo
     permisos_organizados = {}
     for permiso in permisos:
         app_label = permiso.content_type.app_label
-        modelo = permiso.content_type.model
+
+        # Determinar la categoría
+        if permiso.id in categorias_map:
+            # Si tiene categoría definida, usar la categoría
+            categoria = categorias_map[permiso.id]
+            categoria_nombre = categoria.get_modulo_display()
+            permiso.categoria_obj = categoria  # Agregar para acceso en template
+        else:
+            # Si no tiene categoría, usar el nombre del modelo
+            categoria_nombre = permiso.content_type.model.title()
+            permiso.categoria_obj = None
 
         if app_label not in permisos_organizados:
             permisos_organizados[app_label] = {}
 
-        if modelo not in permisos_organizados[app_label]:
-            permisos_organizados[app_label][modelo] = []
+        if categoria_nombre not in permisos_organizados[app_label]:
+            permisos_organizados[app_label][categoria_nombre] = []
 
-        permisos_organizados[app_label][modelo].append(permiso)
+        permisos_organizados[app_label][categoria_nombre].append(permiso)
 
-    # Obtener lista de apps para el filtro
-    apps = Permission.objects.select_related('content_type').values_list(
+    # Obtener lista de apps para el filtro (solo apps con permisos personalizados)
+    apps = Permission.objects.select_related('content_type').exclude(
+        codename__startswith='add_'
+    ).exclude(
+        codename__startswith='change_'
+    ).exclude(
+        codename__startswith='delete_'
+    ).exclude(
+        codename__startswith='view_'
+    ).values_list(
         'content_type__app_label', flat=True
     ).distinct().order_by('content_type__app_label')
 

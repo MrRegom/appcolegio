@@ -1,0 +1,264 @@
+<!-- Contenido parcial para mostrar detalle dentro de un modal -->
+<div class="container-fluid">
+    <!-- Información General -->
+                    <div class="card-body">
+                        <div class="row gx-3 gy-2 align-items-start">
+                            <div class="col-md-3">
+                                <div class="mb-2"><strong>Tipo</strong></div>
+                                <div class="text-muted">{{ solicitud.tipo_solicitud.nombre }}</div>
+                                <div class="mt-2"><strong>Estado</strong></div>
+                                <div>
+                                    <span class="badge" style="background-color: {{ solicitud.estado.color }}">{{ solicitud.estado.nombre }}</span>
+                                </div>
+                            </div>
+
+                            <div class="col-md-3">
+                                <div class="mb-2"><strong>Solicitante</strong></div>
+                                <div class="text-muted">{{ solicitud.solicitante.username }}</div>
+                                {% if solicitud.aprobador %}
+                                <div class="mt-2"><strong>Aprobador</strong></div>
+                                <div class="text-muted">{{ solicitud.aprobador.username }} <small class="text-muted">({{ solicitud.fecha_aprobacion|date:"d/m/Y H:i" }})</small></div>
+                                {% endif %}
+                                {% if solicitud.despachador %}
+                                <div class="mt-2"><strong>Despachador</strong></div>
+                                <div class="text-muted">{{ solicitud.despachador.username }} <small class="text-muted">({{ solicitud.fecha_despacho|date:"d/m/Y H:i" }})</small></div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-1"><strong>Motivo</strong></div>
+                                        <div class="text-muted">{{ solicitud.motivo }}</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-1"><strong>Observaciones</strong></div>
+                                        <div class="text-muted">{{ solicitud.observaciones|default:"-" }}</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    {% if solicitud.notas_aprobacion %}
+                                    <div><strong>Notas de Aprobación</strong></div>
+                                    <div class="text-muted">{{ solicitud.notas_aprobacion }}</div>
+                                    {% endif %}
+                                    {% if solicitud.notas_despacho %}
+                                    <div class="mt-1"><strong>Notas de Despacho</strong></div>
+                                    <div class="text-muted">{{ solicitud.notas_despacho }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                    <!-- Información de la Actividad -->
+                    {% if solicitud.titulo_actividad or solicitud.objetivo_actividad %}
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-info border-0 mb-0">
+                                <h6 class="alert-heading"><i class="ri-calendar-event-line me-2"></i>Información de la Actividad</h6>
+                                {% if solicitud.titulo_actividad %}
+                                <p class="mb-2"><strong>Título:</strong> {{ solicitud.titulo_actividad }}</p>
+                                {% endif %}
+                                {% if solicitud.objetivo_actividad %}
+                                <p class="mb-0"><strong>Objetivo:</strong> {{ solicitud.objetivo_actividad }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    
+
+                    <!-- Acciones: mostrar acciones solo cuando el estado sea PENDIENTE -->
+                    <div class="row mt-3">
+                        <div class="col-12 text-end">
+                            <div class="d-flex justify-content-end gap-2">
+                                {% if solicitud.estado %}
+                                    {% if solicitud.estado.codigo == 'PENDIENTE' or solicitud.estado.nombre|lower == 'pendiente' %}
+                                        {% if not solicitud.estado.es_final %}
+                                            {% if perms.solicitudes.change_solicitud %}
+                                                <a href="{% url 'solicitudes:editar_solicitud' solicitud.pk %}" class="btn btn-sm btn-secondary">
+                                                    <i class="ri-edit-line"></i> Editar
+                                                </a>
+                                            {% endif %}
+
+                                            {% if perms.solicitudes.despachar_solicitudes %}
+                                                <form method="post" action="{% url 'solicitudes:despachar_solicitud' solicitud.pk %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-info" onclick="return confirm('¿Está seguro de despachar esta solicitud?')">
+                                                        <i class="ri-truck-line"></i> Despachar
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+
+                                            {% if perms.solicitudes.rechazar_solicitud %}
+                                                <form method="post" action="{% url 'solicitudes:rechazar_solicitud' solicitud.pk %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('¿Está seguro de rechazar esta solicitud?')">
+                                                        <i class="ri-close-line"></i> Rechazar
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+
+                                            {% if perms.solicitudes.despachar_solicitudes %}
+                                                <form method="post" action="{% url 'solicitudes:comprar_solicitud' solicitud.pk %}" style="display: inline;">
+                                                    {% csrf_token %}
+                                                    <button type="submit" class="btn btn-sm btn-primary" onclick="return confirm('¿Está seguro de enviar esta solicitud a compras?')">
+                                                        <i class="ri-shopping-cart-line"></i> Comprar
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detalles de Artículos/Bienes -->
+    <div class="row mt-3">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        {% if solicitud.tipo == 'ARTICULO' %}
+                            Artículos Solicitados
+                        {% else %}
+                            Bienes Solicitados
+                        {% endif %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-nowrap mb-0">
+                            <thead class="table-light">
+                                    <tr>
+                                        <th>Código</th>
+                                        <th>
+                                            {% if solicitud.tipo == 'ARTICULO' %}
+                                                Artículo
+                                            {% else %}
+                                                Bien/Activo
+                                            {% endif %}
+                                        </th>
+                                        <th>Cant. Solicitada</th>
+                                        {% if perms.solicitudes.despachar_solicitudes %}
+                                        <th>Stock Actual</th>
+                                        {% endif %}
+                                        <th>Cant. Aprobada</th>
+                                        <th>Cant. Despachada</th>
+                                        <th>Observaciones</th>
+                                    </tr>
+                            </thead>
+                            <tbody>
+                                {% for detalle in detalles %}
+                                <tr>
+                                    <td>{{ detalle.producto_codigo }}</td>
+                                    <td>{{ detalle.producto_nombre }}</td>
+                                    <td>{{ detalle.cantidad_solicitada }}</td>
+                                    {% if perms.solicitudes.despachar_solicitudes %}
+                                    <td>
+                                        {% if detalle.articulo %}
+                                            {{ detalle.articulo.stock|default:"-" }}
+                                        {% elif detalle.activo %}
+                                            {{ detalle.activo.stock|default:"-" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    {% endif %}
+                                    <td>
+                                        {% if detalle.cantidad_aprobada > 0 %}
+                                            <span class="badge bg-success">{{ detalle.cantidad_aprobada }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if detalle.cantidad_despachada > 0 %}
+                                            <span class="badge bg-info">{{ detalle.cantidad_despachada }}</span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ detalle.observaciones|default:"-" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    {% if perms.solicitudes.despachar_solicitudes %}
+                                    <td colspan="7" class="text-center text-muted">
+                                    {% else %}
+                                    <td colspan="6" class="text-center text-muted">
+                                    {% endif %}
+                                        {% if solicitud.tipo == 'ARTICULO' %}
+                                            No hay artículos en esta solicitud.
+                                        {% else %}
+                                            No hay bienes en esta solicitud.
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historial de Cambios -->
+    <div class="row mt-3">
+        <div class="col-lg-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Historial de Cambios</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-nowrap mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Usuario</th>
+                                    <th>Estado Anterior</th>
+                                    <th>Estado Nuevo</th>
+                                    <th>Observaciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in historial %}
+                                <tr>
+                                    <td>{{ item.fecha_cambio|date:"d/m/Y H:i" }}</td>
+                                    <td>{{ item.usuario.username }}</td>
+                                    <td>
+                                        {% if item.estado_anterior %}
+                                            <span class="badge" style="background-color: {{ item.estado_anterior.color }}">
+                                                {{ item.estado_anterior.nombre }}
+                                            </span>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge" style="background-color: {{ item.estado_nuevo.color }}">
+                                            {{ item.estado_nuevo.nombre }}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.observaciones|default:"-" }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">No hay historial de cambios.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

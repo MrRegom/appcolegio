@@ -58,7 +58,7 @@
                                             Seleccione los permisos específicos que desea asignar al usuario
                                             <strong>{{ usuario_detalle.username }}</strong>.
                                             Estos permisos se suman a los permisos otorgados por los roles asignados.
-                                            Los permisos están organizados por aplicación y modelo.
+                                            Los permisos están organizados por aplicación y categoría funcional.
                                         </p>
                                     </div>
                                 </div>
@@ -91,12 +91,12 @@
                                 {% endif %}
                             </div>
 
-                            <!-- Mostrar permisos organizados por app -->
+                            <!-- Mostrar permisos organizados por app y categoría -->
                             <div class="row mt-4">
                                 <div class="col-12">
                                     <div class="accordion" id="accordionPermisos">
-                                        {% for app_label, permissions in permisos_organizados.items %}
-                                        <div class="accordion-item">
+                                        {% for app_label, categorias in permisos_organizados.items %}
+                                        <div class="accordion-item mb-3">
                                             <h2 class="accordion-header" id="heading{{ forloop.counter }}">
                                                 <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}"
                                                         type="button"
@@ -105,8 +105,7 @@
                                                         aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}"
                                                         aria-controls="collapse{{ forloop.counter }}">
                                                     <i class="ri-folder-line me-2"></i>
-                                                    <strong>{{ app_label|title }}</strong>
-                                                    <span class="badge bg-primary ms-2">{{ permissions|length }}</span>
+                                                    <strong>{{ app_label|upper }}</strong>
                                                 </button>
                                             </h2>
                                             <div id="collapse{{ forloop.counter }}"
@@ -114,25 +113,39 @@
                                                  aria-labelledby="heading{{ forloop.counter }}"
                                                  data-bs-parent="#accordionPermisos">
                                                 <div class="accordion-body">
-                                                    <div class="row">
-                                                        {% for permission in permissions %}
-                                                        <div class="col-md-6 col-lg-4 mb-3">
-                                                            <div class="form-check">
-                                                                <input class="form-check-input"
-                                                                       type="checkbox"
-                                                                       name="user_permissions"
-                                                                       value="{{ permission.id }}"
-                                                                       id="perm_{{ permission.id }}"
-                                                                       {% if permission in usuario_detalle.user_permissions.all %}checked{% endif %}>
-                                                                <label class="form-check-label" for="perm_{{ permission.id }}">
-                                                                    <strong>{{ permission.codename }}</strong>
-                                                                    <br>
-                                                                    <small class="text-muted">{{ permission.name }}</small>
-                                                                </label>
+                                                    {% for categoria, permissions in categorias.items %}
+                                                        <div class="mb-4">
+                                                            <h6 class="text-primary border-bottom pb-2">
+                                                                <i class="ri-shield-line me-1"></i>{{ categoria }}
+                                                                <span class="badge bg-secondary ms-2">{{ permissions|length }}</span>
+                                                            </h6>
+                                                            <div class="row mt-3">
+                                                                {% for permission in permissions %}
+                                                                <div class="col-md-6 col-lg-4 mb-3">
+                                                                    <div class="form-check">
+                                                                        <input class="form-check-input"
+                                                                               type="checkbox"
+                                                                               name="user_permissions"
+                                                                               value="{{ permission.id }}"
+                                                                               id="perm_{{ permission.id }}"
+                                                                               {% if permission in usuario_detalle.user_permissions.all %}checked{% endif %}>
+                                                                        <label class="form-check-label" for="perm_{{ permission.id }}">
+                                                                            {% if permission.categoria_obj %}
+                                                                                <span class="badge bg-info-subtle text-info me-1">
+                                                                                    {{ permission.categoria_obj.get_modulo_display }}
+                                                                                </span>
+                                                                            {% endif %}
+                                                                            <br>
+                                                                            <strong>{{ permission.codename }}</strong>
+                                                                            <br>
+                                                                            <small class="text-muted">{{ permission.name }}</small>
+                                                                        </label>
+                                                                    </div>
+                                                                </div>
+                                                                {% endfor %}
                                                             </div>
                                                         </div>
-                                                        {% endfor %}
-                                                    </div>
+                                                    {% endfor %}
                                                 </div>
                                             </div>
                                         </div>

@@ -74,9 +74,9 @@
                             </div>
                         </form>
 
-                        <!-- Permisos organizados por App y Modelo -->
+                        <!-- Permisos organizados por App y Categoría -->
                         {% if permisos_organizados %}
-                            {% for app_label, modelos in permisos_organizados.items %}
+                            {% for app_label, categorias in permisos_organizados.items %}
                                 <div class="mb-4">
                                     <div class="d-flex align-items-center mb-3">
                                         <h5 class="text-primary mb-0">
@@ -86,37 +86,49 @@
                                     </div>
 
                                     <div class="accordion" id="accordion{{ app_label }}">
-                                        {% for modelo, permisos_lista in modelos.items %}
+                                        {% for categoria, permisos_lista in categorias.items %}
                                         <div class="accordion-item border mb-2 rounded">
-                                            <h2 class="accordion-header" id="heading{{ app_label }}{{ modelo }}">
+                                            <h2 class="accordion-header" id="heading{{ app_label }}{{ categoria|slugify }}">
                                                 <button class="accordion-button collapsed" type="button"
                                                         data-bs-toggle="collapse"
-                                                        data-bs-target="#collapse{{ app_label }}{{ modelo }}"
+                                                        data-bs-target="#collapse{{ app_label }}{{ categoria|slugify }}"
                                                         aria-expanded="false"
-                                                        aria-controls="collapse{{ app_label }}{{ modelo }}">
+                                                        aria-controls="collapse{{ app_label }}{{ categoria|slugify }}">
                                                     <i class="ri-shield-line me-2"></i>
-                                                    <strong>{{ modelo|title }}</strong>
+                                                    <strong>{{ categoria }}</strong>
                                                     <span class="badge bg-secondary ms-2">{{ permisos_lista|length }} permisos</span>
                                                 </button>
                                             </h2>
-                                            <div id="collapse{{ app_label }}{{ modelo }}"
+                                            <div id="collapse{{ app_label }}{{ categoria|slugify }}"
                                                  class="accordion-collapse collapse"
-                                                 aria-labelledby="heading{{ app_label }}{{ modelo }}"
+                                                 aria-labelledby="heading{{ app_label }}{{ categoria|slugify }}"
                                                  data-bs-parent="#accordion{{ app_label }}">
                                                 <div class="accordion-body">
                                                     <div class="table-responsive">
                                                         <table class="table table-sm table-hover mb-0">
                                                             <thead class="table-light">
                                                                 <tr>
-                                                                    <th width="35%">Nombre del Permiso</th>
-                                                                    <th width="25%">Código</th>
-                                                                    <th width="15%" class="text-center">Tipo</th>
-                                                                    <th width="25%">Acciones</th>
+                                                                    <th width="20%">Módulo</th>
+                                                                    <th width="30%">Nombre del Permiso</th>
+                                                                    <th width="20%">Código</th>
+                                                                    <th width="12%" class="text-center">Tipo</th>
+                                                                    <th width="18%">Acciones</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 {% for permiso in permisos_lista %}
                                                                 <tr>
+                                                                    <td>
+                                                                        {% if permiso.categoria_obj %}
+                                                                            <span class="badge bg-info-subtle text-info">
+                                                                                {{ permiso.categoria_obj.get_modulo_display }}
+                                                                            </span>
+                                                                        {% else %}
+                                                                            <span class="badge bg-secondary-subtle text-secondary">
+                                                                                {{ permiso.content_type.model|title }}
+                                                                            </span>
+                                                                        {% endif %}
+                                                                    </td>
                                                                     <td>
                                                                         <i class="ri-key-2-line text-muted me-1"></i>
                                                                         {{ permiso.name }}
@@ -125,17 +137,7 @@
                                                                         <code class="text-primary">{{ permiso.codename }}</code>
                                                                     </td>
                                                                     <td class="text-center">
-                                                                        {% if permiso.codename|slice:":4" == "add_" %}
-                                                                            <span class="badge bg-success-subtle text-success">Crear</span>
-                                                                        {% elif permiso.codename|slice:":7" == "change_" %}
-                                                                            <span class="badge bg-info-subtle text-info">Editar</span>
-                                                                        {% elif permiso.codename|slice:":7" == "delete_" %}
-                                                                            <span class="badge bg-danger-subtle text-danger">Eliminar</span>
-                                                                        {% elif permiso.codename|slice:":5" == "view_" %}
-                                                                            <span class="badge bg-primary-subtle text-primary">Ver</span>
-                                                                        {% else %}
-                                                                            <span class="badge bg-warning-subtle text-warning">Custom</span>
-                                                                        {% endif %}
+                                                                        <span class="badge bg-warning-subtle text-warning">Personalizado</span>
                                                                     </td>
                                                                     <td>
                                                                         <div class="btn-group btn-group-sm" role="group">
@@ -145,22 +147,18 @@
                                                                                 <i class="ri-eye-line"></i>
                                                                             </a>
                                                                             {% if permisos.puede_editar %}
-                                                                                {% if not permiso.codename|slice:":4" == "add_" and not permiso.codename|slice:":7" == "change_" and not permiso.codename|slice:":7" == "delete_" and not permiso.codename|slice:":5" == "view_" %}
                                                                                 <a href="{% url 'accounts:editar_permiso' permiso.pk %}"
                                                                                    class="btn btn-soft-primary"
                                                                                    title="Editar">
                                                                                     <i class="ri-edit-line"></i>
                                                                                 </a>
-                                                                                {% endif %}
                                                                             {% endif %}
                                                                             {% if permisos.puede_eliminar %}
-                                                                                {% if not permiso.codename|slice:":4" == "add_" and not permiso.codename|slice:":7" == "change_" and not permiso.codename|slice:":7" == "delete_" and not permiso.codename|slice:":5" == "view_" %}
                                                                                 <a href="{% url 'accounts:eliminar_permiso' permiso.pk %}"
                                                                                    class="btn btn-soft-danger"
                                                                                    title="Eliminar">
                                                                                     <i class="ri-delete-bin-line"></i>
                                                                                 </a>
-                                                                                {% endif %}
                                                                             {% endif %}
                                                                         </div>
                                                                     </td>
