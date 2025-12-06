@@ -82,10 +82,12 @@
                                                 <a href="{% url 'solicitudes:detalle_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-primary" title="Ver Detalle">
                                                     <i class="ri-eye-line"></i>
                                                 </a>
-                                                {% if not solicitud.estado.es_final %}
-                                                <a href="{% url 'solicitudes:editar_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-secondary" title="Editar">
-                                                    <i class="ri-edit-line"></i>
-                                                </a>
+                                                {% if solicitud.estado %}
+                                                    {% if solicitud.estado.codigo == 'PENDIENTE' or solicitud.estado.nombre|lower == 'pendiente' %}
+                                                    <a href="{% url 'solicitudes:editar_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-secondary" title="Editar">
+                                                        <i class="ri-edit-line"></i>
+                                                    </a>
+                                                    {% endif %}
                                                 {% endif %}
                                                 {% if solicitud.estado.es_inicial %}
                                                 <a href="{% url 'solicitudes:eliminar_solicitud' solicitud.pk %}" class="btn btn-sm btn-soft-danger" title="Eliminar">

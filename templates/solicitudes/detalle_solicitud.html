@@ -38,101 +38,89 @@
                 <div class="card">
                     <div class="card-header d-flex align-items-center">
                         <h5 class="card-title mb-0 flex-grow-1">Información de la Solicitud</h5>
-                        <div class="d-flex gap-2">
-                            {% if perms.solicitudes.change_solicitud and solicitud.solicitante == user and not solicitud.estado.es_final %}
-                            <a href="{% url 'solicitudes:editar_solicitud' solicitud.pk %}" class="btn btn-sm btn-secondary">
-                                <i class="ri-edit-line"></i> Editar
-                            </a>
-                            {% endif %}
-                            {% if perms.solicitudes.aprobar_solicitud and not solicitud.aprobador %}
-                            <a href="{% url 'solicitudes:aprobar_solicitud' solicitud.pk %}" class="btn btn-sm btn-success">
-                                <i class="ri-check-line"></i> Aprobar
-                            </a>
-                            {% endif %}
-                            {% if perms.solicitudes.rechazar_solicitud and not solicitud.estado.es_final %}
-                            <a href="{% url 'solicitudes:rechazar_solicitud' solicitud.pk %}" class="btn btn-sm btn-warning">
-                                <i class="ri-close-line"></i> Rechazar
-                            </a>
-                            {% endif %}
-                            {% if perms.solicitudes.despachar_solicitud and solicitud.aprobador and not solicitud.despachador %}
-                            <a href="{% url 'solicitudes:despachar_solicitud' solicitud.pk %}" class="btn btn-sm btn-info">
-                                <i class="ri-truck-line"></i> Despachar
-                            </a>
-                            {% endif %}
-                        </div>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <table class="table table-borderless mb-0">
-                                    <tbody>
-                                        <tr>
-                                            <th class="ps-0" scope="row">Número:</th>
-                                            <td class="text-muted"><strong>{{ solicitud.numero }}</strong></td>
-                                        </tr>
-                                        <tr>
-                                            <th class="ps-0" scope="row">Tipo:</th>
-                                            <td class="text-muted">{{ solicitud.tipo_solicitud.nombre }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th class="ps-0" scope="row">Estado:</th>
-                                            <td>
-                                                <span class="badge" style="background-color: {{ solicitud.estado.color }}">
-                                                    {{ solicitud.estado.nombre }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th class="ps-0" scope="row">Fecha Solicitud:</th>
-                                            <td class="text-muted">{{ solicitud.fecha_solicitud|date:"d/m/Y H:i" }}</td>
-                                        </tr>
-                                        <tr>
-                                            <th class="ps-0" scope="row">Fecha Requerida:</th>
-                                            <td class="text-muted">{{ solicitud.fecha_requerida|date:"d/m/Y" }}</td>
-                                        </tr>
-                                    </tbody>
-                                </table>
+                        <div class="row gx-3 gy-2 align-items-start">
+                            <div class="col-md-3">
+                                <div class="mb-2"><strong>Tipo</strong></div>
+                                <div class="text-muted">{{ solicitud.tipo_solicitud.nombre }}</div>
+                                <div class="mt-2"><strong>Estado</strong></div>
+                                <div>
+                                    <span class="badge" style="background-color: {{ solicitud.estado.color }}">{{ solicitud.estado.nombre }}</span>
+                                </div>
                             </div>
-                            <div class="col-md-6">
-                                <table class="table table-borderless mb-0">
-                                    <tbody>
-                                        <tr>
-                                            <th class="ps-0" scope="row">Solicitante:</th>
-                                            <td class="text-muted">{{ solicitud.solicitante.username }}</td>
-                                        </tr>
-                                        {% if solicitud.area %}
-                                        <tr>
-                                            <th class="ps-0" scope="row">Área:</th>
-                                            <td class="text-muted">{{ solicitud.area.nombre }}</td>
-                                        </tr>
-                                        {% endif %}
-                                        {% if solicitud.departamento %}
-                                        <tr>
-                                            <th class="ps-0" scope="row">Departamento:</th>
-                                            <td class="text-muted">{{ solicitud.departamento.nombre }}</td>
-                                        </tr>
-                                        {% endif %}
-                                        {% if solicitud.bodega_origen %}
-                                        <tr>
-                                            <th class="ps-0" scope="row">Bodega Origen:</th>
-                                            <td class="text-muted">{{ solicitud.bodega_origen.nombre }}</td>
-                                        </tr>
-                                        {% endif %}
-                                        {% if solicitud.aprobador %}
-                                        <tr>
-                                            <th class="ps-0" scope="row">Aprobador:</th>
-                                            <td class="text-muted">{{ solicitud.aprobador.username }} ({{ solicitud.fecha_aprobacion|date:"d/m/Y H:i" }})</td>
-                                        </tr>
-                                        {% endif %}
-                                        {% if solicitud.despachador %}
-                                        <tr>
-                                            <th class="ps-0" scope="row">Despachador:</th>
-                                            <td class="text-muted">{{ solicitud.despachador.username }} ({{ solicitud.fecha_despacho|date:"d/m/Y H:i" }})</td>
-                                        </tr>
-                                        {% endif %}
-                                    </tbody>
-                                </table>
+
+                            <div class="col-md-3">
+                                <div class="mb-2"><strong>Solicitante</strong></div>
+                                <div class="text-muted">{{ solicitud.solicitante.username }}</div>
+                                {% if solicitud.aprobador %}
+                                <div class="mt-2"><strong>Aprobador</strong></div>
+                                <div class="text-muted">{{ solicitud.aprobador.username }} <small class="text-muted">({{ solicitud.fecha_aprobacion|date:"d/m/Y H:i" }})</small></div>
+                                {% endif %}
+                                {% if solicitud.despachador %}
+                                <div class="mt-2"><strong>Despachador</strong></div>
+                                <div class="text-muted">{{ solicitud.despachador.username }} <small class="text-muted">({{ solicitud.fecha_despacho|date:"d/m/Y H:i" }})</small></div>
+                                {% endif %}
                             </div>
+
+                            <div class="col-md-6">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-1"><strong>Motivo</strong></div>
+                                        <div class="text-muted">{{ solicitud.motivo }}</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-1"><strong>Observaciones</strong></div>
+                                        <div class="text-muted">{{ solicitud.observaciones|default:"-" }}</div>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    {% if solicitud.notas_aprobacion %}
+                                    <div><strong>Notas de Aprobación</strong></div>
+                                    <div class="text-muted">{{ solicitud.notas_aprobacion }}</div>
+                                    {% endif %}
+                                    {% if solicitud.notas_despacho %}
+                                    <div class="mt-1"><strong>Notas de Despacho</strong></div>
+                                    <div class="text-muted">{{ solicitud.notas_despacho }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Acciones: mostrar acciones solo cuando el estado sea PENDIENTE -->
+                        <div class="row mt-3">
+                            <div class="col-12 text-end">
+                                <div class="d-flex justify-content-end gap-2">
+                                    {% if solicitud.estado %}
+                                        {% if solicitud.estado.codigo == 'PENDIENTE' or solicitud.estado.nombre|lower == 'pendiente' %}
+                                        {% if perms.solicitudes.change_solicitud and not solicitud.estado.es_final %}
+                                        <a href="{% url 'solicitudes:editar_solicitud' solicitud.pk %}" class="btn btn-sm btn-secondary">
+                                            <i class="ri-edit-line"></i> Editar
+                                        </a>
+                                        {% endif %}
+
+                                        {% if perms.solicitudes.despachar_solicitudes %}
+                                        <a href="{% url 'solicitudes:despachar_solicitud' solicitud.pk %}" class="btn btn-sm btn-info">
+                                            <i class="ri-truck-line"></i> Despachar
+                                        </a>
+                                        {% endif %}
+
+                                        {% if perms.solicitudes.rechazar_solicitud and not solicitud.estado.es_final %}
+                                        <a href="{% url 'solicitudes:rechazar_solicitud' solicitud.pk %}" class="btn btn-sm btn-warning">
+                                            <i class="ri-close-line"></i> Rechazar
+                                        </a>
+                                        {% endif %}
+
+                                        {% if perms.solicitudes.despachar_solicitudes %}
+                                        <button type="button" class="btn btn-sm btn-primary solicitud-comprar-btn" data-pk="{{ solicitud.pk }}">
+                                            <i class="ri-shopping-cart-line"></i> Comprar
+                                        </button>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endif %}
+                                </div>
+                            </div>
+                        </div>
                         </div>
 
                         <!-- Información de la Actividad -->
@@ -152,56 +140,9 @@
                         </div>
                         {% endif %}
 
-                        <!-- Estructura Organizacional -->
-                        {% if solicitud.departamento or solicitud.area %}
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <div class="alert alert-secondary border-0 mb-0">
-                                    <h6 class="alert-heading"><i class="ri-building-line me-2"></i>Estructura Organizacional</h6>
-                                    <div class="row">
-                                        {% if solicitud.departamento %}
-                                        <div class="col-md-6">
-                                            <p class="mb-0"><strong>Departamento:</strong> {{ solicitud.departamento.nombre }}</p>
-                                        </div>
-                                        {% endif %}
-                                        {% if solicitud.area %}
-                                        <div class="col-md-6">
-                                            <p class="mb-0"><strong>Área:</strong> {{ solicitud.area.nombre }}</p>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6>Motivo:</h6>
-                                <p class="text-muted">{{ solicitud.motivo }}</p>
-                            </div>
-                            {% if solicitud.observaciones %}
-                            <div class="col-12">
-                                <h6>Observaciones:</h6>
-                                <p class="text-muted">{{ solicitud.observaciones }}</p>
-                            </div>
-                            {% endif %}
-                            {% if solicitud.notas_aprobacion %}
-                            <div class="col-12">
-                                <h6>Notas de Aprobación:</h6>
-                                <p class="text-muted">{{ solicitud.notas_aprobacion }}</p>
-                            </div>
-                            {% endif %}
-                            {% if solicitud.notas_despacho %}
-                            <div class="col-12">
-                                <h6>Notas de Despacho:</h6>
-                                <p class="text-muted">{{ solicitud.notas_despacho }}</p>
-                            </div>
-                            {% endif %}
-                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
         <!-- Detalles de Artículos/Bienes -->
         <div class="row">
@@ -229,8 +170,10 @@
                                                 Bien/Activo
                                             {% endif %}
                                         </th>
-                                        <th>Unidad</th>
                                         <th>Cant. Solicitada</th>
+                                        {% if perms.solicitudes.despachar_solicitudes %}
+                                        <th>Stock Actual</th>
+                                        {% endif %}
                                         <th>Cant. Aprobada</th>
                                         <th>Cant. Despachada</th>
                                         <th>Observaciones</th>
@@ -241,18 +184,18 @@
                                     <tr>
                                         <td>{{ detalle.producto_codigo }}</td>
                                         <td>{{ detalle.producto_nombre }}</td>
+                                        <td>{{ detalle.cantidad_solicitada }}</td>
+                                        {% if perms.solicitudes.despachar_solicitudes %}
                                         <td>
                                             {% if detalle.articulo %}
-                                                {% for unidad in detalle.articulo.unidades_medida.all %}
-                                                    {{ unidad.simbolo }}{% if not forloop.last %}, {% endif %}
-                                                {% empty %}
-                                                    unidad
-                                                {% endfor %}
+                                                {{ detalle.articulo.stock|default:"-" }}
+                                            {% elif detalle.activo %}
+                                                {{ detalle.activo.stock|default:"-" }}
                                             {% else %}
-                                                {{ detalle.activo.unidad_medida.simbolo|default:"unidad" }}
+                                                -
                                             {% endif %}
                                         </td>
-                                        <td>{{ detalle.cantidad_solicitada }}</td>
+                                        {% endif %}
                                         <td>
                                             {% if detalle.cantidad_aprobada > 0 %}
                                                 <span class="badge bg-success">{{ detalle.cantidad_aprobada }}</span>
@@ -271,7 +214,11 @@
                                     </tr>
                                     {% empty %}
                                     <tr>
+                                        {% if perms.solicitudes.despachar_solicitudes %}
                                         <td colspan="7" class="text-center text-muted">
+                                        {% else %}
+                                        <td colspan="6" class="text-center text-muted">
+                                        {% endif %}
                                             {% if solicitud.tipo == 'ARTICULO' %}
                                                 No hay artículos en esta solicitud.
                                             {% else %}

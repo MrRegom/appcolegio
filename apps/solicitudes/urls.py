@@ -22,6 +22,7 @@ urlpatterns = [
     path('<int:pk>/aprobar/', views.SolicitudAprobarView.as_view(), name='aprobar_solicitud'),
     path('<int:pk>/rechazar/', views.SolicitudRechazarView.as_view(), name='rechazar_solicitud'),
     path('<int:pk>/despachar/', views.SolicitudDespacharView.as_view(), name='despachar_solicitud'),
+    path('<int:pk>/comprar/', views.SolicitudComprarView.as_view(), name='comprar_solicitud'),
 
     # ==================== CREACIÓN DE SOLICITUDES ====================
     # Solicitudes de Bienes (tipo=ACTIVO)

@@ -208,13 +208,9 @@ class AprobarSolicitudForm(forms.Form):
             for detalle in solicitud.detalles.all():
                 field_name = f'cantidad_aprobada_{detalle.id}'
                 # Obtener unidad de medida según tipo
-                if detalle.articulo:
-                    # Articulo tiene ManyToMany unidades_medida, obtener la primera o mostrar todas
-                    unidades = detalle.articulo.unidades_medida.all()
-                    if unidades.exists():
-                        unidad = ', '.join([u.simbolo for u in unidades])
-                    else:
-                        unidad = 'unidad'
+                if detalle.articulo and detalle.articulo.unidad_medida:
+                    # Articulo tiene ForeignKey a unidad_medida
+                    unidad = detalle.articulo.unidad_medida.simbolo
                 else:
                     # Los activos son bienes únicos sin unidad de medida
                     unidad = 'unidad'
@@ -261,13 +257,9 @@ class DespacharSolicitudForm(forms.Form):
                 max_cantidad = detalle.cantidad_aprobada if detalle.cantidad_aprobada > 0 else detalle.cantidad_solicitada
 
                 # Obtener unidad de medida según tipo
-                if detalle.articulo:
-                    # Articulo tiene ManyToMany unidades_medida, obtener la primera o mostrar todas
-                    unidades = detalle.articulo.unidades_medida.all()
-                    if unidades.exists():
-                        unidad = ', '.join([u.simbolo for u in unidades])
-                    else:
-                        unidad = 'unidad'
+                if detalle.articulo and detalle.articulo.unidad_medida:
+                    # Articulo tiene ForeignKey a unidad_medida
+                    unidad = detalle.articulo.unidad_medida.simbolo
                 else:
                     # Los activos son bienes únicos sin unidad de medida
                     unidad = 'unidad'

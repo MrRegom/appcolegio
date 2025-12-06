@@ -115,41 +115,14 @@
                                                             <i class="ri-eye-line align-bottom me-2"></i> Ver Detalle
                                                         </a>
                                                     </li>
-                                                    {% if perms.solicitudes.change_solicitud and solicitud.solicitante == user and not solicitud.estado.es_final %}
-                                                    <li>
-                                                        <a class="dropdown-item" href="{% url 'solicitudes:editar_solicitud_articulos' solicitud.pk %}">
-                                                            <i class="ri-edit-line align-bottom me-2"></i> Editar
-                                                        </a>
-                                                    </li>
-                                                    {% endif %}
-                                                    {% if perms.solicitudes.delete_solicitud and solicitud.solicitante == user and solicitud.estado.es_inicial %}
-                                                    <li>
-                                                        <a class="dropdown-item text-danger" href="{% url 'solicitudes:eliminar_solicitud' solicitud.pk %}">
-                                                            <i class="ri-delete-bin-line align-bottom me-2"></i> Eliminar
-                                                        </a>
-                                                    </li>
-                                                    {% endif %}
-                                                    {% if perms.solicitudes.aprobar_solicitud and not solicitud.aprobador %}
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    <li>
-                                                        <a class="dropdown-item text-success" href="{% url 'solicitudes:aprobar_solicitud' solicitud.pk %}">
-                                                            <i class="ri-check-line align-bottom me-2"></i> Aprobar
-                                                        </a>
-                                                    </li>
-                                                    {% endif %}
-                                                    {% if perms.solicitudes.rechazar_solicitud and not solicitud.estado.es_final %}
-                                                    <li>
-                                                        <a class="dropdown-item text-warning" href="{% url 'solicitudes:rechazar_solicitud' solicitud.pk %}">
-                                                            <i class="ri-close-line align-bottom me-2"></i> Rechazar
-                                                        </a>
-                                                    </li>
-                                                    {% endif %}
-                                                    {% if perms.solicitudes.despachar_solicitud and solicitud.aprobador and not solicitud.despachador %}
-                                                    <li>
-                                                        <a class="dropdown-item text-info" href="{% url 'solicitudes:despachar_solicitud' solicitud.pk %}">
-                                                            <i class="ri-truck-line align-bottom me-2"></i> Despachar
-                                                        </a>
-                                                    </li>
+                                                    {% if perms.solicitudes.change_solicitud and not solicitud.estado.es_final %}
+                                                        {% if solicitud.estado.codigo == 'PENDIENTE' or solicitud.estado.nombre|lower == 'pendiente' %}
+                                                        <li>
+                                                            <a class="dropdown-item" href="{% url 'solicitudes:editar_solicitud_articulos' solicitud.pk %}">
+                                                                <i class="ri-edit-line align-bottom me-2"></i> Editar
+                                                            </a>
+                                                        </li>
+                                                        {% endif %}
                                                     {% endif %}
                                                 </ul>
                                             </div>
